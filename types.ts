@@ -390,9 +390,12 @@ export class ConfigSys {
 		app: ObjectId;
 		_app: App;
 	}[];
-	s3: {
+	amazon: {
 		accessKeyId: string;
 		secretAccessKey: string;
+	};
+	google: {
+		apiKey: string;
 	}
 }
 

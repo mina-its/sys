@@ -475,12 +475,12 @@ function putFile(host, drive, filePath, file, done) {
             });
             break;
         case types_1.SourceType.S3:
-            if (!exports.mem.sysConfig.s3 || !exports.mem.sysConfig.s3.accessKeyId) {
+            if (!exports.mem.sysConfig.amazon || !exports.mem.sysConfig.amazon.accessKeyId) {
                 error('s3 accessKeyId, secretAccessKey is required in sysConfig!');
                 return done(types_1.StatusCode.SystemConfigurationProblem);
             }
-            AWS.config.accessKeyId = exports.mem.sysConfig.s3.accessKeyId;
-            AWS.config.secretAccessKey = exports.mem.sysConfig.s3.secretAccessKey;
+            AWS.config.accessKeyId = exports.mem.sysConfig.amazon.accessKeyId;
+            AWS.config.secretAccessKey = exports.mem.sysConfig.amazon.secretAccessKey;
             var s3 = new AWS.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion });
             s3.upload({ Bucket: drive.address, Key: path.basename(filePath), Body: file }, function (err, data) {
                 if (err || !data) {
