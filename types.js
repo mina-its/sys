@@ -39,14 +39,14 @@ var AuditType = (function () {
     return AuditType;
 }());
 exports.AuditType = AuditType;
-var Memory = (function () {
-    function Memory() {
+var Global = (function () {
+    function Global() {
         this.dbs = [];
         this.packages = {};
     }
-    return Memory;
+    return Global;
 }());
-exports.Memory = Memory;
+exports.Global = Global;
 var Entity = (function () {
     function Entity() {
         this._access = { "sys": {} };
@@ -183,18 +183,18 @@ var App = (function () {
     return App;
 }());
 exports.App = App;
-var ConfigSysPackage = (function () {
-    function ConfigSysPackage() {
+var SystemConfigPackage = (function () {
+    function SystemConfigPackage() {
     }
-    return ConfigSysPackage;
+    return SystemConfigPackage;
 }());
-exports.ConfigSysPackage = ConfigSysPackage;
-var ConfigSys = (function () {
-    function ConfigSys() {
+exports.SystemConfigPackage = SystemConfigPackage;
+var SystemConfig = (function () {
+    function SystemConfig() {
     }
-    return ConfigSys;
+    return SystemConfig;
 }());
-exports.ConfigSys = ConfigSys;
+exports.SystemConfig = SystemConfig;
 var Enum = (function () {
     function Enum() {
     }

@@ -57,8 +57,8 @@ export class AuditType {
 	disabled: boolean
 }
 
-export class Memory {
-	sysConfig: ConfigSys;
+export class Global {
+	sysConfig: SystemConfig;
 	dbs: any[] = []; // mongodb.Db
 	packages: { [id: string]: IPackage; } = {};
 	entities: Entity[];
@@ -377,13 +377,13 @@ export class App {
 	brandingLogo: string;
 }
 
-export class ConfigSysPackage {
+export class SystemConfigPackage {
 	name: string;
 	enabled: boolean;
 }
 
-export class ConfigSys {
-	packages: ConfigSysPackage[];
+export class SystemConfig {
+	packages: SystemConfigPackage[];
 	hosts: {
 		_id: ObjectId;
 		address: string;

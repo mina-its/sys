@@ -6,11 +6,11 @@ beforeAll(done => {
 });
 
 test('sys must be exist  ', () => {
-  expect(sys.mem.packages["sys"]).not.toBeNull();
+  expect(sys.glob.packages["sys"]).not.toBeNull();
 });
 
 test('sys must be exist  ', () => {
-  expect(sys.mem.packages["sys"]).not.toBeNull();
+  expect(sys.glob.packages["sys"]).not.toBeNull();
 });
 
 
