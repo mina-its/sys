@@ -1,0 +1,48 @@
+{
+  "name": "sys",
+  "version": "5.3.3",
+  "description": "mina sys package",
+  "main": "main.js",
+  "scripts": {
+    "test": "jest --watchAll"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js"
+    ],
+    "verbose": true
+  },
+  "repository": "private",
+  "author": "Farhad Jalali",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/async": "^2.4.2",
+    "@types/jest": "^25.1.1",
+    "@types/lodash": "^4.14.136",
+    "@types/mongodb": "^3.1.28",
+    "@types/node": "^13.7.0",
+    "jest": "^25.1.0"
+  },
+  "dependencies": {
+    "async": "^2.6.2",
+    "aws-sdk": "^2.611.0",
+    "bson": "^4.0.2",
+    "deepfake": "^1.0.0",
+    "docxtemplater": "^3.14.0",
+    "expect": "^25.1.0",
+    "fs-extra": "^8.1.0",
+    "graphlib": "^2.1.8",
+    "jalali-moment": "^3.3.3",
+    "jszip": "^3.2.2",
+    "lodash": "^4.17.14",
+    "moment": "^2.24.0",
+    "mongodb": "^3.3.2",
+    "numeral": "^2.0.6",
+    "saslprep": "^1.0.3",
+    "shelljs": "^0.8.3",
+    "ts-jest": "^25.2.0",
+    "uuid": "^3.3.2",
+    "winston": "^3.2.1",
+    "xmlbuilder": "^13.0.2"
+  }
+}
