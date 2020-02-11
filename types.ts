@@ -833,3 +833,19 @@ export interface IError {
 	code: StatusCode;
 	message: string;
 }
+
+export class UnitTestObject {
+	"_id": ObjectId;
+	"name": string;
+	"age": number;
+	"codes": StatusCode[];
+	"picture"?: FileInfo[];
+	"address": {
+		detail: {
+			"city": string
+			"street": string
+		},
+		location: GeoLocation
+	};
+	"birthday" : Date;
+}
