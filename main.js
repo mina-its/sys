@@ -134,6 +134,7 @@ function put(pack, objectName, item, options, done) {
     });
     if (!collection)
         return done(types_1.StatusCode.BadRequest);
+    item = item || {};
     if (!options || !options.portions || options.portions.length == 1) {
         if (item._id)
             collection.replaceOne({ _id: item._id }, item, function (err, result) {
