@@ -614,7 +614,7 @@
 12.0
 ],
 
-"viewMode":1
+"viewMode":0
 },
 
 {
@@ -3186,7 +3186,9 @@
 "$oid":"5db477d0fb6a673158018e03"
 },
 
-"reorderable":true
+"reorderable":true,
+
+"referType":9
 }
 ],
 
