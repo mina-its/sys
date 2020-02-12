@@ -920,7 +920,7 @@ export function initializeRoles(done) {
 	done();
 }
 
-function checkAppMenu(app: App) {
+export function checkAppMenu(app: App) {
 	if (app.menu) {
 		app._menu = _.find(glob.menus, (menu: Menu) => {
 			return menu._id.equals(app.menu);

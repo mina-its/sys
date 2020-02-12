@@ -822,6 +822,7 @@ function checkAppMenu(app) {
     if (!app._menu)
         warn("Menu for app '" + app.title + "' not found!");
 }
+exports.checkAppMenu = checkAppMenu;
 function initializePackages(done) {
     log("initializePackages: " + JSON.stringify(exports.glob.sysConfig.packages));
     exports.glob.apps = [];
