@@ -1,5 +1,5 @@
 ///<reference path="node_modules/@types/jest/index.d.ts"/>
-import {mem} from "./main";
+import {glob} from "./main";
 import {Constants, mObject, StatusCode, SysCollection, UnitTestObject} from "./types";
 import {ObjectId} from "bson";
 
@@ -32,8 +32,8 @@ beforeAll(done => {
 
 describe('reload test', () => {
   test('load sys config', () => {
-    expect(mem.dbs[Constants.sysPackage]).not.toBeNull();
-    expect(mem.dbs[Constants.sysPackage].collection(SysCollection.systemConfig)).not.toBeNull();
+    expect(glob.dbs[Constants.sysPackage]).not.toBeNull();
+    expect(glob.dbs[Constants.sysPackage].collection(SysCollection.systemConfig)).not.toBeNull();
   });
 
   test('initObject', () => {
