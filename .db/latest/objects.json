@@ -2632,10 +2632,10 @@
 },
 
 {
-"name":"s3",
+"name":"amazon",
 
 "title":{
-"en":"Amazon S3"
+"en":"Amazon"
 },
 
 "_z":1,
@@ -2683,6 +2683,40 @@
 ],
 
 "referType":9
+},
+
+{
+"name":"google",
+
+"title":{
+"en":"Google"
+},
+
+"_z":1,
+
+"_id":{
+"$oid":"5e42d2f9cdd26c2a3838402e"
+},
+
+"properties":[
+{
+"name":"apiKey",
+
+"title":{
+"en":"Api Key"
+},
+
+"type":{
+"$oid":"589f2d8bb16c7523543ae1b0"
+},
+
+"_z":null,
+
+"_id":{
+"$oid":"5e42d319cdd26c2a3838402f"
+}
+}
+]
 }
 ],
 

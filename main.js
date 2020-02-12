@@ -21,7 +21,7 @@ var AWS = require("aws-sdk");
 var mongodb_1 = require("mongodb");
 var types_1 = require("./types");
 var EJSON = require('bson').EJSON;
-exports.mem = new types_1.Memory();
+exports.glob = new types_1.Global();
 function reload(cn, done) {
     var startTime = moment();
     log("reload ...");
@@ -50,7 +50,7 @@ function start(callback) {
     });
     configureLogger(false);
     reload(null, function (err) {
-        callback(err, exports.mem);
+        callback(err, exports.glob);
     });
 }
 exports.start = start;
@@ -61,7 +61,7 @@ function audit(auditType, args) {
     args.type = args.type || new mongodb_1.ObjectId(auditType);
     args.time = new Date();
     var comment = args.comment || "";
-    var type = _.find(exports.mem.auditTypes, function (type) {
+    var type = _.find(exports.glob.auditTypes, function (type) {
         return type._id.equals(args.type);
     });
     var msg = "audit(" + (type ? type.name : args.type) + "): " + comment;
@@ -102,7 +102,7 @@ function run(cn, func) {
 }
 exports.run = run;
 function get(pack, objectName, options, done) {
-    var db = exports.mem.dbs[pack];
+    var db = exports.glob.dbs[pack];
     if (!db)
         return done("db for pack '" + pack + "' not found.", null);
     options = options || {};
@@ -129,11 +129,12 @@ function get(pack, objectName, options, done) {
 }
 exports.get = get;
 function put(pack, objectName, item, options, done) {
-    var collection = exports.mem.dbs[pack].collection(objectName);
+    var collection = exports.glob.dbs[pack].collection(objectName);
     done = done || (function () {
     });
     if (!collection)
         return done(types_1.StatusCode.BadRequest);
+    item = item || {};
     if (!options || !options.portions || options.portions.length == 1) {
         if (item._id)
             collection.replaceOne({ _id: item._id }, item, function (err, result) {
@@ -209,7 +210,7 @@ exports.put = put;
 function portionsToMongoPath(pack, rootId, portions, endIndex, done) {
     if (endIndex == 3)
         return done(null, portions[2].property.name);
-    var collection = exports.mem.dbs[pack].collection(portions[0].value);
+    var collection = exports.glob.dbs[pack].collection(portions[0].value);
     if (!collection)
         return done(types_1.StatusCode.BadRequest);
     collection.findOne({ _id: rootId }, function (err, item) {
@@ -266,13 +267,13 @@ function extractRefPortions(pack, appDependencies, ref, _default) {
         for (var i = 1; i < portions_1.length; i++) {
             portions_1[i].pre = portions_1[i - 1];
         }
-        var entity = _.find(exports.mem.entities, function (entity) {
+        var entity = _.find(exports.glob.entities, function (entity) {
             return entity._id.toString() === portions_1[0].value;
         });
         if (!entity)
-            entity = _.find(exports.mem.entities, { _package: pack, name: portions_1[0].value });
+            entity = _.find(exports.glob.entities, { _package: pack, name: portions_1[0].value });
         if (!entity)
-            entity = _.find(exports.mem.entities, function (entity) {
+            entity = _.find(exports.glob.entities, function (entity) {
                 return entity.name === portions_1[0].value && appDependencies.indexOf(entity._package) > -1;
             });
         if (entity) {
@@ -313,7 +314,7 @@ function extractRefPortions(pack, appDependencies, ref, _default) {
 }
 exports.extractRefPortions = extractRefPortions;
 function patch(pack, objectName, patchData, options, done) {
-    var collection = exports.mem.dbs[pack].collection(objectName);
+    var collection = exports.glob.dbs[pack].collection(objectName);
     done = done || (function () {
     });
     if (!collection)
@@ -358,7 +359,7 @@ function patch(pack, objectName, patchData, options, done) {
 }
 exports.patch = patch;
 function del(pack, objectName, options, done) {
-    var collection = exports.mem.dbs[pack].collection(objectName);
+    var collection = exports.glob.dbs[pack].collection(objectName);
     if (!collection || !options)
         return done(types_1.StatusCode.BadRequest);
     if (options.itemId)
@@ -431,7 +432,7 @@ function getFile(drive, filePath, done) {
             });
             break;
         case types_1.SourceType.Db:
-            var db = exports.mem.dbs[drive._package];
+            var db = exports.glob.dbs[drive._package];
             var bucket = new mongodb.GridFSBucket(db);
             var stream = bucket.openDownloadStreamByName(filePath);
             var data_1;
@@ -464,7 +465,7 @@ function putFile(host, drive, filePath, file, done) {
             });
             break;
         case types_1.SourceType.Db:
-            var db = exports.mem.dbs[host];
+            var db = exports.glob.dbs[host];
             var bucket = new mongodb.GridFSBucket(db);
             var stream_1 = bucket.openUploadStream(filePath);
             delFile(host, filePath, function () {
@@ -475,12 +476,12 @@ function putFile(host, drive, filePath, file, done) {
             });
             break;
         case types_1.SourceType.S3:
-            if (!exports.mem.sysConfig.s3 || !exports.mem.sysConfig.s3.accessKeyId) {
+            if (!exports.glob.sysConfig.amazon || !exports.glob.sysConfig.amazon.accessKeyId) {
                 error('s3 accessKeyId, secretAccessKey is required in sysConfig!');
                 return done(types_1.StatusCode.SystemConfigurationProblem);
             }
-            AWS.config.accessKeyId = exports.mem.sysConfig.s3.accessKeyId;
-            AWS.config.secretAccessKey = exports.mem.sysConfig.s3.secretAccessKey;
+            AWS.config.accessKeyId = exports.glob.sysConfig.amazon.accessKeyId;
+            AWS.config.secretAccessKey = exports.glob.sysConfig.amazon.secretAccessKey;
             var s3 = new AWS.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion });
             s3.upload({ Bucket: drive.address, Key: path.basename(filePath), Body: file }, function (err, data) {
                 if (err || !data) {
@@ -585,14 +586,14 @@ exports.isRtl = isRtl;
 function loadGeneralCollections(done) {
     log('loadGeneralCollections ...');
     get(types_1.Constants.sysPackage, types_1.Constants.timeZonesCollection, null, function (err, timeZones) {
-        exports.mem.timeZones = timeZones;
+        exports.glob.timeZones = timeZones;
         get(types_1.Constants.sysPackage, types_1.SysCollection.objects, {
             query: { name: types_1.Constants.systemPropertiesObjectName },
             count: 1
         }, function (err, result) {
             if (!result)
                 emerg('systemProperties object not found!');
-            exports.mem.systemProperties = result ? result.properties : [];
+            exports.glob.systemProperties = result ? result.properties : [];
             done();
         });
     });
@@ -600,12 +601,12 @@ function loadGeneralCollections(done) {
 function loadAuditTypes(done) {
     log('loadAuditTypes ...');
     get(types_1.Constants.sysPackage, types_1.SysCollection.auditTypes, null, function (err, auditTypes) {
-        exports.mem.auditTypes = auditTypes;
+        exports.glob.auditTypes = auditTypes;
         done();
     });
 }
 function getEnabledPackages() {
-    return exports.mem.sysConfig.packages.filter(function (pack) {
+    return exports.glob.sysConfig.packages.filter(function (pack) {
         return pack.enabled;
     });
 }
@@ -613,16 +614,16 @@ function loadSysConfig(done) {
     connect(types_1.Constants.sysPackage, function (err) {
         if (err)
             return done(err);
-        exports.mem.dbs[types_1.Constants.sysPackage].collection(types_1.SysCollection.systemConfig).findOne({}, function (err, config) {
-            exports.mem.sysConfig = config;
+        exports.glob.dbs[types_1.Constants.sysPackage].collection(types_1.SysCollection.systemConfig).findOne({}, function (err, config) {
+            exports.glob.sysConfig = config;
             for (var _i = 0, _a = getEnabledPackages(); _i < _a.length; _i++) {
                 var pack = _a[_i];
-                exports.mem.packages[pack.name] = require("../" + pack.name + "/main");
-                if (exports.mem.packages[pack.name] == null)
+                exports.glob.packages[pack.name] = require("../" + pack.name + "/main");
+                if (exports.glob.packages[pack.name] == null)
                     error("Error loading package " + pack.name + "!");
                 else {
                     var p = require("../" + pack.name + "/package.json");
-                    exports.mem.packages[pack.name]._version = p.version;
+                    exports.glob.packages[pack.name]._version = p.version;
                     log("package '" + pack.name + "' loaded. version: " + p.version);
                 }
             }
@@ -631,11 +632,11 @@ function loadSysConfig(done) {
     });
 }
 function loadSystemCollections(done) {
-    exports.mem.entities = [];
-    exports.mem.dictionary = {};
-    exports.mem.menus = [];
-    exports.mem.roles = [];
-    exports.mem.drives = [];
+    exports.glob.entities = [];
+    exports.glob.dictionary = {};
+    exports.glob.menus = [];
+    exports.glob.roles = [];
+    exports.glob.drives = [];
     if (!process.env.DB_ADDRESS)
         return done("Environment variable 'DB_ADDRESS' is needed!");
     async.eachSeries(getEnabledPackages(), function (packConfig, nextPackage) {
@@ -646,84 +647,84 @@ function loadSystemCollections(done) {
             log("Loading system collections package '" + pack + "' ...");
             async.series([
                 function (next) {
-                    exports.mem.dbs[pack].collection(types_1.SysCollection.configs).findOne(null, function (err, config) {
+                    exports.glob.dbs[pack].collection(types_1.SysCollection.configs).findOne(null, function (err, config) {
                         if (!config) {
                             packConfig.enabled = false;
                             error("Config for package '" + pack + "' not found!");
                         }
                         else
-                            exports.mem.packages[pack]._config = config;
+                            exports.glob.packages[pack]._config = config;
                         next();
                     });
                 },
                 function (next) {
-                    exports.mem.dbs[pack].collection(types_1.SysCollection.objects).find({}).toArray(function (err, objects) {
+                    exports.glob.dbs[pack].collection(types_1.SysCollection.objects).find({}).toArray(function (err, objects) {
                         for (var _i = 0, objects_1 = objects; _i < objects_1.length; _i++) {
                             var object = objects_1[_i];
                             object._package = pack;
                             object.entityType = types_1.EntityType.Object;
-                            exports.mem.entities.push(object);
+                            exports.glob.entities.push(object);
                         }
                         next();
                     });
                 },
                 function (next) {
-                    exports.mem.dbs[pack].collection(types_1.SysCollection.functions).find({}).toArray(function (err, functions) {
+                    exports.glob.dbs[pack].collection(types_1.SysCollection.functions).find({}).toArray(function (err, functions) {
                         for (var _i = 0, functions_1 = functions; _i < functions_1.length; _i++) {
                             var func = functions_1[_i];
                             func._package = pack;
                             func.entityType = types_1.EntityType.Function;
-                            exports.mem.entities.push(func);
+                            exports.glob.entities.push(func);
                         }
                         next();
                     });
                 },
                 function (next) {
-                    exports.mem.dbs[pack].collection(types_1.SysCollection.views).find({}).toArray(function (err, views) {
+                    exports.glob.dbs[pack].collection(types_1.SysCollection.views).find({}).toArray(function (err, views) {
                         for (var _i = 0, views_1 = views; _i < views_1.length; _i++) {
                             var view = views_1[_i];
                             view._package = pack;
                             view.entityType = types_1.EntityType.View;
-                            exports.mem.entities.push(view);
+                            exports.glob.entities.push(view);
                         }
                         next();
                     });
                 },
                 function (next) {
-                    exports.mem.dbs[pack].collection(types_1.SysCollection.dictionary).find({}).toArray(function (err, texts) {
+                    exports.glob.dbs[pack].collection(types_1.SysCollection.dictionary).find({}).toArray(function (err, texts) {
                         for (var _i = 0, texts_1 = texts; _i < texts_1.length; _i++) {
                             var item = texts_1[_i];
-                            exports.mem.dictionary[pack + "." + item.name] = item.text;
+                            exports.glob.dictionary[pack + "." + item.name] = item.text;
                         }
                         next();
                     });
                 },
                 function (next) {
-                    exports.mem.dbs[pack].collection(types_1.SysCollection.menus).find({}).toArray(function (err, menus) {
+                    exports.glob.dbs[pack].collection(types_1.SysCollection.menus).find({}).toArray(function (err, menus) {
                         for (var _i = 0, menus_1 = menus; _i < menus_1.length; _i++) {
                             var menu = menus_1[_i];
                             menu._package = pack;
-                            exports.mem.menus.push(menu);
+                            exports.glob.menus.push(menu);
                         }
                         next();
                     });
                 },
                 function (next) {
-                    exports.mem.dbs[pack].collection(types_1.SysCollection.roles).find({}).toArray(function (err, roles) {
+                    exports.glob.dbs[pack].collection(types_1.SysCollection.roles).find({}).toArray(function (err, roles) {
                         for (var _i = 0, roles_1 = roles; _i < roles_1.length; _i++) {
                             var role = roles_1[_i];
                             role._package = pack;
-                            exports.mem.roles.push(role);
+                            exports.glob.roles.push(role);
                         }
                         next();
                     });
                 },
                 function (next) {
-                    exports.mem.dbs[pack].collection(types_1.SysCollection.drives).find({}).toArray(function (err, drives) {
+                    exports.glob.dbs[pack].collection(types_1.SysCollection.drives).find({}).toArray(function (err, drives) {
                         for (var _i = 0, drives_1 = drives; _i < drives_1.length; _i++) {
                             var drive = drives_1[_i];
                             drive._package = pack;
-                            exports.mem.drives.push(drive);
+                            exports.glob.drives.push(drive);
                         }
                         next();
                     });
@@ -789,7 +790,7 @@ function validateApp(pack, app) {
 }
 function initializeRoles(done) {
     var g = new graphlib.Graph();
-    for (var _i = 0, _a = exports.mem.roles; _i < _a.length; _i++) {
+    for (var _i = 0, _a = exports.glob.roles; _i < _a.length; _i++) {
         var role = _a[_i];
         g.setNode(role._id.toString());
         for (var _b = 0, _c = role.roles || []; _b < _c.length; _b++) {
@@ -797,7 +798,7 @@ function initializeRoles(done) {
             g.setEdge(role._id.toString(), subRole.toString());
         }
     }
-    for (var _d = 0, _e = exports.mem.roles; _d < _e.length; _d++) {
+    for (var _d = 0, _e = exports.glob.roles; _d < _e.length; _d++) {
         var role = _e[_d];
         var result = graphlib.alg.postorder(g, role._id.toString());
         role.roles = result.map(function (item) {
@@ -809,12 +810,12 @@ function initializeRoles(done) {
 exports.initializeRoles = initializeRoles;
 function checkAppMenu(app) {
     if (app.menu) {
-        app._menu = _.find(exports.mem.menus, function (menu) {
+        app._menu = _.find(exports.glob.menus, function (menu) {
             return menu._id.equals(app.menu);
         });
     }
     else {
-        app._menu = _.find(exports.mem.menus, function (menu) {
+        app._menu = _.find(exports.glob.menus, function (menu) {
             return menu._package == app._package;
         });
     }
@@ -822,18 +823,18 @@ function checkAppMenu(app) {
         warn("Menu for app '" + app.title + "' not found!");
 }
 function initializePackages(done) {
-    log("initializePackages: " + JSON.stringify(exports.mem.sysConfig.packages));
-    exports.mem.apps = [];
+    log("initializePackages: " + JSON.stringify(exports.glob.sysConfig.packages));
+    exports.glob.apps = [];
     getEnabledPackages().forEach(function (pack) {
-        var config = exports.mem.packages[pack.name]._config;
+        var config = exports.glob.packages[pack.name]._config;
         var _loop_2 = function (app) {
             app._package = pack.name;
             app.dependencies = app.dependencies || [];
             app.dependencies.push(types_1.Constants.sysPackage);
             checkAppMenu(app);
             if (validateApp(pack.name, app)) {
-                exports.mem.apps.push(app);
-                var host = exports.mem.sysConfig.hosts.filter(function (host) {
+                exports.glob.apps.push(app);
+                var host = exports.glob.sysConfig.hosts.filter(function (host) {
                     return host.app.equals(app._id);
                 }).pop();
                 if (host)
@@ -925,7 +926,7 @@ function checkPropertyGtype(prop, entity) {
 }
 function connect(dbName, callback) {
     try {
-        if (exports.mem.dbs[dbName])
+        if (exports.glob.dbs[dbName])
             return callback();
         if (!process.env.DB_ADDRESS) {
             return callback("Environment variable 'DB_ADDRESS' is needed.");
@@ -937,7 +938,7 @@ function connect(dbName, callback) {
                 callback(err);
             }
             else {
-                exports.mem.dbs[dbName] = dbc.db(dbName);
+                exports.glob.dbs[dbName] = dbc.db(dbName);
                 callback();
             }
         });
@@ -949,19 +950,19 @@ function connect(dbName, callback) {
 }
 exports.connect = connect;
 function getDatabase(db, callback) {
-    if (exports.mem.dbs[db])
-        return callback(null, exports.mem.dbs[db]);
+    if (exports.glob.dbs[db])
+        return callback(null, exports.glob.dbs[db]);
     connect(db, function (err) {
         if (err)
             return callback(err);
-        callback(null, exports.mem.dbs[db]);
+        callback(null, exports.glob.dbs[db]);
     });
 }
 exports.getDatabase = getDatabase;
 function findEnum(type) {
     if (!type)
         return null;
-    return _.find(exports.mem.enums, function (enm) {
+    return _.find(exports.glob.enums, function (enm) {
         return enm._id.equals(type);
     });
 }
@@ -969,7 +970,7 @@ exports.findEnum = findEnum;
 function findEntity(id) {
     if (!id)
         return null;
-    return _.find(exports.mem.entities, function (a) {
+    return _.find(exports.glob.entities, function (a) {
         return a._id.toString() == id.toString();
     });
 }
@@ -990,7 +991,7 @@ exports.sort = sort;
 function getEnumItemName(enumName, val) {
     if (val === null)
         return null;
-    var theEnum = _.find(exports.mem.enums, function (enm) {
+    var theEnum = _.find(exports.glob.enums, function (enm) {
         return enm.name === enumName;
     });
     if (!theEnum)
@@ -1001,18 +1002,18 @@ function getEnumItemName(enumName, val) {
 exports.getEnumItemName = getEnumItemName;
 function initializeEnums(callback) {
     log('initializeEnums ...');
-    exports.mem.enums = [];
-    exports.mem.enumTexts = {};
+    exports.glob.enums = [];
+    exports.glob.enumTexts = {};
     async.eachSeries(getEnabledPackages(), function (pack, next) {
         get(pack.name, types_1.SysCollection.enums, null, function (err, enums) {
             enums.forEach(function (theEnum) {
                 theEnum._package = pack.name;
-                exports.mem.enums.push(theEnum);
+                exports.glob.enums.push(theEnum);
                 var texts = {};
                 _.sortBy(theEnum.items, "_z").forEach(function (item) {
                     texts[item.value] = item.title || item.name;
                 });
-                exports.mem.enumTexts[pack.name + "." + theEnum.name] = texts;
+                exports.glob.enumTexts[pack.name + "." + theEnum.name] = texts;
             });
             next();
         });
@@ -1020,15 +1021,15 @@ function initializeEnums(callback) {
 }
 exports.initializeEnums = initializeEnums;
 function allObjects() {
-    return _.filter(exports.mem.entities, { entityType: types_1.EntityType.Object });
+    return _.filter(exports.glob.entities, { entityType: types_1.EntityType.Object });
 }
 exports.allObjects = allObjects;
 function allFunctions() {
-    return _.filter(exports.mem.entities, { entityType: types_1.EntityType.Function });
+    return _.filter(exports.glob.entities, { entityType: types_1.EntityType.Function });
 }
 exports.allFunctions = allFunctions;
 function allViews() {
-    return _.filter(exports.mem.entities, { entityType: types_1.EntityType.View });
+    return _.filter(exports.glob.entities, { entityType: types_1.EntityType.View });
 }
 function initializeEntities(callback) {
     try {
@@ -1063,7 +1064,7 @@ function initProperties(properties, entity, parentTitle) {
         return;
     for (var _i = 0, properties_1 = properties; _i < properties_1.length; _i++) {
         var prop = properties_1[_i];
-        var sysProperty = _.find(exports.mem.systemProperties, { name: prop.name });
+        var sysProperty = _.find(exports.glob.systemProperties, { name: prop.name });
         if (sysProperty)
             _.defaultsDeep(prop, sysProperty);
         prop.group = prop.group || parentTitle;
@@ -1183,7 +1184,7 @@ function getText(cn, text, useDictionary) {
     if (!text)
         return "";
     if (typeof text == "string" && useDictionary)
-        text = exports.mem.dictionary[cn.pack + "." + text] || exports.mem.dictionary["sys." + text] || text;
+        text = exports.glob.dictionary[cn.pack + "." + text] || exports.glob.dictionary["sys." + text] || text;
     if (typeof text == "string")
         return text;
     var localeName = types_1.Locale[cn.locale];
@@ -1204,9 +1205,9 @@ function getEnumText(thePackage, dependencies, enumType, value, locale) {
 }
 exports.getEnumText = getEnumText;
 function getEnumByName(thePackage, dependencies, enumType) {
-    var theEnum = exports.mem.enumTexts[thePackage + "." + enumType];
+    var theEnum = exports.glob.enumTexts[thePackage + "." + enumType];
     for (var i = 0; !theEnum && i < dependencies.length; i++) {
-        theEnum = exports.mem.enumTexts[dependencies[i] + "." + enumType];
+        theEnum = exports.glob.enumTexts[dependencies[i] + "." + enumType];
     }
     return theEnum;
 }
@@ -1225,7 +1226,7 @@ exports.createEnumDataSource = createEnumDataSource;
 function getEnumsTexts(thePackage, enumType, values, locale) {
     if (values == null)
         return null;
-    var theEnum = exports.mem.enumTexts[thePackage + "." + enumType];
+    var theEnum = exports.glob.enumTexts[thePackage + "." + enumType];
     if (!theEnum)
         return null;
     var texts = [];
@@ -1351,7 +1352,7 @@ function jsonReplacer(key, value) {
 }
 exports.jsonReplacer = jsonReplacer;
 function aggergate(pack, objectName, query, callback) {
-    var collection = exports.mem.dbs[pack].collection(objectName);
+    var collection = exports.glob.dbs[pack].collection(objectName);
     return collection.aggregate(query).toArray(callback);
 }
 exports.aggergate = aggergate;
@@ -1398,7 +1399,7 @@ function getTypes(cn, done) {
         var title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
         return { ref: ent._id, title: title };
     });
-    var enums = exports.mem.enums.map(function (ent) {
+    var enums = exports.glob.enums.map(function (ent) {
         var title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
         return { ref: ent._id, title: title };
     });
@@ -1414,7 +1415,7 @@ function getTypes(cn, done) {
 }
 exports.getTypes = getTypes;
 function getAllEntities(cn, done) {
-    var entities = exports.mem.entities.map(function (ent) {
+    var entities = exports.glob.entities.map(function (ent) {
         var title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
         return { ref: ent._id, title: title };
     });
@@ -1622,7 +1623,7 @@ function invoke(cn, func, args, done) {
             if (func._package == types_1.Constants.sysPackage)
                 action = require("../web/main")[func.name];
             if (!action) {
-                var app = _.find(exports.mem.apps, { _package: cn.pack });
+                var app = _.find(exports.glob.apps, { _package: cn.pack });
                 for (var _i = 0, _a = app.dependencies; _i < _a.length; _i++) {
                     var pack = _a[_i];
                     action = require("../" + pack + "/main")[func.name];

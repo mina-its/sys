@@ -14,7 +14,7 @@
   },
   "repository": "private",
   "author": "Farhad Jalali",
-  "license": "ISC",
+  "license": "Apache License",
   "devDependencies": {
     "@types/async": "^2.4.2",
     "@types/jest": "^25.1.1",

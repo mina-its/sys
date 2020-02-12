@@ -14,8 +14,8 @@ import {
 	App,
 	AuditArgs,
 	AuditType,
-	ConfigSys,
-	ConfigSysPackage,
+	SystemConfig,
+	SystemConfigPackage,
 	Constants,
 	Context,
 	DelOptions,
@@ -31,7 +31,7 @@ import {
 	GlobalType,
 	Locale,
 	LogLevel,
-	Memory,
+	Global,
 	Menu,
 	mObject,
 	ObjectModifyState,
@@ -56,7 +56,7 @@ import {
 
 const {EJSON} = require('bson');
 
-export let mem = new Memory();
+export let glob = new Global();
 
 export function reload(cn: Context, done: (err) => void) {
 	let startTime = moment();
@@ -77,7 +77,7 @@ export function reload(cn: Context, done: (err) => void) {
 	});
 }
 
-export function start(callback: (err, mem) => void) {
+export function start(callback: (err, glob: Global) => void) {
 	process.on('uncaughtException', function (err) {
 		audit(SysAuditTypes.uncaughtException, {level: LogLevel.Emerg, comment: err.message + ". " + err.stack});
 	});
@@ -89,7 +89,7 @@ export function start(callback: (err, mem) => void) {
 	configureLogger(false);
 
 	reload(null, (err) => {
-		callback(err, mem);
+		callback(err, glob);
 	});
 }
 
@@ -101,7 +101,7 @@ export function audit(auditType: string, args: AuditArgs) {
 	args.type = args.type || new ObjectId(auditType);
 	args.time = new Date();
 	let comment = args.comment || "";
-	let type = _.find(mem.auditTypes, (type: AuditType) => {
+	let type = _.find(glob.auditTypes, (type: AuditType) => {
 		return type._id.equals(args.type)
 	});
 	let msg = "audit(" + (type ? type.name : args.type) + "): " + comment;
@@ -150,7 +150,7 @@ export function run(cn, func: string, ...args) {
  *          last?: boolean;
  */
 export function get(pack: string, objectName: string, options: GetOptions, done: (err, result?) => void) {
-	let db = mem.dbs[pack];
+	let db = glob.dbs[pack];
 	if (!db) return done(`db for pack '${pack}' not found.`, null);
 	options = options || {} as GetOptions;
 	let collection = db.collection(objectName);
@@ -173,11 +173,12 @@ export function get(pack: string, objectName: string, options: GetOptions, done:
 }
 
 export function put(pack: string, objectName: string, item: any, options?: PutOptions, done?: (status: StatusCode, result?: ObjectModifyState) => void) {
-	let collection = mem.dbs[pack].collection(objectName);
+	let collection = glob.dbs[pack].collection(objectName);
 	done = done || (() => {
 	});
 	if (!collection) return done(StatusCode.BadRequest);
 
+	item = item || {};
 	if (!options || !options.portions || options.portions.length == 1) {
 		if (item._id)
 			collection.replaceOne({_id: item._id}, item, (err, result) => {
@@ -252,7 +253,7 @@ export function portionsToMongoPath(pack: string, rootId: ObjectId, portions: Re
 	if (endIndex == 3) // not need to fetch data
 		return done(null, portions[2].property.name);
 
-	let collection = mem.dbs[pack].collection(portions[0].value);
+	let collection = glob.dbs[pack].collection(portions[0].value);
 	if (!collection) return done(StatusCode.BadRequest);
 
 	collection.findOne({_id: rootId}, (err, item) => {
@@ -304,13 +305,13 @@ export function extractRefPortions(pack: string, appDependencies: string[], ref:
 			portions[i].pre = portions[i - 1];
 		}
 
-		let entity: Entity = _.find(mem.entities, (entity) => {
+		let entity: Entity = _.find(glob.entities, (entity) => {
 			return entity._id.toString() === portions[0].value
 		});
 		if (!entity)
-			entity = _.find(mem.entities, {_package: pack, name: portions[0].value});
+			entity = _.find(glob.entities, {_package: pack, name: portions[0].value});
 		if (!entity)
-			entity = _.find(mem.entities, (entity) => {
+			entity = _.find(glob.entities, (entity) => {
 				return entity.name === portions[0].value && appDependencies.indexOf(entity._package) > -1;
 			});
 
@@ -351,7 +352,7 @@ export function extractRefPortions(pack: string, appDependencies: string[], ref:
 }
 
 export function patch(pack: string, objectName: string, patchData: any, options?: PutOptions, done?: (status: StatusCode, result?: ObjectModifyState) => void) {
-	let collection = mem.dbs[pack].collection(objectName);
+	let collection = glob.dbs[pack].collection(objectName);
 	done = done || (() => {
 	});
 	if (!collection) return done(StatusCode.BadRequest);
@@ -395,7 +396,7 @@ export function patch(pack: string, objectName: string, patchData: any, options?
 }
 
 export function del(pack: string, objectName: string, options?: DelOptions, done?: (status: StatusCode, result?: ObjectModifyState) => void) {
-	let collection = mem.dbs[pack].collection(objectName);
+	let collection = glob.dbs[pack].collection(objectName);
 	if (!collection || !options) return done(StatusCode.BadRequest);
 
 	if (options.itemId)
@@ -469,7 +470,7 @@ export function getFile(drive: Drive, filePath: string, done: (err: StatusCode, 
 			break;
 
 		case SourceType.Db:
-			let db = mem.dbs[drive._package];
+			let db = glob.dbs[drive._package];
 			let bucket = new mongodb.GridFSBucket(db);
 			let stream = bucket.openDownloadStreamByName(filePath);
 			let data: Buffer;
@@ -502,7 +503,7 @@ export function putFile(host: string, drive: Drive, filePath: string, file: Buff
 			break;
 
 		case SourceType.Db:
-			let db = mem.dbs[host];
+			let db = glob.dbs[host];
 			let bucket = new mongodb.GridFSBucket(db);
 			let stream = bucket.openUploadStream(filePath);
 			delFile(host, filePath, () => {
@@ -514,13 +515,13 @@ export function putFile(host: string, drive: Drive, filePath: string, file: Buff
 			break;
 
 		case SourceType.S3:
-			if (!mem.sysConfig.s3 || !mem.sysConfig.s3.accessKeyId) {
+			if (!glob.sysConfig.amazon || !glob.sysConfig.amazon.accessKeyId) {
 				error('s3 accessKeyId, secretAccessKey is required in sysConfig!');
 				return done(StatusCode.SystemConfigurationProblem);
 			}
 
-			AWS.config.accessKeyId = mem.sysConfig.s3.accessKeyId;
-			AWS.config.secretAccessKey = mem.sysConfig.s3.secretAccessKey;
+			AWS.config.accessKeyId = glob.sysConfig.amazon.accessKeyId;
+			AWS.config.secretAccessKey = glob.sysConfig.amazon.secretAccessKey;
 			let s3 = new AWS.S3({apiVersion: Constants.amazonS3ApiVersion});
 			s3.upload({Bucket: drive.address, Key: path.basename(filePath), Body: file}, function (err, data) {
 				if (err || !data) {
@@ -688,7 +689,7 @@ function loadGeneralCollections(done) {
 	log('loadGeneralCollections ...');
 
 	get(Constants.sysPackage, Constants.timeZonesCollection, null, (err, timeZones) => {
-		mem.timeZones = timeZones;
+		glob.timeZones = timeZones;
 
 		get(Constants.sysPackage, SysCollection.objects, {
 			query: {name: Constants.systemPropertiesObjectName},
@@ -696,7 +697,7 @@ function loadGeneralCollections(done) {
 		}, (err, result: mObject) => {
 			if (!result)
 				emerg('systemProperties object not found!');
-			mem.systemProperties = result ? result.properties : [];
+			glob.systemProperties = result ? result.properties : [];
 			done();
 		});
 	});
@@ -706,13 +707,13 @@ function loadAuditTypes(done) {
 	log('loadAuditTypes ...');
 
 	get(Constants.sysPackage, SysCollection.auditTypes, null, (err, auditTypes) => {
-		mem.auditTypes = auditTypes;
+		glob.auditTypes = auditTypes;
 		done();
 	});
 }
 
-function getEnabledPackages(): ConfigSysPackage[] {
-	return mem.sysConfig.packages.filter((pack) => {
+function getEnabledPackages(): SystemConfigPackage[] {
+	return glob.sysConfig.packages.filter((pack) => {
 		return pack.enabled;
 	});
 }
@@ -721,15 +722,15 @@ function loadSysConfig(done) {
 	connect(Constants.sysPackage, (err) => {
 		if (err) return done(err);
 
-		mem.dbs[Constants.sysPackage].collection(SysCollection.systemConfig).findOne({}, (err, config: ConfigSys) => {
-			mem.sysConfig = config;
+		glob.dbs[Constants.sysPackage].collection(SysCollection.systemConfig).findOne({}, (err, config: SystemConfig) => {
+			glob.sysConfig = config;
 			for (let pack of getEnabledPackages()) {
-				mem.packages[pack.name] = require(`../${pack.name}/main`);
-				if (mem.packages[pack.name] == null)
+				glob.packages[pack.name] = require(`../${pack.name}/main`);
+				if (glob.packages[pack.name] == null)
 					error(`Error loading package ${pack.name}!`);
 				else {
 					let p = require(`../${pack.name}/package.json`);
-					mem.packages[pack.name]._version = p.version;
+					glob.packages[pack.name]._version = p.version;
 					log(`package '${pack.name}' loaded. version: ${p.version}`);
 				}
 			}
@@ -739,11 +740,11 @@ function loadSysConfig(done) {
 }
 
 function loadSystemCollections(done) {
-	mem.entities = [];
-	mem.dictionary = {};
-	mem.menus = [];
-	mem.roles = [];
-	mem.drives = [];
+	glob.entities = [];
+	glob.dictionary = {};
+	glob.menus = [];
+	glob.roles = [];
+	glob.drives = [];
 
 	if (!process.env.DB_ADDRESS)
 		return done("Environment variable 'DB_ADDRESS' is needed!");
@@ -756,76 +757,76 @@ function loadSystemCollections(done) {
 			log(`Loading system collections package '${pack}' ...`);
 			async.series([
 				(next) => {
-					mem.dbs[pack].collection(SysCollection.configs).findOne(null, (err, config: PackageConfig) => {
+					glob.dbs[pack].collection(SysCollection.configs).findOne(null, (err, config: PackageConfig) => {
 						if (!config) {
 							packConfig.enabled = false;
 							error(`Config for package '${pack}' not found!`);
 						} else
-							mem.packages[pack]._config = config;
+							glob.packages[pack]._config = config;
 						next();
 					});
 				},
 				(next) => {
-					mem.dbs[pack].collection(SysCollection.objects).find({}).toArray((err, objects: mObject[]) => {
+					glob.dbs[pack].collection(SysCollection.objects).find({}).toArray((err, objects: mObject[]) => {
 						for (let object of objects) {
 							object._package = pack;
 							object.entityType = EntityType.Object;
-							mem.entities.push(object);
+							glob.entities.push(object);
 						}
 						next();
 					});
 				},
 				(next) => {
-					mem.dbs[pack].collection(SysCollection.functions).find({}).toArray((err, functions: Function[]) => {
+					glob.dbs[pack].collection(SysCollection.functions).find({}).toArray((err, functions: Function[]) => {
 						for (let func of functions) {
 							func._package = pack;
 							func.entityType = EntityType.Function;
-							mem.entities.push(func);
+							glob.entities.push(func);
 						}
 						next();
 					});
 				},
 				(next) => {
-					mem.dbs[pack].collection(SysCollection.views).find({}).toArray((err, views: View[]) => {
+					glob.dbs[pack].collection(SysCollection.views).find({}).toArray((err, views: View[]) => {
 						for (let view of views) {
 							view._package = pack;
 							view.entityType = EntityType.View;
-							mem.entities.push(view);
+							glob.entities.push(view);
 						}
 						next();
 					});
 				},
 				(next) => {
-					mem.dbs[pack].collection(SysCollection.dictionary).find({}).toArray((err, texts: Text[]) => {
+					glob.dbs[pack].collection(SysCollection.dictionary).find({}).toArray((err, texts: Text[]) => {
 						for (let item of texts) {
-							mem.dictionary[pack + "." + item.name] = item.text;
+							glob.dictionary[pack + "." + item.name] = item.text;
 						}
 						next();
 					});
 				},
 				(next) => {
-					mem.dbs[pack].collection(SysCollection.menus).find({}).toArray((err, menus: Menu[]) => {
+					glob.dbs[pack].collection(SysCollection.menus).find({}).toArray((err, menus: Menu[]) => {
 						for (let menu of menus) {
 							menu._package = pack;
-							mem.menus.push(menu);
+							glob.menus.push(menu);
 						}
 						next();
 					});
 				},
 				(next) => {
-					mem.dbs[pack].collection(SysCollection.roles).find({}).toArray((err, roles: Role[]) => {
+					glob.dbs[pack].collection(SysCollection.roles).find({}).toArray((err, roles: Role[]) => {
 						for (let role of roles) {
 							role._package = pack;
-							mem.roles.push(role);
+							glob.roles.push(role);
 						}
 						next();
 					});
 				},
 				(next) => {
-					mem.dbs[pack].collection(SysCollection.drives).find({}).toArray((err, drives: Drive[]) => {
+					glob.dbs[pack].collection(SysCollection.drives).find({}).toArray((err, drives: Drive[]) => {
 						for (let drive of drives) {
 							drive._package = pack;
-							mem.drives.push(drive);
+							glob.drives.push(drive);
 						}
 						next();
 					});
@@ -902,14 +903,14 @@ function validateApp(pack: string, app: App): boolean {
 
 export function initializeRoles(done) {
 	let g = new graphlib.Graph();
-	for (let role of mem.roles) {
+	for (let role of glob.roles) {
 		g.setNode(role._id.toString());
 		for (let subRole of role.roles || []) {
 			g.setEdge(role._id.toString(), subRole.toString());
 		}
 	}
 
-	for (let role of mem.roles) {
+	for (let role of glob.roles) {
 		let result = graphlib.alg.postorder(g, role._id.toString());
 		role.roles = result.map((item) => {
 			return new ObjectId(item);
@@ -921,11 +922,11 @@ export function initializeRoles(done) {
 
 function checkAppMenu(app: App) {
 	if (app.menu) {
-		app._menu = _.find(mem.menus, (menu: Menu) => {
+		app._menu = _.find(glob.menus, (menu: Menu) => {
 			return menu._id.equals(app.menu);
 		});
 	} else { // return the first found menu in the app
-		app._menu = _.find(mem.menus, (menu: Menu) => {
+		app._menu = _.find(glob.menus, (menu: Menu) => {
 			return menu._package == app._package;
 		});
 	}
@@ -935,18 +936,18 @@ function checkAppMenu(app: App) {
 }
 
 function initializePackages(done) {
-	log(`initializePackages: ${JSON.stringify(mem.sysConfig.packages)}`);
-	mem.apps = [];
+	log(`initializePackages: ${JSON.stringify(glob.sysConfig.packages)}`);
+	glob.apps = [];
 	getEnabledPackages().forEach((pack) => {
-		let config = mem.packages[pack.name]._config;
+		let config = glob.packages[pack.name]._config;
 		for (let app of (config.apps || [])) {
 			app._package = pack.name;
 			app.dependencies = app.dependencies || [];
 			app.dependencies.push(Constants.sysPackage);
 			checkAppMenu(app);
 			if (validateApp(pack.name, app)) {
-				mem.apps.push(app);
-				let host = mem.sysConfig.hosts.filter((host) => {
+				glob.apps.push(app);
+				let host = glob.sysConfig.hosts.filter((host) => {
 					return host.app.equals(app._id);
 				}).pop();
 				if (host) host._app = app;
@@ -1050,7 +1051,7 @@ function checkPropertyGtype(prop: Property, entity: Entity) {
 export function connect(dbName: string, callback) {
 	try {
 		//log("Connect to database {0} ...", dbName);
-		if (mem.dbs[dbName]) return callback();
+		if (glob.dbs[dbName]) return callback();
 
 		if (!process.env.DB_ADDRESS) {
 			return callback("Environment variable 'DB_ADDRESS' is needed.");
@@ -1063,7 +1064,7 @@ export function connect(dbName: string, callback) {
 				callback(err);
 			} else {
 				//log("Connection to database {0} established.", dbName);
-				mem.dbs[dbName] = dbc.db(dbName);
+				glob.dbs[dbName] = dbc.db(dbName);
 				callback();
 			}
 		});
@@ -1074,24 +1075,24 @@ export function connect(dbName: string, callback) {
 }
 
 export function getDatabase(db: string, callback: (err, db?: mongodb.Db) => void) {
-	if (mem.dbs[db]) return callback(null, mem.dbs[db]);
+	if (glob.dbs[db]) return callback(null, glob.dbs[db]);
 
 	connect(db, function (err) {
 		if (err) return callback(err);
-		callback(null, mem.dbs[db]);
+		callback(null, glob.dbs[db]);
 	});
 }
 
 export function findEnum(type: ObjectId): Enum {
 	if (!type) return null;
-	return _.find(mem.enums, (enm: Enum) => {
+	return _.find(glob.enums, (enm: Enum) => {
 		return enm._id.equals(type);
 	});
 }
 
 export function findEntity(id: ObjectId): Entity {
 	if (!id) return null;
-	return _.find(mem.entities, function (a: any) {
+	return _.find(glob.entities, function (a: any) {
 		return a._id.toString() == id.toString()
 	});
 }
@@ -1113,7 +1114,7 @@ export function sort(list, sort) {
 export function getEnumItemName(enumName: string, val: number): string {
 	if (val === null) return null;
 
-	let theEnum = _.find(mem.enums, (enm: Enum) => {
+	let theEnum = _.find(glob.enums, (enm: Enum) => {
 		return enm.name === enumName
 	});
 
@@ -1124,20 +1125,20 @@ export function getEnumItemName(enumName: string, val: number): string {
 
 export function initializeEnums(callback) {
 	log('initializeEnums ...');
-	mem.enums = [];
-	mem.enumTexts = {};
+	glob.enums = [];
+	glob.enumTexts = {};
 
-	async.eachSeries(getEnabledPackages(), (pack: ConfigSysPackage, next) => {
+	async.eachSeries(getEnabledPackages(), (pack: SystemConfigPackage, next) => {
 		get(pack.name, SysCollection.enums, null, (err, enums: Enum[]) => {
 			enums.forEach((theEnum) => {
 				theEnum._package = pack.name;
-				mem.enums.push(theEnum);
+				glob.enums.push(theEnum);
 
 				let texts = {};
 				_.sortBy(theEnum.items, "_z").forEach((item) => {
 					texts[item.value] = item.title || item.name;
 				});
-				mem.enumTexts[pack.name + "." + theEnum.name] = texts;
+				glob.enumTexts[pack.name + "." + theEnum.name] = texts;
 			});
 			next();
 		});
@@ -1145,15 +1146,15 @@ export function initializeEnums(callback) {
 }
 
 export function allObjects(): mObject[] {
-	return _.filter(mem.entities, {entityType: EntityType.Object}) as any[];
+	return _.filter(glob.entities, {entityType: EntityType.Object}) as any[];
 }
 
 export function allFunctions(): Function[] {
-	return _.filter(mem.entities, {entityType: EntityType.Function}) as any[];
+	return _.filter(glob.entities, {entityType: EntityType.Function}) as any[];
 }
 
 function allViews(): View[] {
-	return _.filter(mem.entities, {entityType: EntityType.View}) as any[];
+	return _.filter(glob.entities, {entityType: EntityType.View}) as any[];
 }
 
 function initializeEntities(callback) {
@@ -1192,7 +1193,7 @@ function initializeEntities(callback) {
 export function initProperties(properties: Property[], entity: Entity, parentTitle?) {
 	if (!properties) return;
 	for (let prop of properties) {
-		let sysProperty: Property = _.find(mem.systemProperties, {name: prop.name});
+		let sysProperty: Property = _.find(glob.systemProperties, {name: prop.name});
 		if (sysProperty)
 			_.defaultsDeep(prop, sysProperty);
 
@@ -1319,7 +1320,7 @@ export function getText(cn: Context, text, useDictionary?: boolean): string {
 	if (!text) return "";
 
 	if (typeof text == "string" && useDictionary)
-		text = mem.dictionary[cn.pack + "." + text] || mem.dictionary["sys." + text] || text;
+		text = glob.dictionary[cn.pack + "." + text] || glob.dictionary["sys." + text] || text;
 
 	if (typeof text == "string")
 		return text;
@@ -1344,10 +1345,10 @@ export function getEnumText(thePackage: string, dependencies: string[], enumType
 }
 
 export function getEnumByName(thePackage: string, dependencies: string[], enumType: string) {
-	let theEnum = mem.enumTexts[thePackage + "." + enumType];
+	let theEnum = glob.enumTexts[thePackage + "." + enumType];
 
 	for (let i = 0; !theEnum && i < dependencies.length; i++) {
-		theEnum = mem.enumTexts[dependencies[i] + "." + enumType];
+		theEnum = glob.enumTexts[dependencies[i] + "." + enumType];
 	}
 
 	return theEnum;
@@ -1368,7 +1369,7 @@ export function createEnumDataSource(thePackage: string, dependencies: string[],
 export function getEnumsTexts(thePackage: string, enumType: string, values: number[], locale?: Locale): string[] {
 	if (values == null) return null;
 
-	let theEnum = mem.enumTexts[thePackage + "." + enumType];
+	let theEnum = glob.enumTexts[thePackage + "." + enumType];
 	if (!theEnum) return null;
 
 	let texts: string[] = [];
@@ -1493,7 +1494,7 @@ export function jsonReplacer(key, value) {
 }
 
 export function aggergate(pack: string, objectName: string, query: any, callback) {
-	let collection = mem.dbs[pack].collection(objectName);
+	let collection = glob.dbs[pack].collection(objectName);
 	return collection.aggregate(query).toArray(callback);
 }
 
@@ -1545,7 +1546,7 @@ export function getTypes(cn: Context, done: (err, result?: Pair[]) => void) {
 		let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
 		return {ref: ent._id, title} as Pair
 	});
-	let enums = mem.enums.map((ent: Enum) => {
+	let enums = glob.enums.map((ent: Enum) => {
 		let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
 		return {ref: ent._id, title} as Pair
 	});
@@ -1565,7 +1566,7 @@ export function getTypes(cn: Context, done: (err, result?: Pair[]) => void) {
 }
 
 export function getAllEntities(cn: Context, done: (err, result?: Pair[]) => void) {
-	let entities = mem.entities.map((ent: Entity) => {
+	let entities = glob.entities.map((ent: Entity) => {
 		let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
 		return {ref: ent._id, title} as Pair
 	});
@@ -1793,7 +1794,7 @@ export function invoke(cn: Context, func: Function, args: any[], done: (err, res
 			if (func._package == Constants.sysPackage)
 				action = require(`../web/main`)[func.name];
 			if (!action) {
-				let app = _.find(mem.apps, {_package: cn.pack});
+				let app = _.find(glob.apps, {_package: cn.pack});
 				for (let pack of app.dependencies) {
 					action = require(`../${pack}/main`)[func.name];
 					if (action)
