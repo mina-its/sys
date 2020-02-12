@@ -627,4 +627,10 @@ var WebMethod;
     WebMethod["patch"] = "PATCH";
     WebMethod["del"] = "DELETE";
 })(WebMethod = exports.WebMethod || (exports.WebMethod = {}));
+var UnitTestObject = (function () {
+    function UnitTestObject() {
+    }
+    return UnitTestObject;
+}());
+exports.UnitTestObject = UnitTestObject;
 //# sourceMappingURL=types.js.map
