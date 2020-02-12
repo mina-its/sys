@@ -108,4 +108,60 @@ function notify(content, type, params) {
     }
 }
 exports.notify = notify;
+function head_script(src) {
+    if (document.querySelector("script[src='" + src + "']")) {
+        return;
+    }
+    var script = document.createElement('script');
+    script.setAttribute('src', src);
+    script.setAttribute('type', 'text/javascript');
+    document.head.appendChild(script);
+}
+exports.head_script = head_script;
+function body_script(src) {
+    if (document.querySelector("script[src='" + src + "']")) {
+        return;
+    }
+    var script = document.createElement('script');
+    script.setAttribute('src', src);
+    script.setAttribute('type', 'text/javascript');
+    document.body.appendChild(script);
+}
+exports.body_script = body_script;
+function del_script(src) {
+    var el = document.querySelector("script[src='" + src + "']");
+    if (el) {
+        el.remove();
+    }
+}
+exports.del_script = del_script;
+function head_link(href) {
+    if (document.querySelector("link[href='" + href + "']")) {
+        return;
+    }
+    var link = document.createElement('link');
+    link.setAttribute('href', href);
+    link.setAttribute('rel', "stylesheet");
+    link.setAttribute('type', "text/css");
+    document.head.appendChild(link);
+}
+exports.head_link = head_link;
+function body_link(href) {
+    if (document.querySelector("link[href='" + href + "']")) {
+        return;
+    }
+    var link = document.createElement('link');
+    link.setAttribute('href', href);
+    link.setAttribute('rel', "stylesheet");
+    link.setAttribute('type', "text/css");
+    document.body.appendChild(link);
+}
+exports.body_link = body_link;
+function del_link(href) {
+    var el = document.querySelector("link[href='" + href + "']");
+    if (el) {
+        el.remove();
+    }
+}
+exports.del_link = del_link;
 //# sourceMappingURL=main.js.map

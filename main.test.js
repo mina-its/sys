@@ -6,9 +6,9 @@ beforeAll(function (done) {
     sys.reload(null, done);
 });
 test('sys must be exist  ', function () {
-    expect(sys.mem.packages["sys"]).not.toBeNull();
+    expect(sys.glob.packages["sys"]).not.toBeNull();
 });
 test('sys must be exist  ', function () {
-    expect(sys.mem.packages["sys"]).not.toBeNull();
+    expect(sys.glob.packages["sys"]).not.toBeNull();
 });
 //# sourceMappingURL=main.test.js.map

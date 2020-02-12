@@ -7,9 +7,14 @@ class ComponentParams {
   computed?: any;
   methods?: any;
   watch?: any;
-  mounted?: () => void;
+  beforeCreate?: () => void;
   created?: () => void;
+  beforeMount?: () => void;
+  mounted?: () => void;
+  beforeUpdate?: () => void;
   updated?: () => void;
+  beforeDestroy?: () => void;
+  destroyed?: () => void;
   data?: () => void;
   render?: (ce) => any;
 }
@@ -128,4 +133,48 @@ export function notify(content: string | IError, type?: NotifyType, params?: Not
       break;
   }
 
+}
+
+export function head_script(src) {
+  if(document.querySelector("script[src='" + src + "']")){ return; }
+  let script = document.createElement('script');
+  script.setAttribute('src', src);
+  script.setAttribute('type', 'text/javascript');
+  document.head.appendChild(script)
+}
+
+export function body_script(src) {
+  if(document.querySelector("script[src='" + src + "']")){ return; }
+  let script = document.createElement('script');
+  script.setAttribute('src', src);
+  script.setAttribute('type', 'text/javascript');
+  document.body.appendChild(script)
+}
+
+export function del_script(src) {
+  let el = document.querySelector("script[src='" + src + "']");
+  if(el){ el.remove(); }
+}
+
+export function head_link(href) {
+  if(document.querySelector("link[href='" + href + "']")){ return; }
+  let link = document.createElement('link');
+  link.setAttribute('href', href);
+  link.setAttribute('rel', "stylesheet");
+  link.setAttribute('type', "text/css");
+  document.head.appendChild(link)
+}
+
+export function body_link(href) {
+  if(document.querySelector("link[href='" + href + "']")){ return; }
+  let link = document.createElement('link');
+  link.setAttribute('href', href);
+  link.setAttribute('rel', "stylesheet");
+  link.setAttribute('type', "text/css");
+  document.body.appendChild(link)
+}
+
+export function del_link(href) {
+  let el = document.querySelector("link[href='" + href + "']");
+  if(el){ el.remove(); }
 }
