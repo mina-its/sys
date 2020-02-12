@@ -327,8 +327,9 @@ export class Access {
 }
 
 export class AccessItem {
+	_id: ObjectId;
 	user: ObjectId;
-	role: ObjectId;
+	role?: ObjectId;
 	permission: AccessPermission;
 }
 

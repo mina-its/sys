@@ -822,6 +822,7 @@ function checkAppMenu(app) {
     if (!app._menu)
         warn("Menu for app '" + app.title + "' not found!");
 }
+exports.checkAppMenu = checkAppMenu;
 function initializePackages(done) {
     log("initializePackages: " + JSON.stringify(exports.glob.sysConfig.packages));
     exports.glob.apps = [];
@@ -1477,7 +1478,7 @@ function stringify(value) {
 }
 exports.stringify = stringify;
 function parse(str) {
-    var json = JSON.parse(str);
+    var json = typeof str == "string" ? JSON.parse(str) : str;
     var keys = {};
     var findKeys = function (obj) {
         if (obj && obj._0) {
