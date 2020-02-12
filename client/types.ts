@@ -19,8 +19,8 @@ export enum NotifyType {
 }
 
 export class NotificationInfo {
-  title: string;
   message: string;
+  details?: string;
   type: NotifyType;
 }
 

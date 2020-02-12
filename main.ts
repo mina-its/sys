@@ -1631,8 +1631,8 @@ export function stringify(value): string {
 	return str;
 }
 
-export function parse(str: string): any {
-	let json = JSON.parse(str);
+export function parse(str: string | any): any {
+	let json = typeof str == "string" ? JSON.parse(str) : str;
 	let keys = {};
 	const findKeys = (obj) => {
 		if (obj && obj._0) {

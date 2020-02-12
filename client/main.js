@@ -102,8 +102,10 @@ function notify(content, type, params) {
             }, 3000);
             break;
         case types_1.NotifyType.Warning:
+            notifyCallback({ message: message, type: type });
+            break;
         case types_1.NotifyType.Error:
-            notifyCallback({ title: getText('sys', 'error'), message: message, type: type });
+            notifyCallback({ message: message, type: type });
             break;
     }
 }

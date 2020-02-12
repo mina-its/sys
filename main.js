@@ -1477,7 +1477,7 @@ function stringify(value) {
 }
 exports.stringify = stringify;
 function parse(str) {
-    var json = JSON.parse(str);
+    var json = typeof str == "string" ? JSON.parse(str) : str;
     var keys = {};
     var findKeys = function (obj) {
         if (obj && obj._0) {
