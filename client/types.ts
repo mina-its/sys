@@ -1,5 +1,5 @@
-import {WebMethod} from "../types";
-import {stringify} from "../main";
+import {WebMethod} from "../server/types";
+import {stringify} from "../server/main";
 
 export class Context {
   data?: any;

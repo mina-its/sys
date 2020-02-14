@@ -8,7 +8,7 @@
     "sourceMap": true
   },
   "include": [
-    "*.ts"
+    "server/*.ts"
   ],
   "exclude": [
     "node_modules"

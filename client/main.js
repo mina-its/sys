@@ -1,7 +1,7 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var types_1 = require("./types");
-var types_2 = require("../types");
+var types_2 = require("../server/types");
 var ComponentParams = (function () {
     function ComponentParams() {
     }
@@ -68,7 +68,7 @@ function ajax(url, data, config, done, fail) {
                 console.error(res, ex);
             }
         }
-    })["catch"](function (err) {
+    }).catch(function (err) {
         console.error("error on ajax '" + url + "'", err);
         if (err.response && err.response.data && err.response.data.message)
             fail({ message: err.response.data.message, code: err.response.data.code });
