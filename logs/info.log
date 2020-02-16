@@ -1,0 +1,805 @@
+14:02:37.85  debug	reload ...
+14:02:37.90  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:584:52
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:02:37.90  error	terminating process ...
+14:04:33.71  debug	reload ...
+14:04:33.76  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:621:52
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:04:33.76  error	terminating process ...
+14:05:22.06  debug	reload ...
+14:05:23.70  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:621:52
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:05:23.70  error	terminating process ...
+14:05:39.48  debug	reload ...
+14:05:42.08  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:584:52
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:05:42.08  error	terminating process ...
+14:07:06.33  debug	reload ...
+14:07:09.05  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:584:52
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:07:09.05  error	terminating process ...
+14:07:40.74  debug	reload ...
+14:07:49.83  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:584:52
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:07:49.83  error	terminating process ...
+14:10:56.48  debug	reload ...
+14:11:00.93  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:584:52
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:11:00.93  error	terminating process ...
+14:12:19.69  debug	reload ...
+14:12:41.81  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:584:52
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:12:41.81  error	terminating process ...
+14:13:32.50  debug	reload ...
+14:13:54.10  debug	reload ...
+14:13:56.69  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/server/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/server/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:584:52
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:13:56.69  error	terminating process ...
+14:14:26.82  debug	reload ...
+14:14:33.15  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/package.json'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/package.json'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:588:29
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:14:33.15  error	terminating process ...
+14:14:55.56  debug	reload ...
+14:15:29.17  debug	reload ...
+14:15:39.70  debug	package 'sys' loaded. version: 5.3.3
+14:15:43.32  debug	package 'alchemy-project' loaded. version: 2.0.0
+14:15:43.33  debug	Loading system collections package 'sys' ...
+14:15:43.36  debug	Loading system collections package 'alchemy-project' ...
+14:15:43.37  debug	loadGeneralCollections ...
+14:15:43.38  debug	loadAuditTypes ...
+14:15:43.38  debug	initializeEnums ...
+14:15:43.39  debug	initializePackages: [{"_id":"5df39cef11ca303d3c7a9631","name":"sys","enabled":true,"syncCollections":["auditTypes","dictionary","enums","functions","menus","objects","roles","views","timeZones"],"initCollections":["systemConfig","configs","users","drives"]},{"_id":"5e3962a17ad3af2420f53e9d","name":"alchemy-project","enabled":true,"syncCollections":["dictionary","enums","functions","menus","objects","roles","views","configs","homeData"],"initCollections":["users"]}]
+14:15:43.40  debug	Initializing '45' Objects ...
+14:15:43.40  warn	property 'sys.Elem.props' type is empty!
+14:15:43.41  warn	property 'sys.Elem.props' type is empty!
+14:15:43.41  warn	property 'sys.Elem.value' type is empty!
+14:15:43.42  warn	property 'sys.EntityLink.type' type is empty!
+14:15:43.43  warn	property 'sys.ObjectModifyState.item' type is empty!
+14:15:43.46  debug	Initializing '26' functions ...
+14:15:43.46  warn	property 'sys.getPropertyReferenceValues.instance' type is empty!
+14:15:43.46  warn	property 'sys.showFunctionTesting.data' type is empty!
+14:15:43.46  info	reload done in '14293' ms.
+14:15:45.91  debug	Starting Web Server on port 80, dir: C:\develop\web\server
+14:15:46.15  notice	audit(start): All started successfully!
+14:15:46.17  info	--------------- Http Server is running on 80
+14:15:50.97  debug	[.] localhost/
+14:15:51.06  debug	[.] localhost/favicon.ico
+14:15:51.06  error	error (404): Not Found [http://localhost/favicon.ico]
+14:16:48.67  debug	reload ...
+14:16:51.59  debug	package 'sys' loaded. version: 5.3.3
+14:16:51.62  debug	package 'alchemy-project' loaded. version: 2.0.0
+14:16:51.62  debug	Loading system collections package 'sys' ...
+14:16:51.65  debug	Loading system collections package 'alchemy-project' ...
+14:16:51.67  debug	loadGeneralCollections ...
+14:16:51.67  debug	loadAuditTypes ...
+14:16:51.67  debug	initializeEnums ...
+14:16:51.69  debug	initializePackages: [{"_id":"5df39cef11ca303d3c7a9631","name":"sys","enabled":true,"syncCollections":["auditTypes","dictionary","enums","functions","menus","objects","roles","views","timeZones"],"initCollections":["systemConfig","configs","users","drives"]},{"_id":"5e3962a17ad3af2420f53e9d","name":"alchemy-project","enabled":true,"syncCollections":["dictionary","enums","functions","menus","objects","roles","views","configs","homeData"],"initCollections":["users"]}]
+14:16:51.69  debug	Initializing '45' Objects ...
+14:16:51.70  warn	property 'sys.Elem.props' type is empty!
+14:16:51.70  warn	property 'sys.Elem.props' type is empty!
+14:16:51.70  warn	property 'sys.Elem.value' type is empty!
+14:16:51.71  warn	property 'sys.EntityLink.type' type is empty!
+14:16:51.72  warn	property 'sys.ObjectModifyState.item' type is empty!
+14:16:51.75  debug	Initializing '26' functions ...
+14:16:51.75  warn	property 'sys.getPropertyReferenceValues.instance' type is empty!
+14:16:51.75  warn	property 'sys.showFunctionTesting.data' type is empty!
+14:16:51.75  info	reload done in '3089' ms.
+14:16:51.75  debug	Starting Web Server on port 80, dir: C:\develop\web\server
+14:16:51.78  notice	audit(start): All started successfully!
+14:16:51.78  info	--------------- Http Server is running on 80
+14:16:55.25  debug	[.] localhost/
+14:16:55.30  debug	[.] localhost/vendor/jquery-3.4.1.min.js
+14:16:55.30  debug	[.] localhost/vendor/Chart.js/Chart.min.css
+14:16:55.31  error	error (404): Not Found [http://localhost/vendor/jquery-3.4.1.min.js]
+14:16:55.32  error	error (404): Not Found [http://localhost/vendor/Chart.js/Chart.min.css]
+14:16:55.32  debug	[.] localhost/css/sys.main.css?v=5.3.3
+14:16:55.33  debug	[.] localhost/vendor/popper.js/umd/popper.min.js
+14:16:55.33  debug	[.] localhost/vendor/bootstrap/js/bootstrap.min.js
+14:16:55.33  debug	[.] localhost/vendor/vue.js
+14:16:55.33  debug	[.] localhost/vendor/fontawesome/css/all.min.css
+14:16:55.33  debug	[.] localhost/vendor/axios.min.js
+14:16:55.34  error	error (404): Not Found [http://localhost/vendor/popper.js/umd/popper.min.js]
+14:16:55.34  error	error (404): Not Found [http://localhost/css/sys.main.css?v=5.3.3]
+14:16:55.35  error	error (404): Not Found [http://localhost/vendor/bootstrap/js/bootstrap.min.js]
+14:16:55.35  error	error (404): Not Found [http://localhost/vendor/fontawesome/css/all.min.css]
+14:16:55.35  debug	[.] localhost/vendor/marked.min.js
+14:16:55.36  debug	[.] localhost/vendor/moment.js/moment.min.js
+14:16:55.36  debug	[.] localhost/js/sys.main.js?v=5.3.3
+14:16:55.36  error	error (404): Not Found [http://localhost/vendor/axios.min.js]
+14:16:55.36  error	error (404): Not Found [http://localhost/vendor/vue.js]
+14:16:55.37  debug	[.] localhost/vendor/Chart.js/Chart.min.js
+14:16:55.37  debug	[.] localhost/vendor/popper.js/umd/popper.min.js
+14:16:55.37  error	error (404): Not Found [http://localhost/vendor/marked.min.js]
+14:16:55.38  error	error (404): Not Found [http://localhost/vendor/moment.js/moment.min.js]
+14:16:55.38  error	error (404): Not Found [http://localhost/js/sys.main.js?v=5.3.3]
+14:16:55.39  error	error (404): Not Found [http://localhost/vendor/Chart.js/Chart.min.js]
+14:16:55.39  error	error (404): Not Found [http://localhost/vendor/popper.js/umd/popper.min.js]
+14:16:55.44  debug	[.] localhost/vendor/bootstrap/js/bootstrap.min.js
+14:16:55.46  error	error (404): Not Found [http://localhost/vendor/bootstrap/js/bootstrap.min.js]
+14:16:55.48  debug	[.] localhost/vendor/vue.js
+14:16:55.49  error	error (404): Not Found [http://localhost/vendor/vue.js]
+14:16:55.50  debug	[.] localhost/vendor/axios.min.js
+14:16:55.50  error	error (404): Not Found [http://localhost/vendor/axios.min.js]
+14:16:55.51  debug	[.] localhost/vendor/marked.min.js
+14:16:55.51  error	error (404): Not Found [http://localhost/vendor/marked.min.js]
+14:16:55.55  debug	[.] localhost/vendor/moment.js/moment.min.js
+14:16:55.55  error	error (404): Not Found [http://localhost/vendor/moment.js/moment.min.js]
+14:16:55.56  debug	[.] localhost/vendor/fontawesome/css/all.min.css
+14:16:55.56  error	error (404): Not Found [http://localhost/vendor/fontawesome/css/all.min.css]
+14:16:55.57  debug	[.] localhost/js/sys.main.js?v=5.3.3
+14:16:55.58  error	error (404): Not Found [http://localhost/js/sys.main.js?v=5.3.3]
+14:16:55.60  debug	[.] localhost/vendor/Chart.js/Chart.min.css
+14:16:55.60  error	error (404): Not Found [http://localhost/vendor/Chart.js/Chart.min.css]
+14:16:55.60  debug	[.] localhost/vendor/Chart.js/Chart.min.js
+14:16:55.61  error	error (404): Not Found [http://localhost/vendor/Chart.js/Chart.min.js]
+14:18:07.39  debug	reload ...
+14:18:07.44  debug	package 'sys' loaded. version: 5.3.3
+14:18:07.46  debug	package 'alchemy-project' loaded. version: 2.0.0
+14:18:07.46  debug	Loading system collections package 'sys' ...
+14:18:07.49  debug	Loading system collections package 'alchemy-project' ...
+14:18:07.50  debug	loadGeneralCollections ...
+14:18:07.51  debug	loadAuditTypes ...
+14:18:07.51  debug	initializeEnums ...
+14:18:07.52  debug	initializePackages: [{"_id":"5df39cef11ca303d3c7a9631","name":"sys","enabled":true,"syncCollections":["auditTypes","dictionary","enums","functions","menus","objects","roles","views","timeZones"],"initCollections":["systemConfig","configs","users","drives"]},{"_id":"5e3962a17ad3af2420f53e9d","name":"alchemy-project","enabled":true,"syncCollections":["dictionary","enums","functions","menus","objects","roles","views","configs","homeData"],"initCollections":["users"]}]
+14:18:07.53  debug	Initializing '45' Objects ...
+14:18:07.53  warn	property 'sys.Elem.props' type is empty!
+14:18:07.54  warn	property 'sys.Elem.props' type is empty!
+14:18:07.54  warn	property 'sys.Elem.value' type is empty!
+14:18:07.54  warn	property 'sys.EntityLink.type' type is empty!
+14:18:07.56  warn	property 'sys.ObjectModifyState.item' type is empty!
+14:18:07.58  debug	Initializing '26' functions ...
+14:18:07.59  warn	property 'sys.getPropertyReferenceValues.instance' type is empty!
+14:18:07.59  warn	property 'sys.showFunctionTesting.data' type is empty!
+14:18:07.59  info	reload done in '201' ms.
+14:18:07.59  debug	Starting Web Server on port 80, dir: C:\develop\web\server
+14:18:07.62  notice	audit(start): All started successfully!
+14:18:07.62  info	--------------- Http Server is running on 80
+14:18:13.27  debug	[.] localhost/
+14:18:13.32  debug	[.] localhost/css/sys.main.css?v=5.3.3
+14:18:13.32  debug	[.] localhost/vendor/jquery-3.4.1.min.js
+14:18:13.33  debug	[.] localhost/vendor/popper.js/umd/popper.min.js
+14:18:13.33  debug	[.] localhost/vendor/bootstrap/js/bootstrap.min.js
+14:18:13.34  debug	[.] localhost/vendor/vue.js
+14:18:13.34  debug	[.] localhost/vendor/axios.min.js
+14:18:13.34  error	error (404): Not Found [http://localhost/css/sys.main.css?v=5.3.3]
+14:18:13.35  error	error (404): Not Found [http://localhost/vendor/jquery-3.4.1.min.js]
+14:18:13.35  error	error (404): Not Found [http://localhost/vendor/popper.js/umd/popper.min.js]
+14:18:13.36  error	error (404): Not Found [http://localhost/vendor/bootstrap/js/bootstrap.min.js]
+14:18:13.36  error	error (404): Not Found [http://localhost/vendor/vue.js]
+14:18:13.36  debug	[.] localhost/vendor/fontawesome/css/all.min.css
+14:18:13.36  error	error (404): Not Found [http://localhost/vendor/axios.min.js]
+14:18:13.37  debug	[.] localhost/vendor/Chart.js/Chart.min.css
+14:18:13.37  debug	[.] localhost/vendor/marked.min.js
+14:18:13.37  debug	[.] localhost/vendor/moment.js/moment.min.js
+14:18:13.37  debug	[.] localhost/js/sys.main.js?v=5.3.3
+14:18:13.38  debug	[.] localhost/vendor/Chart.js/Chart.min.js
+14:18:13.38  error	error (404): Not Found [http://localhost/vendor/fontawesome/css/all.min.css]
+14:18:13.38  error	error (404): Not Found [http://localhost/vendor/Chart.js/Chart.min.css]
+14:18:13.39  error	error (404): Not Found [http://localhost/vendor/marked.min.js]
+14:18:13.39  error	error (404): Not Found [http://localhost/vendor/moment.js/moment.min.js]
+14:18:13.40  error	error (404): Not Found [http://localhost/js/sys.main.js?v=5.3.3]
+14:18:13.40  error	error (404): Not Found [http://localhost/vendor/Chart.js/Chart.min.js]
+14:18:13.41  debug	[.] localhost/vendor/fontawesome/css/all.min.css
+14:18:13.42  error	error (404): Not Found [http://localhost/vendor/fontawesome/css/all.min.css]
+14:18:13.44  debug	[.] localhost/js/sys.main.js?v=5.3.3
+14:18:13.50  error	error (404): Not Found [http://localhost/js/sys.main.js?v=5.3.3]
+14:18:13.52  debug	[.] localhost/vendor/Chart.js/Chart.min.css
+14:18:13.52  debug	[.] localhost/vendor/Chart.js/Chart.min.js
+14:18:13.53  error	error (404): Not Found [http://localhost/vendor/Chart.js/Chart.min.css]
+14:18:13.53  error	error (404): Not Found [http://localhost/vendor/Chart.js/Chart.min.js]
+14:18:13.56  debug	[.] localhost/images/sys.favicon.ico
+14:18:13.58  error	error (404): Not Found [http://localhost/images/sys.favicon.ico]
+14:18:26.94  debug	[.] localhost/css/sys.main.css?v=5.3.3
+14:18:26.95  error	error (404): Not Found [http://localhost/css/sys.main.css?v=5.3.3]
+14:18:32.11  debug	[.] localhost/css/sys.main.css?v=5.3.3
+14:19:18.08  debug	reload ...
+14:19:18.13  debug	package 'sys' loaded. version: 5.3.3
+14:19:18.15  debug	package 'alchemy-project' loaded. version: 2.0.0
+14:19:18.15  debug	Loading system collections package 'sys' ...
+14:19:18.18  debug	Loading system collections package 'alchemy-project' ...
+14:19:18.19  debug	loadGeneralCollections ...
+14:19:18.20  debug	loadAuditTypes ...
+14:19:18.20  debug	initializeEnums ...
+14:19:18.21  debug	initializePackages: [{"_id":"5df39cef11ca303d3c7a9631","name":"sys","enabled":true,"syncCollections":["auditTypes","dictionary","enums","functions","menus","objects","roles","views","timeZones"],"initCollections":["systemConfig","configs","users","drives"]},{"_id":"5e3962a17ad3af2420f53e9d","name":"alchemy-project","enabled":true,"syncCollections":["dictionary","enums","functions","menus","objects","roles","views","configs","homeData"],"initCollections":["users"]}]
+14:19:18.22  debug	Initializing '45' Objects ...
+14:19:18.23  warn	property 'sys.Elem.props' type is empty!
+14:19:18.23  warn	property 'sys.Elem.props' type is empty!
+14:19:18.23  warn	property 'sys.Elem.value' type is empty!
+14:19:18.24  warn	property 'sys.EntityLink.type' type is empty!
+14:19:18.25  warn	property 'sys.ObjectModifyState.item' type is empty!
+14:19:18.29  debug	Initializing '26' functions ...
+14:19:18.29  warn	property 'sys.getPropertyReferenceValues.instance' type is empty!
+14:19:18.29  warn	property 'sys.showFunctionTesting.data' type is empty!
+14:19:18.29  info	reload done in '216' ms.
+14:19:18.29  debug	Starting Web Server on port 80, dir: C:\develop\web\server
+14:19:18.32  notice	audit(start): All started successfully!
+14:19:18.33  info	--------------- Http Server is running on 80
+14:19:20.33  debug	[.] localhost/css/sys.main.css?v=5.3.3
+14:19:41.46  debug	reload ...
+14:19:41.52  debug	package 'sys' loaded. version: 5.3.3
+14:19:41.54  debug	package 'alchemy-project' loaded. version: 2.0.0
+14:19:41.54  debug	Loading system collections package 'sys' ...
+14:19:41.57  debug	Loading system collections package 'alchemy-project' ...
+14:19:41.58  debug	loadGeneralCollections ...
+14:19:41.59  debug	loadAuditTypes ...
+14:19:41.59  debug	initializeEnums ...
+14:19:41.60  debug	initializePackages: [{"_id":"5df39cef11ca303d3c7a9631","name":"sys","enabled":true,"syncCollections":["auditTypes","dictionary","enums","functions","menus","objects","roles","views","timeZones"],"initCollections":["systemConfig","configs","users","drives"]},{"_id":"5e3962a17ad3af2420f53e9d","name":"alchemy-project","enabled":true,"syncCollections":["dictionary","enums","functions","menus","objects","roles","views","configs","homeData"],"initCollections":["users"]}]
+14:19:41.60  debug	Initializing '45' Objects ...
+14:19:41.61  warn	property 'sys.Elem.props' type is empty!
+14:19:41.61  warn	property 'sys.Elem.props' type is empty!
+14:19:41.61  warn	property 'sys.Elem.value' type is empty!
+14:19:41.62  warn	property 'sys.EntityLink.type' type is empty!
+14:19:41.64  warn	property 'sys.ObjectModifyState.item' type is empty!
+14:19:41.66  debug	Initializing '26' functions ...
+14:19:41.67  warn	property 'sys.getPropertyReferenceValues.instance' type is empty!
+14:19:41.67  warn	property 'sys.showFunctionTesting.data' type is empty!
+14:19:41.67  info	reload done in '213' ms.
+14:19:41.67  debug	Starting Web Server on port 80, dir: C:\develop\web\server
+14:19:41.70  notice	audit(start): All started successfully!
+14:19:41.70  info	--------------- Http Server is running on 80
+14:19:45.15  debug	[.] localhost/css/sys.main.css?v=5.3.3
+14:20:09.33  debug	reload ...
+14:20:09.39  debug	package 'sys' loaded. version: 5.3.3
+14:20:09.41  debug	package 'alchemy-project' loaded. version: 2.0.0
+14:20:09.42  debug	Loading system collections package 'sys' ...
+14:20:09.45  debug	Loading system collections package 'alchemy-project' ...
+14:20:09.46  debug	loadGeneralCollections ...
+14:20:09.46  debug	loadAuditTypes ...
+14:20:09.47  debug	initializeEnums ...
+14:20:09.48  debug	initializePackages: [{"_id":"5df39cef11ca303d3c7a9631","name":"sys","enabled":true,"syncCollections":["auditTypes","dictionary","enums","functions","menus","objects","roles","views","timeZones"],"initCollections":["systemConfig","configs","users","drives"]},{"_id":"5e3962a17ad3af2420f53e9d","name":"alchemy-project","enabled":true,"syncCollections":["dictionary","enums","functions","menus","objects","roles","views","configs","homeData"],"initCollections":["users"]}]
+14:20:09.48  debug	Initializing '45' Objects ...
+14:20:09.49  warn	property 'sys.Elem.props' type is empty!
+14:20:09.49  warn	property 'sys.Elem.props' type is empty!
+14:20:09.49  warn	property 'sys.Elem.value' type is empty!
+14:20:09.50  warn	property 'sys.EntityLink.type' type is empty!
+14:20:09.51  warn	property 'sys.ObjectModifyState.item' type is empty!
+14:20:09.54  debug	Initializing '26' functions ...
+14:20:09.55  warn	property 'sys.getPropertyReferenceValues.instance' type is empty!
+14:20:09.55  warn	property 'sys.showFunctionTesting.data' type is empty!
+14:20:09.55  info	reload done in '225' ms.
+14:20:09.55  debug	Starting Web Server on port 80, dir: C:\develop\web\server
+14:20:09.58  notice	audit(start): All started successfully!
+14:20:09.59  info	--------------- Http Server is running on 80
+14:20:10.95  debug	[.:127.0.0.1] localhost/css/sys.main.css?v=5.3.3
+14:21:39.80  debug	reload ...
+14:21:39.85  debug	package 'sys' loaded. version: 5.3.3
+14:21:39.87  debug	package 'alchemy-project' loaded. version: 2.0.0
+14:21:39.87  debug	Loading system collections package 'sys' ...
+14:21:39.90  debug	Loading system collections package 'alchemy-project' ...
+14:21:39.91  debug	loadGeneralCollections ...
+14:21:39.92  debug	loadAuditTypes ...
+14:21:39.92  debug	initializeEnums ...
+14:21:39.93  debug	initializePackages: [{"_id":"5df39cef11ca303d3c7a9631","name":"sys","enabled":true,"syncCollections":["auditTypes","dictionary","enums","functions","menus","objects","roles","views","timeZones"],"initCollections":["systemConfig","configs","users","drives"]},{"_id":"5e3962a17ad3af2420f53e9d","name":"alchemy-project","enabled":true,"syncCollections":["dictionary","enums","functions","menus","objects","roles","views","configs","homeData"],"initCollections":["users"]}]
+14:21:39.93  debug	Initializing '45' Objects ...
+14:21:39.94  warn	property 'sys.Elem.props' type is empty!
+14:21:39.94  warn	property 'sys.Elem.props' type is empty!
+14:21:39.94  warn	property 'sys.Elem.value' type is empty!
+14:21:39.95  warn	property 'sys.EntityLink.type' type is empty!
+14:21:39.96  warn	property 'sys.ObjectModifyState.item' type is empty!
+14:21:39.99  debug	Initializing '26' functions ...
+14:21:39.99  warn	property 'sys.getPropertyReferenceValues.instance' type is empty!
+14:21:39.99  warn	property 'sys.showFunctionTesting.data' type is empty!
+14:21:40.00  info	reload done in '201' ms.
+14:21:40.00  debug	Starting Web Server on port 80, dir: C:\develop\web\server
+14:21:40.03  notice	audit(start): All started successfully!
+14:21:40.03  info	--------------- Http Server is running on 80
+14:21:59.71  debug	[.] localhost/css/sys.main.css?v=5.3.3
+14:22:05.62  error	error (404): Not Found [http://localhost/css/sys.main.css?v=5.3.3]
+14:22:11.77  debug	[.] localhost/css/sys.main.css?v=5.3.3
+14:22:16.04  error	error (404): Not Found [http://localhost/css/sys.main.css?v=5.3.3]
+14:22:56.78  debug	reload ...
+14:22:56.83  debug	package 'sys' loaded. version: 5.3.3
+14:22:56.85  debug	package 'alchemy-project' loaded. version: 2.0.0
+14:22:56.85  debug	Loading system collections package 'sys' ...
+14:22:56.88  debug	Loading system collections package 'alchemy-project' ...
+14:22:56.89  debug	loadGeneralCollections ...
+14:22:56.90  debug	loadAuditTypes ...
+14:22:56.90  debug	initializeEnums ...
+14:22:56.91  debug	initializePackages: [{"_id":"5df39cef11ca303d3c7a9631","name":"sys","enabled":true,"syncCollections":["auditTypes","dictionary","enums","functions","menus","objects","roles","views","timeZones"],"initCollections":["systemConfig","configs","users","drives"]},{"_id":"5e3962a17ad3af2420f53e9d","name":"alchemy-project","enabled":true,"syncCollections":["dictionary","enums","functions","menus","objects","roles","views","configs","homeData"],"initCollections":["users"]}]
+14:23:11.66  debug	reload ...
+14:23:11.71  debug	package 'sys' loaded. version: 5.3.3
+14:23:11.73  debug	package 'alchemy-project' loaded. version: 2.0.0
+14:23:11.73  debug	Loading system collections package 'sys' ...
+14:23:11.76  debug	Loading system collections package 'alchemy-project' ...
+14:23:11.77  debug	loadGeneralCollections ...
+14:23:11.78  debug	loadAuditTypes ...
+14:23:11.78  debug	initializeEnums ...
+14:23:11.79  debug	initializePackages: [{"_id":"5df39cef11ca303d3c7a9631","name":"sys","enabled":true,"syncCollections":["auditTypes","dictionary","enums","functions","menus","objects","roles","views","timeZones"],"initCollections":["systemConfig","configs","users","drives"]},{"_id":"5e3962a17ad3af2420f53e9d","name":"alchemy-project","enabled":true,"syncCollections":["dictionary","enums","functions","menus","objects","roles","views","configs","homeData"],"initCollections":["users"]}]
+14:23:11.80  debug	Initializing '45' Objects ...
+14:23:11.81  warn	property 'sys.Elem.props' type is empty!
+14:23:11.81  warn	property 'sys.Elem.props' type is empty!
+14:23:11.81  warn	property 'sys.Elem.value' type is empty!
+14:23:11.82  warn	property 'sys.EntityLink.type' type is empty!
+14:23:11.83  warn	property 'sys.ObjectModifyState.item' type is empty!
+14:23:11.87  debug	Initializing '26' functions ...
+14:23:11.87  warn	property 'sys.getPropertyReferenceValues.instance' type is empty!
+14:23:11.87  warn	property 'sys.showFunctionTesting.data' type is empty!
+14:23:11.87  info	reload done in '216' ms.
+14:23:11.87  debug	Starting Web Server on port 80, dir: C:\develop\web\server
+14:23:14.40  notice	audit(start): All started successfully!
+14:23:14.41  info	--------------- Http Server is running on 80
+14:23:20.36  debug	[.] localhost/
+14:23:28.96  debug	[.] localhost/functions?m=1
+14:23:32.11  crit	Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at Object.invoke (C:\develop\sys\server\main.js:1563:22)
+    at invoke (C:\develop\web\server\main.js:1753:9)
+    at getPropertyReferenceValues (C:\develop\web\server\main.js:1099:16)
+    at preparePropertyMeta (C:\develop\web\server\main.js:1141:9)
+    at C:\develop\web\server\main.js:1184:9
+    at C:\develop\web\node_modules\async\dist\async.js:2158:44
+14:23:34.08  debug	[.] localhost/functions/55e5955ad3ca1b11dc9ac4e5?m=1
+14:23:34.09  crit	Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at Object.invoke (C:\develop\sys\server\main.js:1563:22)
+    at invoke (C:\develop\web\server\main.js:1753:9)
+    at getPropertyReferenceValues (C:\develop\web\server\main.js:1099:16)
+    at preparePropertyMeta (C:\develop\web\server\main.js:1141:9)
+    at C:\develop\web\server\main.js:1184:9
+    at C:\develop\web\node_modules\async\dist\async.js:2158:44
+14:23:34.10  crit	Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at Object.invoke (C:\develop\sys\server\main.js:1563:22)
+    at invoke (C:\develop\web\server\main.js:1753:9)
+    at getPropertyReferenceValues (C:\develop\web\server\main.js:1099:16)
+    at preparePropertyMeta (C:\develop\web\server\main.js:1141:9)
+    at C:\develop\web\server\main.js:1122:13
+    at C:\develop\web\node_modules\async\dist\async.js:2158:44
+14:23:34.11  crit	Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at Object.invoke (C:\develop\sys\server\main.js:1563:22)
+    at invoke (C:\develop\web\server\main.js:1753:9)
+    at getPropertyReferenceValues (C:\develop\web\server\main.js:1099:16)
+    at preparePropertyMeta (C:\develop\web\server\main.js:1141:9)
+    at C:\develop\web\server\main.js:1122:13
+    at C:\develop\web\node_modules\async\dist\async.js:2158:44
+14:23:37.71  debug	[.] localhost/functions?m=1
+14:23:37.73  crit	Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at Object.invoke (C:\develop\sys\server\main.js:1563:22)
+    at invoke (C:\develop\web\server\main.js:1753:9)
+    at getPropertyReferenceValues (C:\develop\web\server\main.js:1099:16)
+    at preparePropertyMeta (C:\develop\web\server\main.js:1141:9)
+    at C:\develop\web\server\main.js:1184:9
+    at C:\develop\web\node_modules\async\dist\async.js:2158:44
+14:23:39.25  debug	[.] localhost/login?m=1
+14:23:40.63  debug	[.] localhost/login
+14:23:40.66  crit	Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at Object.invoke (C:\develop\sys\server\main.js:1563:22)
+    at invoke (C:\develop\web\server\main.js:1753:9)
+    at handleFunctionRequest (C:\develop\web\server\main.js:220:9)
+    at processRequest (C:\develop\web\server\main.js:402:20)
+    at Layer.handle [as handle_request] (C:\develop\web\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\develop\web\node_modules\express\lib\router\route.js:137:13)
+14:23:40.66  error	Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js [http://localhost/login]
+14:24:06.18  debug	[.] localhost/login
+14:25:25.04  debug	reload ...
+14:25:25.09  debug	package 'sys' loaded. version: 5.3.3
+14:25:25.09  debug	package 'alchemy-project' loaded. version: 2.0.0
+14:25:25.10  debug	Loading system collections package 'sys' ...
+14:25:25.13  debug	Loading system collections package 'alchemy-project' ...
+14:25:25.14  debug	loadGeneralCollections ...
+14:25:25.15  debug	loadAuditTypes ...
+14:25:25.15  debug	initializeEnums ...
+14:25:25.16  debug	initializePackages: [{"_id":"5df39cef11ca303d3c7a9631","name":"sys","enabled":true,"syncCollections":["auditTypes","dictionary","enums","functions","menus","objects","roles","views","timeZones"],"initCollections":["systemConfig","configs","users","drives"]},{"_id":"5e3962a17ad3af2420f53e9d","name":"alchemy-project","enabled":true,"syncCollections":["dictionary","enums","functions","menus","objects","roles","views","configs","homeData"],"initCollections":["users"]}]
+14:25:25.16  debug	Initializing '45' Objects ...
+14:25:25.17  warn	property 'sys.Elem.props' type is empty!
+14:25:25.17  warn	property 'sys.Elem.props' type is empty!
+14:25:25.18  warn	property 'sys.Elem.value' type is empty!
+14:25:25.18  warn	property 'sys.EntityLink.type' type is empty!
+14:25:25.20  warn	property 'sys.ObjectModifyState.item' type is empty!
+14:25:25.23  debug	Initializing '26' functions ...
+14:25:25.23  warn	property 'sys.getPropertyReferenceValues.instance' type is empty!
+14:25:25.23  warn	property 'sys.showFunctionTesting.data' type is empty!
+14:25:25.24  info	reload done in '196' ms.
+14:25:25.24  debug	Starting Web Server on port 80, dir: C:\develop\web\server
+14:25:25.26  notice	audit(start): All started successfully!
+14:25:25.27  info	--------------- Http Server is running on 80
+14:25:28.83  debug	[.] localhost/login
+14:25:28.86  crit	Error: Cannot find module '../sys/server/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at Object.invoke (C:\develop\sys\server\main.js:1563:22)
+    at invoke (C:\develop\web\server\main.js:1753:9)
+    at handleFunctionRequest (C:\develop\web\server\main.js:220:9)
+    at processRequest (C:\develop\web\server\main.js:402:20)
+    at Layer.handle [as handle_request] (C:\develop\web\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\develop\web\node_modules\express\lib\router\route.js:137:13)
+14:25:28.86  error	Cannot find module '../sys/server/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js [http://localhost/login]
+14:25:36.44  debug	[.] localhost/login
+14:25:55.83  debug	reload ...
+14:25:55.89  debug	package 'sys' loaded. version: 5.3.3
+14:25:55.92  debug	package 'alchemy-project' loaded. version: 2.0.0
+14:25:55.92  debug	Loading system collections package 'sys' ...
+14:25:55.95  debug	Loading system collections package 'alchemy-project' ...
+14:25:55.96  debug	loadGeneralCollections ...
+14:25:55.97  debug	loadAuditTypes ...
+14:25:55.97  debug	initializeEnums ...
+14:25:55.98  debug	initializePackages: [{"_id":"5df39cef11ca303d3c7a9631","name":"sys","enabled":true,"syncCollections":["auditTypes","dictionary","enums","functions","menus","objects","roles","views","timeZones"],"initCollections":["systemConfig","configs","users","drives"]},{"_id":"5e3962a17ad3af2420f53e9d","name":"alchemy-project","enabled":true,"syncCollections":["dictionary","enums","functions","menus","objects","roles","views","configs","homeData"],"initCollections":["users"]}]
+14:25:55.98  debug	Initializing '45' Objects ...
+14:25:55.99  warn	property 'sys.Elem.props' type is empty!
+14:25:55.99  warn	property 'sys.Elem.props' type is empty!
+14:25:55.99  warn	property 'sys.Elem.value' type is empty!
+14:25:56.00  warn	property 'sys.EntityLink.type' type is empty!
+14:25:56.02  warn	property 'sys.ObjectModifyState.item' type is empty!
+14:25:56.05  debug	Initializing '26' functions ...
+14:25:56.05  warn	property 'sys.getPropertyReferenceValues.instance' type is empty!
+14:25:56.05  warn	property 'sys.showFunctionTesting.data' type is empty!
+14:25:56.05  info	reload done in '225' ms.
+14:25:56.05  debug	Starting Web Server on port 80, dir: C:\develop\web\server
+14:25:56.08  notice	audit(start): All started successfully!
+14:25:56.09  info	--------------- Http Server is running on 80
+14:25:59.92  debug	[.] localhost/login
+14:26:02.79  info	audit(login): User 'root@gmail.com' loggedin!
+14:26:02.82  debug	[.] localhost/
+14:26:19.02  debug	[.] localhost/roles?m=1
+14:26:25.59  debug	[.] localhost/functions?m=1
+14:26:30.88  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db?m=1
+14:26:37.34  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:26:37.36  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db/test
+14:28:20.82  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:29:03.31  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:29:48.14  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:31:03.30  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:34:26.87  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:36:20.98  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:37:43.78  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:40:05.05  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:40:34.57  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:40:52.58  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:46:48.61  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:47:00.54  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:48:33.84  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:49:48.34  debug	[.] localhost/functions?m=1
+14:49:52.69  debug	[.] localhost/menus?m=1
+14:49:57.46  debug	[.] localhost/menus/5d78ecdf7b7c752a18d096b6
+14:49:57.46  debug	reload ...
+14:49:57.47  debug	package 'sys' loaded. version: 5.3.3
+14:49:57.47  debug	package 'alchemy-project' loaded. version: 2.0.0
+14:49:57.47  debug	Loading system collections package 'sys' ...
+14:49:57.48  debug	Loading system collections package 'alchemy-project' ...
+14:49:57.49  debug	loadGeneralCollections ...
+14:49:57.50  debug	loadAuditTypes ...
+14:49:57.50  debug	initializeEnums ...
+14:49:57.51  debug	initializePackages: [{"_id":"5df39cef11ca303d3c7a9631","name":"sys","enabled":true,"syncCollections":["auditTypes","dictionary","enums","functions","menus","objects","roles","views","timeZones"],"initCollections":["systemConfig","configs","users","drives"]},{"_id":"5e3962a17ad3af2420f53e9d","name":"alchemy-project","enabled":true,"syncCollections":["dictionary","enums","functions","menus","objects","roles","views","configs","homeData"],"initCollections":["users"]}]
+14:49:57.51  debug	Initializing '45' Objects ...
+14:49:57.52  warn	property 'sys.Elem.props' type is empty!
+14:49:57.52  warn	property 'sys.Elem.props' type is empty!
+14:49:57.52  warn	property 'sys.Elem.value' type is empty!
+14:49:57.53  warn	property 'sys.EntityLink.type' type is empty!
+14:49:57.53  warn	property 'sys.ObjectModifyState.item' type is empty!
+14:49:57.56  debug	Initializing '26' functions ...
+14:49:57.56  warn	property 'sys.getPropertyReferenceValues.instance' type is empty!
+14:49:57.56  warn	property 'sys.showFunctionTesting.data' type is empty!
+14:49:57.56  info	reload done in '99' ms.
+14:50:17.74  debug	[.] localhost/menus/5d78ecdf7b7c752a18d096b6
+14:50:17.74  debug	reload ...
+14:50:17.75  debug	package 'sys' loaded. version: 5.3.3
+14:50:17.75  debug	package 'alchemy-project' loaded. version: 2.0.0
+14:50:17.75  debug	Loading system collections package 'sys' ...
+14:50:17.76  debug	Loading system collections package 'alchemy-project' ...
+14:50:17.78  debug	loadGeneralCollections ...
+14:50:17.78  debug	loadAuditTypes ...
+14:50:17.79  debug	initializeEnums ...
+14:50:17.79  debug	initializePackages: [{"_id":"5df39cef11ca303d3c7a9631","name":"sys","enabled":true,"syncCollections":["auditTypes","dictionary","enums","functions","menus","objects","roles","views","timeZones"],"initCollections":["systemConfig","configs","users","drives"]},{"_id":"5e3962a17ad3af2420f53e9d","name":"alchemy-project","enabled":true,"syncCollections":["dictionary","enums","functions","menus","objects","roles","views","configs","homeData"],"initCollections":["users"]}]
+14:50:17.79  debug	Initializing '45' Objects ...
+14:50:17.80  warn	property 'sys.Elem.props' type is empty!
+14:50:17.80  warn	property 'sys.Elem.props' type is empty!
+14:50:17.80  warn	property 'sys.Elem.value' type is empty!
+14:50:17.80  warn	property 'sys.EntityLink.type' type is empty!
+14:50:17.81  warn	property 'sys.ObjectModifyState.item' type is empty!
+14:50:17.82  debug	Initializing '26' functions ...
+14:50:17.82  warn	property 'sys.getPropertyReferenceValues.instance' type is empty!
+14:50:17.82  warn	property 'sys.showFunctionTesting.data' type is empty!
+14:50:17.83  info	reload done in '82' ms.
+14:50:29.42  debug	[.] localhost/menus/5d78ecdf7b7c752a18d096b6
+14:50:29.43  debug	reload ...
+14:50:29.43  debug	package 'sys' loaded. version: 5.3.3
+14:50:29.43  debug	package 'alchemy-project' loaded. version: 2.0.0
+14:50:29.44  debug	Loading system collections package 'sys' ...
+14:50:29.45  debug	Loading system collections package 'alchemy-project' ...
+14:50:29.46  debug	loadGeneralCollections ...
+14:50:29.47  debug	loadAuditTypes ...
+14:50:29.47  debug	initializeEnums ...
+14:50:29.48  debug	initializePackages: [{"_id":"5df39cef11ca303d3c7a9631","name":"sys","enabled":true,"syncCollections":["auditTypes","dictionary","enums","functions","menus","objects","roles","views","timeZones"],"initCollections":["systemConfig","configs","users","drives"]},{"_id":"5e3962a17ad3af2420f53e9d","name":"alchemy-project","enabled":true,"syncCollections":["dictionary","enums","functions","menus","objects","roles","views","configs","homeData"],"initCollections":["users"]}]
+14:50:29.48  debug	Initializing '45' Objects ...
+14:50:29.48  warn	property 'sys.Elem.props' type is empty!
+14:50:29.48  warn	property 'sys.Elem.props' type is empty!
+14:50:29.49  warn	property 'sys.Elem.value' type is empty!
+14:50:29.49  warn	property 'sys.EntityLink.type' type is empty!
+14:50:29.50  warn	property 'sys.ObjectModifyState.item' type is empty!
+14:50:29.51  debug	Initializing '26' functions ...
+14:50:29.51  warn	property 'sys.getPropertyReferenceValues.instance' type is empty!
+14:50:29.51  warn	property 'sys.showFunctionTesting.data' type is empty!
+14:50:29.51  info	reload done in '80' ms.
+14:51:09.88  debug	[.] localhost/menus/5d78ecdf7b7c752a18d096b6
+14:51:09.89  debug	reload ...
+14:51:09.89  debug	package 'sys' loaded. version: 5.3.3
+14:51:09.90  debug	package 'alchemy-project' loaded. version: 2.0.0
+14:51:09.90  debug	Loading system collections package 'sys' ...
+14:51:09.91  debug	Loading system collections package 'alchemy-project' ...
+14:51:09.92  debug	loadGeneralCollections ...
+14:51:09.93  debug	loadAuditTypes ...
+14:51:09.93  debug	initializeEnums ...
+14:51:09.94  debug	initializePackages: [{"_id":"5df39cef11ca303d3c7a9631","name":"sys","enabled":true,"syncCollections":["auditTypes","dictionary","enums","functions","menus","objects","roles","views","timeZones"],"initCollections":["systemConfig","configs","users","drives"]},{"_id":"5e3962a17ad3af2420f53e9d","name":"alchemy-project","enabled":true,"syncCollections":["dictionary","enums","functions","menus","objects","roles","views","configs","homeData"],"initCollections":["users"]}]
+14:51:09.94  debug	Initializing '45' Objects ...
+14:51:09.94  warn	property 'sys.Elem.props' type is empty!
+14:51:09.94  warn	property 'sys.Elem.props' type is empty!
+14:51:09.94  warn	property 'sys.Elem.value' type is empty!
+14:51:09.95  warn	property 'sys.EntityLink.type' type is empty!
+14:51:09.95  warn	property 'sys.ObjectModifyState.item' type is empty!
+14:51:09.96  debug	Initializing '26' functions ...
+14:51:09.96  warn	property 'sys.getPropertyReferenceValues.instance' type is empty!
+14:51:09.96  warn	property 'sys.showFunctionTesting.data' type is empty!
+14:51:09.97  info	reload done in '73' ms.
+14:51:29.06  debug	[.] localhost/functions?m=1
+14:51:30.15  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db?m=1
+14:51:38.26  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:51:51.57  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:51:53.00  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:51:56.10  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:52:07.82  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:52:17.51  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:52:33.05  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:52:45.43  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:52:57.64  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:53:00.50  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:53:05.44  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:53:18.27  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:53:19.62  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:53:21.24  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:53:26.39  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:53:27.67  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:55:32.68  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:55:40.27  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:59:06.33  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:59:08.90  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+14:59:23.95  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+15:05:03.85  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+15:05:08.55  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+15:05:15.55  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+15:05:19.62  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+15:28:34.67  debug	[.] localhost/functions?m=1
+15:28:35.90  debug	[.] localhost/functions?p=2&m=1
+15:28:40.48  debug	[.] localhost/functions/5e3c1a7aadc7de07c04c9a4a?m=1
+15:28:52.98  debug	[.] localhost/functions/5e3c1a7aadc7de07c04c9a4a
+15:28:54.51  debug	[.] localhost/functions/5e3c1a7aadc7de07c04c9a4a
+15:29:00.98  debug	[.] localhost/functions/5e3c1a7aadc7de07c04c9a4a
+15:29:03.36  debug	[.] localhost/functions/5e3c1a7aadc7de07c04c9a4a/test
+15:29:08.23  debug	[.] localhost/functions/5e3c1a7aadc7de07c04c9a4a
+15:29:10.66  debug	[.] localhost/functions/5e3c1a7aadc7de07c04c9a4a
+15:29:15.15  debug	[.] localhost/functions?m=1
+15:29:16.65  debug	[.] localhost/functions?p=2&m=1
+15:29:18.04  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4?m=1
+15:29:22.05  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4
+15:29:26.14  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4
+15:29:41.80  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4/test
+15:30:10.05  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4
+15:30:17.34  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4
+15:31:02.94  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4
+15:31:28.66  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4
+15:31:36.18  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4
+15:32:38.70  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4
+15:34:06.57  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4
+15:34:12.79  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4
+15:34:20.23  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4
+15:34:20.24  error	error (205): Reset Content [http://localhost/functions/5e385832dabe3b2fa477d7d4]
+15:34:41.05  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4
+15:34:43.16  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4
+15:35:00.39  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4
+15:35:03.21  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4
+15:35:05.06  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4
+15:35:07.73  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4
+15:35:07.74  error	error (205): Reset Content [http://localhost/functions/5e385832dabe3b2fa477d7d4]
+15:35:08.80  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4
+15:35:12.31  debug	[.] localhost/functions/5e385832dabe3b2fa477d7d4
+15:44:01.06  debug	[.] localhost/functions?m=1
+15:44:04.35  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db?m=1
+15:44:06.84  debug	[.] localhost/functions/54a540ffd3ca1b16b00a52db
+15:44:07.99  debug	[.] localhost/functions?m=1
+15:44:10.70  debug	[.] localhost/objects?m=1
+15:44:11.87  debug	[.] localhost/objects/54985d4830c392589b16d3c5?m=1
+15:48:25.17  debug	[.] localhost/objects/54985d4830c392589b16d3c5
+15:48:27.01  debug	[.] localhost/objects/54985d4830c392589b16d3c5
+15:48:28.74  debug	[.] localhost/objects/54985d4830c392589b16d3c5
+15:48:49.56  debug	[.] localhost/objects/54985d4830c392589b16d3c5
+15:48:57.19  debug	[.] localhost/objects/54985d4830c392589b16d3c5
+15:49:00.49  debug	[.] localhost/objects/54985d4830c392589b16d3c5

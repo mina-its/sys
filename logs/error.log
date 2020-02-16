@@ -1,0 +1,331 @@
+14:02:37.90  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:584:52
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:02:37.90  error	terminating process ...
+14:04:33.76  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:621:52
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:04:33.76  error	terminating process ...
+14:05:23.70  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:621:52
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:05:23.70  error	terminating process ...
+14:05:42.08  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:584:52
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:05:42.08  error	terminating process ...
+14:07:09.05  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:584:52
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:07:09.05  error	terminating process ...
+14:07:49.83  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:584:52
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:07:49.83  error	terminating process ...
+14:11:00.93  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:584:52
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:11:00.93  error	terminating process ...
+14:12:41.81  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:584:52
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:12:41.81  error	terminating process ...
+14:13:56.69  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/server/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/server/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:584:52
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:13:56.69  error	terminating process ...
+14:14:33.14  emerg	audit(5d7b922910f5321b74a1b842): Cannot find module '../sys/package.json'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js. Error: Cannot find module '../sys/package.json'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at C:\develop\sys\server\main.js:588:29
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:75:17
+    at C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:64:11
+    at ClientSession.endSession (C:\develop\sys\node_modules\mongodb\lib\core\sessions.js:135:41)
+    at executeCallback (C:\develop\sys\node_modules\mongodb\lib\operations\execute_operation.js:59:17)
+    at handleCallback (C:\develop\sys\node_modules\mongodb\lib\utils.js:129:55)
+14:14:33.15  error	terminating process ...
+14:15:51.06  error	error (404): Not Found [http://localhost/favicon.ico]
+14:16:55.31  error	error (404): Not Found [http://localhost/vendor/jquery-3.4.1.min.js]
+14:16:55.32  error	error (404): Not Found [http://localhost/vendor/Chart.js/Chart.min.css]
+14:16:55.34  error	error (404): Not Found [http://localhost/vendor/popper.js/umd/popper.min.js]
+14:16:55.34  error	error (404): Not Found [http://localhost/css/sys.main.css?v=5.3.3]
+14:16:55.35  error	error (404): Not Found [http://localhost/vendor/bootstrap/js/bootstrap.min.js]
+14:16:55.35  error	error (404): Not Found [http://localhost/vendor/fontawesome/css/all.min.css]
+14:16:55.36  error	error (404): Not Found [http://localhost/vendor/axios.min.js]
+14:16:55.36  error	error (404): Not Found [http://localhost/vendor/vue.js]
+14:16:55.37  error	error (404): Not Found [http://localhost/vendor/marked.min.js]
+14:16:55.38  error	error (404): Not Found [http://localhost/vendor/moment.js/moment.min.js]
+14:16:55.38  error	error (404): Not Found [http://localhost/js/sys.main.js?v=5.3.3]
+14:16:55.39  error	error (404): Not Found [http://localhost/vendor/Chart.js/Chart.min.js]
+14:16:55.39  error	error (404): Not Found [http://localhost/vendor/popper.js/umd/popper.min.js]
+14:16:55.46  error	error (404): Not Found [http://localhost/vendor/bootstrap/js/bootstrap.min.js]
+14:16:55.49  error	error (404): Not Found [http://localhost/vendor/vue.js]
+14:16:55.50  error	error (404): Not Found [http://localhost/vendor/axios.min.js]
+14:16:55.51  error	error (404): Not Found [http://localhost/vendor/marked.min.js]
+14:16:55.55  error	error (404): Not Found [http://localhost/vendor/moment.js/moment.min.js]
+14:16:55.56  error	error (404): Not Found [http://localhost/vendor/fontawesome/css/all.min.css]
+14:16:55.58  error	error (404): Not Found [http://localhost/js/sys.main.js?v=5.3.3]
+14:16:55.60  error	error (404): Not Found [http://localhost/vendor/Chart.js/Chart.min.css]
+14:16:55.61  error	error (404): Not Found [http://localhost/vendor/Chart.js/Chart.min.js]
+14:18:13.34  error	error (404): Not Found [http://localhost/css/sys.main.css?v=5.3.3]
+14:18:13.35  error	error (404): Not Found [http://localhost/vendor/jquery-3.4.1.min.js]
+14:18:13.35  error	error (404): Not Found [http://localhost/vendor/popper.js/umd/popper.min.js]
+14:18:13.36  error	error (404): Not Found [http://localhost/vendor/bootstrap/js/bootstrap.min.js]
+14:18:13.36  error	error (404): Not Found [http://localhost/vendor/vue.js]
+14:18:13.36  error	error (404): Not Found [http://localhost/vendor/axios.min.js]
+14:18:13.38  error	error (404): Not Found [http://localhost/vendor/fontawesome/css/all.min.css]
+14:18:13.38  error	error (404): Not Found [http://localhost/vendor/Chart.js/Chart.min.css]
+14:18:13.39  error	error (404): Not Found [http://localhost/vendor/marked.min.js]
+14:18:13.39  error	error (404): Not Found [http://localhost/vendor/moment.js/moment.min.js]
+14:18:13.40  error	error (404): Not Found [http://localhost/js/sys.main.js?v=5.3.3]
+14:18:13.40  error	error (404): Not Found [http://localhost/vendor/Chart.js/Chart.min.js]
+14:18:13.42  error	error (404): Not Found [http://localhost/vendor/fontawesome/css/all.min.css]
+14:18:13.50  error	error (404): Not Found [http://localhost/js/sys.main.js?v=5.3.3]
+14:18:13.52  error	error (404): Not Found [http://localhost/vendor/Chart.js/Chart.min.css]
+14:18:13.53  error	error (404): Not Found [http://localhost/vendor/Chart.js/Chart.min.js]
+14:18:13.58  error	error (404): Not Found [http://localhost/images/sys.favicon.ico]
+14:18:26.95  error	error (404): Not Found [http://localhost/css/sys.main.css?v=5.3.3]
+14:22:05.62  error	error (404): Not Found [http://localhost/css/sys.main.css?v=5.3.3]
+14:22:16.04  error	error (404): Not Found [http://localhost/css/sys.main.css?v=5.3.3]
+14:23:32.11  crit	Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at Object.invoke (C:\develop\sys\server\main.js:1563:22)
+    at invoke (C:\develop\web\server\main.js:1753:9)
+    at getPropertyReferenceValues (C:\develop\web\server\main.js:1099:16)
+    at preparePropertyMeta (C:\develop\web\server\main.js:1141:9)
+    at C:\develop\web\server\main.js:1184:9
+    at C:\develop\web\node_modules\async\dist\async.js:2158:44
+14:23:34.09  crit	Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at Object.invoke (C:\develop\sys\server\main.js:1563:22)
+    at invoke (C:\develop\web\server\main.js:1753:9)
+    at getPropertyReferenceValues (C:\develop\web\server\main.js:1099:16)
+    at preparePropertyMeta (C:\develop\web\server\main.js:1141:9)
+    at C:\develop\web\server\main.js:1184:9
+    at C:\develop\web\node_modules\async\dist\async.js:2158:44
+14:23:34.10  crit	Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at Object.invoke (C:\develop\sys\server\main.js:1563:22)
+    at invoke (C:\develop\web\server\main.js:1753:9)
+    at getPropertyReferenceValues (C:\develop\web\server\main.js:1099:16)
+    at preparePropertyMeta (C:\develop\web\server\main.js:1141:9)
+    at C:\develop\web\server\main.js:1122:13
+    at C:\develop\web\node_modules\async\dist\async.js:2158:44
+14:23:34.11  crit	Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at Object.invoke (C:\develop\sys\server\main.js:1563:22)
+    at invoke (C:\develop\web\server\main.js:1753:9)
+    at getPropertyReferenceValues (C:\develop\web\server\main.js:1099:16)
+    at preparePropertyMeta (C:\develop\web\server\main.js:1141:9)
+    at C:\develop\web\server\main.js:1122:13
+    at C:\develop\web\node_modules\async\dist\async.js:2158:44
+14:23:37.72  crit	Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at Object.invoke (C:\develop\sys\server\main.js:1563:22)
+    at invoke (C:\develop\web\server\main.js:1753:9)
+    at getPropertyReferenceValues (C:\develop\web\server\main.js:1099:16)
+    at preparePropertyMeta (C:\develop\web\server\main.js:1141:9)
+    at C:\develop\web\server\main.js:1184:9
+    at C:\develop\web\node_modules\async\dist\async.js:2158:44
+14:23:40.66  crit	Error: Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at Object.invoke (C:\develop\sys\server\main.js:1563:22)
+    at invoke (C:\develop\web\server\main.js:1753:9)
+    at handleFunctionRequest (C:\develop\web\server\main.js:220:9)
+    at processRequest (C:\develop\web\server\main.js:402:20)
+    at Layer.handle [as handle_request] (C:\develop\web\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\develop\web\node_modules\express\lib\router\route.js:137:13)
+14:23:40.66  error	Cannot find module '../sys/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js [http://localhost/login]
+14:25:28.86  crit	Error: Cannot find module '../sys/server/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:772:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:677:27)
+    at Module.require (internal/modules/cjs/loader.js:830:19)
+    at require (internal/modules/cjs/helpers.js:68:18)
+    at Object.invoke (C:\develop\sys\server\main.js:1563:22)
+    at invoke (C:\develop\web\server\main.js:1753:9)
+    at handleFunctionRequest (C:\develop\web\server\main.js:220:9)
+    at processRequest (C:\develop\web\server\main.js:402:20)
+    at Layer.handle [as handle_request] (C:\develop\web\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\develop\web\node_modules\express\lib\router\route.js:137:13)
+14:25:28.86  error	Cannot find module '../sys/server/main'
+Require stack:
+- C:\develop\sys\server\main.js
+- C:\develop\web\server\main.js [http://localhost/login]
+15:34:20.24  error	error (205): Reset Content [http://localhost/functions/5e385832dabe3b2fa477d7d4]
+15:35:07.74  error	error (205): Reset Content [http://localhost/functions/5e385832dabe3b2fa477d7d4]

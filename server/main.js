@@ -1,23 +1,30 @@
 "use strict";
+var __spreadArrays = (this && this.__spreadArrays) || function () {
+    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+    for (var r = Array(s), k = 0, i = 0; i < il; i++)
+        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+            r[k] = a[j];
+    return r;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const logger = require("winston");
-const mongodb = require("mongodb");
-const xmlBuilder = require("xmlbuilder");
-const fs = require("fs-extra");
-const path = require("path");
-const moment = require("moment");
-const _ = require("lodash");
-const async = require("async");
-const graphlib = require("graphlib");
-const Jalali = require("jalali-moment");
-const AWS = require("aws-sdk");
-const mongodb_1 = require("mongodb");
-const types_1 = require("./types");
-const { EJSON } = require('bson');
+var logger = require("winston");
+var mongodb = require("mongodb");
+var xmlBuilder = require("xmlbuilder");
+var fs = require("fs-extra");
+var path = require("path");
+var moment = require("moment");
+var _ = require("lodash");
+var async = require("async");
+var graphlib = require("graphlib");
+var Jalali = require("jalali-moment");
+var AWS = require("aws-sdk");
+var mongodb_1 = require("mongodb");
+var types_1 = require("./types");
+var EJSON = require('bson').EJSON;
 exports.glob = new types_1.Global();
 function reload(cn, done) {
-    let startTime = moment();
-    log(`reload ...`);
+    var startTime = moment();
+    log("reload ...");
     async.series([
         loadSysConfig,
         loadSystemCollections,
@@ -27,9 +34,9 @@ function reload(cn, done) {
         initializePackages,
         initializeRoles,
         initializeEntities
-    ], (err) => {
-        let period = moment().diff(startTime, 'ms', true);
-        info(`reload done in '${period}' ms.`);
+    ], function (err) {
+        var period = moment().diff(startTime, 'ms', true);
+        info("reload done in '" + period + "' ms.");
         done(err);
     });
 }
@@ -38,11 +45,11 @@ function start(callback) {
     process.on('uncaughtException', function (err) {
         audit(types_1.SysAuditTypes.uncaughtException, { level: types_1.LogLevel.Emerg, comment: err.message + ". " + err.stack });
     });
-    process.on('unhandledRejection', (reason, p) => {
+    process.on('unhandledRejection', function (reason, p) {
         audit(types_1.SysAuditTypes.unhandledRejection, { level: types_1.LogLevel.Emerg, detail: reason });
     });
     configureLogger(false);
-    reload(null, (err) => {
+    reload(null, function (err) {
         callback(err, exports.glob);
     });
 }
@@ -53,11 +60,11 @@ function isWindows() {
 function audit(auditType, args) {
     args.type = args.type || new mongodb_1.ObjectId(auditType);
     args.time = new Date();
-    let comment = args.comment || "";
-    let type = _.find(exports.glob.auditTypes, (type) => {
+    var comment = args.comment || "";
+    var type = _.find(exports.glob.auditTypes, function (type) {
         return type._id.equals(args.type);
     });
-    let msg = "audit(" + (type ? type.name : args.type) + "): " + comment;
+    var msg = "audit(" + (type ? type.name : args.type) + "): " + comment;
     switch (args.level) {
         case types_1.LogLevel.Emerg:
             emerg(msg);
@@ -80,26 +87,30 @@ function audit(auditType, args) {
     put(args.pack || types_1.Constants.sysPackage, types_1.SysCollection.audits, args);
 }
 exports.audit = audit;
-function run(cn, func, ...args) {
+function run(cn, func) {
+    var args = [];
+    for (var _i = 2; _i < arguments.length; _i++) {
+        args[_i - 2] = arguments[_i];
+    }
     try {
-        let theFunction = eval(_.camelCase(func));
-        theFunction(cn, ...args);
+        var theFunction = eval(_.camelCase(func));
+        theFunction.apply(void 0, __spreadArrays([cn], args));
     }
     catch (err) {
-        warn(`[exe] ${func}`);
+        warn("[exe] " + func);
     }
 }
 exports.run = run;
 function get(pack, objectName, options, done) {
-    let db = exports.glob.dbs[pack];
+    var db = exports.glob.dbs[pack];
     if (!db)
-        return done(`db for pack '${pack}' not found.`, null);
+        return done("db for pack '" + pack + "' not found.", null);
     options = options || {};
-    let collection = db.collection(objectName);
+    var collection = db.collection(objectName);
     if (options.itemId)
         collection.findOne(options.itemId, done);
     else {
-        let find = collection.find(options.query);
+        var find = collection.find(options.query);
         if (options.sort)
             find = find.sort(options.sort);
         if (options.last)
@@ -108,7 +119,7 @@ function get(pack, objectName, options, done) {
             find = find.limit(options.count);
         if (options.skip)
             find = find.skip(options.skip);
-        find.toArray((err, result) => {
+        find.toArray(function (err, result) {
             if (options.count === 1 && result)
                 done(null, result[0]);
             else
@@ -118,15 +129,15 @@ function get(pack, objectName, options, done) {
 }
 exports.get = get;
 function put(pack, objectName, item, options, done) {
-    let collection = exports.glob.dbs[pack].collection(objectName);
-    done = done || (() => {
+    var collection = exports.glob.dbs[pack].collection(objectName);
+    done = done || (function () {
     });
     if (!collection)
         return done(types_1.StatusCode.BadRequest);
     item = item || {};
     if (!options || !options.portions || options.portions.length == 1) {
         if (item._id)
-            collection.replaceOne({ _id: item._id }, item, (err, result) => {
+            collection.replaceOne({ _id: item._id }, item, function (err, result) {
                 if (err) {
                     error(err);
                     done(types_1.StatusCode.ServerError);
@@ -140,7 +151,7 @@ function put(pack, objectName, item, options, done) {
                 }
             });
         else
-            collection.insertOne(item, (err, result) => {
+            collection.insertOne(item, function (err, result) {
                 if (err) {
                     error(err);
                     done(types_1.StatusCode.ServerError);
@@ -155,10 +166,10 @@ function put(pack, objectName, item, options, done) {
             });
         return;
     }
-    let portions = options.portions;
+    var portions = options.portions;
     switch (portions.length) {
         case 2:
-            collection.save(item, (err, result) => {
+            collection.save(item, function (err, result) {
                 if (err) {
                     error(err);
                     done(types_1.StatusCode.ServerError);
@@ -173,12 +184,12 @@ function put(pack, objectName, item, options, done) {
             });
             break;
         default:
-            let command = { $addToSet: {} };
+            var command_1 = { $addToSet: {} };
             item._id = item._id || new mongodb_1.ObjectId();
-            let rootId = portions[1].itemId;
-            portionsToMongoPath(pack, rootId, portions, portions.length, (err, path) => {
-                command.$addToSet[path] = item;
-                collection.updateOne({ _id: rootId }, command, (err, result) => {
+            var rootId_1 = portions[1].itemId;
+            portionsToMongoPath(pack, rootId_1, portions, portions.length, function (err, path) {
+                command_1.$addToSet[path] = item;
+                collection.updateOne({ _id: rootId_1 }, command_1, function (err, result) {
                     if (err) {
                         error(err);
                         done(types_1.StatusCode.ServerError);
@@ -187,7 +198,7 @@ function put(pack, objectName, item, options, done) {
                         done((result && result.modifiedCount) ? types_1.StatusCode.Ok : types_1.StatusCode.ResetContent, {
                             type: types_1.ObjectModifyType.Patch,
                             item: item,
-                            itemId: rootId
+                            itemId: rootId_1
                         });
                     }
                 });
@@ -199,16 +210,16 @@ exports.put = put;
 function portionsToMongoPath(pack, rootId, portions, endIndex, done) {
     if (endIndex == 3)
         return done(null, portions[2].property.name);
-    let collection = exports.glob.dbs[pack].collection(portions[0].value);
+    var collection = exports.glob.dbs[pack].collection(portions[0].value);
     if (!collection)
         return done(types_1.StatusCode.BadRequest);
-    collection.findOne({ _id: rootId }, (err, item) => {
-        let value = item;
+    collection.findOne({ _id: rootId }, function (err, item) {
+        var value = item;
         if (err || !value)
             return done(err || types_1.StatusCode.ServerError);
-        let path = "";
-        for (let i = 2; i < endIndex; i++) {
-            let part = portions[i].value;
+        var path = "";
+        var _loop_1 = function (i) {
+            var part = portions[i].value;
             if (portions[i].type == types_1.RefPortionType.property) {
                 path += "." + part;
                 value = value[part];
@@ -216,24 +227,29 @@ function portionsToMongoPath(pack, rootId, portions, endIndex, done) {
                     value = {};
             }
             else {
-                let partItem = _.find(value, (it) => {
+                var partItem = _.find(value, function (it) {
                     return it._id && it._id.toString() == part;
                 });
                 if (!partItem)
-                    return done(types_1.StatusCode.ServerError);
+                    return { value: done(types_1.StatusCode.ServerError) };
                 path += "." + value.indexOf(partItem);
                 value = partItem;
             }
+        };
+        for (var i = 2; i < endIndex; i++) {
+            var state_1 = _loop_1(i);
+            if (typeof state_1 === "object")
+                return state_1.value;
         }
         done(null, _.trim(path, '.'));
     });
 }
 exports.portionsToMongoPath = portionsToMongoPath;
 function count(pack, objectName, options, done) {
-    get(pack, objectName, options, (err, result) => {
+    get(pack, objectName, options, function (err, result) {
         if (err)
             return done(null);
-        let count = !result ? 0 : (Array.isArray(result) ? result.length : 1);
+        var count = !result ? 0 : (Array.isArray(result) ? result.length : 1);
         done(count);
     });
 }
@@ -243,54 +259,54 @@ function extractRefPortions(pack, appDependencies, ref, _default) {
         ref = _.trim(ref, '/') || _default;
         if (!ref)
             return null;
-        let portions = _.map(ref.split('/'), (portion) => {
+        var portions_1 = _.map(ref.split('/'), function (portion) {
             return { value: portion };
         });
-        if (portions.length === 0)
+        if (portions_1.length === 0)
             return null;
-        for (let i = 1; i < portions.length; i++) {
-            portions[i].pre = portions[i - 1];
+        for (var i = 1; i < portions_1.length; i++) {
+            portions_1[i].pre = portions_1[i - 1];
         }
-        let entity = _.find(exports.glob.entities, (entity) => {
-            return entity._id.toString() === portions[0].value;
+        var entity = _.find(exports.glob.entities, function (entity) {
+            return entity._id.toString() === portions_1[0].value;
         });
         if (!entity)
-            entity = _.find(exports.glob.entities, { _package: pack, name: portions[0].value });
+            entity = _.find(exports.glob.entities, { _package: pack, name: portions_1[0].value });
         if (!entity)
-            entity = _.find(exports.glob.entities, (entity) => {
-                return entity.name === portions[0].value && appDependencies.indexOf(entity._package) > -1;
+            entity = _.find(exports.glob.entities, function (entity) {
+                return entity.name === portions_1[0].value && appDependencies.indexOf(entity._package) > -1;
             });
         if (entity) {
-            portions[0].entity = entity;
-            portions[0].type = types_1.RefPortionType.entity;
+            portions_1[0].entity = entity;
+            portions_1[0].type = types_1.RefPortionType.entity;
         }
         else
             return null;
-        if (entity.entityType !== types_1.EntityType.Object || portions.length < 2)
-            return portions;
-        let parent = entity;
-        for (let i = 1; i < portions.length; i++) {
-            let pr = portions[i];
-            if (parent == null) {
-                warn(`Invalid path '${ref}'`);
+        if (entity.entityType !== types_1.EntityType.Object || portions_1.length < 2)
+            return portions_1;
+        var parent_1 = entity;
+        for (var i = 1; i < portions_1.length; i++) {
+            var pr = portions_1[i];
+            if (parent_1 == null) {
+                warn("Invalid path '" + ref + "'");
                 return null;
             }
-            else if (parent._gtype == types_1.GlobalType.file) {
+            else if (parent_1._gtype == types_1.GlobalType.file) {
                 pr.type = types_1.RefPortionType.file;
             }
-            else if ((parent.entityType || parent.isList) && /[0-9a-f]{24}/.test(pr.value)) {
+            else if ((parent_1.entityType || parent_1.isList) && /[0-9a-f]{24}/.test(pr.value)) {
                 pr.type = types_1.RefPortionType.item;
-                let itemId = pr.value;
+                var itemId = pr.value;
                 pr.itemId = new mongodb_1.ObjectId(itemId);
             }
             else {
                 pr.type = types_1.RefPortionType.property;
-                parent = pr.property = _.find(parent.properties, { name: pr.value });
+                parent_1 = pr.property = _.find(parent_1.properties, { name: pr.value });
                 if (!pr.property)
-                    error(`Invalid property name '${pr.value}' in path '${ref}'`);
+                    error("Invalid property name '" + pr.value + "' in path '" + ref + "'");
             }
         }
-        return portions;
+        return portions_1;
     }
     catch (ex) {
         exception(ex);
@@ -298,25 +314,25 @@ function extractRefPortions(pack, appDependencies, ref, _default) {
 }
 exports.extractRefPortions = extractRefPortions;
 function patch(pack, objectName, patchData, options, done) {
-    let collection = exports.glob.dbs[pack].collection(objectName);
-    done = done || (() => {
+    var collection = exports.glob.dbs[pack].collection(objectName);
+    done = done || (function () {
     });
     if (!collection)
         return done(types_1.StatusCode.BadRequest);
     if (!options)
         options = { portions: [] };
-    let portions = options.portions;
+    var portions = options.portions;
     if (!portions)
         portions = [{ type: types_1.RefPortionType.entity, value: objectName }];
     if (portions.length == 1)
         return done(types_1.StatusCode.BadRequest);
-    let rootId = portions.length < 2 ? patchData._id : portions[1].itemId;
-    portionsToMongoPath(pack, rootId, portions, portions.length, (err, path) => {
-        let command = { $set: {}, $unset: {} };
+    var rootId = portions.length < 2 ? patchData._id : portions[1].itemId;
+    portionsToMongoPath(pack, rootId, portions, portions.length, function (err, path) {
+        var command = { $set: {}, $unset: {} };
         if (portions[portions.length - 1].property && portions[portions.length - 1].property._gtype == types_1.GlobalType.file)
             command["$set"][path] = patchData;
         else
-            for (let key in patchData) {
+            for (var key in patchData) {
                 if (key == "_id")
                     continue;
                 command[patchData[key] == null ? "$unset" : "$set"][path + (path ? "." : "") + key] = patchData[key];
@@ -325,8 +341,8 @@ function patch(pack, objectName, patchData, options, done) {
             delete command.$unset;
         if (_.isEmpty(command.$set))
             delete command.$set;
-        let rootId = portions[1].itemId;
-        collection.updateOne({ _id: rootId }, command, (err, result) => {
+        var rootId = portions[1].itemId;
+        collection.updateOne({ _id: rootId }, command, function (err, result) {
             if (err) {
                 error(err);
                 done(types_1.StatusCode.ServerError);
@@ -343,11 +359,11 @@ function patch(pack, objectName, patchData, options, done) {
 }
 exports.patch = patch;
 function del(pack, objectName, options, done) {
-    let collection = exports.glob.dbs[pack].collection(objectName);
+    var collection = exports.glob.dbs[pack].collection(objectName);
     if (!collection || !options)
         return done(types_1.StatusCode.BadRequest);
     if (options.itemId)
-        return collection.deleteOne({ _id: options.itemId }, (err, result) => {
+        return collection.deleteOne({ _id: options.itemId }, function (err, result) {
             if (err) {
                 error(err);
                 done(types_1.StatusCode.ServerError);
@@ -360,12 +376,12 @@ function del(pack, objectName, options, done) {
                 });
             }
         });
-    let portions = options.portions;
+    var portions = options.portions;
     if (portions.length == 1 || portions.length == 3)
         return done(types_1.StatusCode.BadRequest);
     switch (portions.length) {
         case 2:
-            collection.deleteOne({ _id: portions[1].itemId }, (err, result) => {
+            collection.deleteOne({ _id: portions[1].itemId }, function (err, result) {
                 if (err) {
                     error(err);
                     done(types_1.StatusCode.ServerError);
@@ -380,12 +396,12 @@ function del(pack, objectName, options, done) {
             });
             break;
         default:
-            let command = { $pull: {} };
-            let rootId = portions[1].itemId;
-            let itemId = portions[portions.length - 1].itemId;
-            portionsToMongoPath(pack, rootId, portions, portions.length - 1, (err, path) => {
-                command.$pull[path] = { _id: itemId };
-                collection.updateOne({ _id: rootId }, command, (err, result) => {
+            var command_2 = { $pull: {} };
+            var rootId_2 = portions[1].itemId;
+            var itemId_1 = portions[portions.length - 1].itemId;
+            portionsToMongoPath(pack, rootId_2, portions, portions.length - 1, function (err, path) {
+                command_2.$pull[path] = { _id: itemId_1 };
+                collection.updateOne({ _id: rootId_2 }, command_2, function (err, result) {
                     if (err) {
                         error(err);
                         done(types_1.StatusCode.ServerError);
@@ -394,7 +410,7 @@ function del(pack, objectName, options, done) {
                         done((result && result.modifiedCount) ? types_1.StatusCode.Ok : types_1.StatusCode.ResetContent, {
                             type: types_1.ObjectModifyType.Patch,
                             item: null,
-                            itemId: rootId
+                            itemId: rootId_2
                         });
                     }
                 });
@@ -406,8 +422,8 @@ exports.del = del;
 function getFile(drive, filePath, done) {
     switch (drive.type) {
         case types_1.SourceType.File:
-            let _path = path.join(drive.address, filePath);
-            fs.readFile(_path, (err, file) => {
+            var _path = path.join(drive.address, filePath);
+            fs.readFile(_path, function (err, file) {
                 if (err)
                     error(err);
                 if (!file)
@@ -416,14 +432,14 @@ function getFile(drive, filePath, done) {
             });
             break;
         case types_1.SourceType.Db:
-            let db = exports.glob.dbs[drive._package];
-            let bucket = new mongodb.GridFSBucket(db);
-            let stream = bucket.openDownloadStreamByName(filePath);
-            let data;
+            var db = exports.glob.dbs[drive._package];
+            var bucket = new mongodb.GridFSBucket(db);
+            var stream = bucket.openDownloadStreamByName(filePath);
+            var data_1;
             stream.on("end", function () {
-                return done(null, data);
+                return done(null, data_1);
             }).on("data", function (chunk) {
-                data = data ? Buffer.concat([data, chunk]) : chunk;
+                data_1 = data_1 ? Buffer.concat([data_1, chunk]) : chunk;
             }).on("error", function (err) {
                 error(err);
                 return done(types_1.StatusCode.NotFound);
@@ -437,11 +453,11 @@ exports.getFile = getFile;
 function putFile(host, drive, filePath, file, done) {
     switch (drive.type) {
         case types_1.SourceType.File:
-            let _path = path.join(drive.address, filePath);
-            fs.mkdir(path.dirname(_path), { recursive: true }, (err) => {
+            var _path_1 = path.join(drive.address, filePath);
+            fs.mkdir(path.dirname(_path_1), { recursive: true }, function (err) {
                 if (err)
                     return done(err);
-                fs.writeFile(_path, file, (err) => {
+                fs.writeFile(_path_1, file, function (err) {
                     if (err)
                         error(err);
                     done(err ? types_1.StatusCode.ServerError : types_1.StatusCode.Ok);
@@ -449,11 +465,11 @@ function putFile(host, drive, filePath, file, done) {
             });
             break;
         case types_1.SourceType.Db:
-            let db = exports.glob.dbs[host];
-            let bucket = new mongodb.GridFSBucket(db);
-            let stream = bucket.openUploadStream(filePath);
-            delFile(host, filePath, () => {
-                stream.on("error", function (err) {
+            var db = exports.glob.dbs[host];
+            var bucket = new mongodb.GridFSBucket(db);
+            var stream_1 = bucket.openUploadStream(filePath);
+            delFile(host, filePath, function () {
+                stream_1.on("error", function (err) {
                     error(err);
                     done(err ? types_1.StatusCode.ServerError : types_1.StatusCode.Ok);
                 }).end(file, done);
@@ -466,7 +482,7 @@ function putFile(host, drive, filePath, file, done) {
             }
             AWS.config.accessKeyId = exports.glob.sysConfig.amazon.accessKeyId;
             AWS.config.secretAccessKey = exports.glob.sysConfig.amazon.secretAccessKey;
-            let s3 = new AWS.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion });
+            var s3 = new AWS.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion });
             s3.upload({ Bucket: drive.address, Key: path.basename(filePath), Body: file }, function (err, data) {
                 if (err || !data) {
                     error(err || "s3 upload failed");
@@ -493,15 +509,27 @@ exports.movFile = movFile;
 function authorizeUser(email, password, done) {
 }
 exports.authorizeUser = authorizeUser;
-function silly(...message) {
+function silly() {
+    var message = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+        message[_i] = arguments[_i];
+    }
     logger.silly(message);
 }
 exports.silly = silly;
-function log(...message) {
+function log() {
+    var message = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+        message[_i] = arguments[_i];
+    }
     logger.debug(message);
 }
 exports.log = log;
-function info(...message) {
+function info() {
+    var message = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+        message[_i] = arguments[_i];
+    }
     logger.info(message);
 }
 exports.info = info;
@@ -509,11 +537,19 @@ function notice(message) {
     logger.log('notice', message);
 }
 exports.notice = notice;
-function warn(...message) {
+function warn() {
+    var message = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+        message[_i] = arguments[_i];
+    }
     logger.warn(message);
 }
 exports.warn = warn;
-function error(...message) {
+function error() {
+    var message = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+        message[_i] = arguments[_i];
+    }
     logger.error(message);
 }
 exports.error = error;
@@ -528,7 +564,7 @@ exports.exception = exception;
 function emerg(message) {
     logger.log('emerg', message);
     logger.error("terminating process ...");
-    setTimeout(() => {
+    setTimeout(function () {
         process.exit();
     }, 2000);
 }
@@ -549,12 +585,12 @@ function isRtl(lang) {
 exports.isRtl = isRtl;
 function loadGeneralCollections(done) {
     log('loadGeneralCollections ...');
-    get(types_1.Constants.sysPackage, types_1.Constants.timeZonesCollection, null, (err, timeZones) => {
+    get(types_1.Constants.sysPackage, types_1.Constants.timeZonesCollection, null, function (err, timeZones) {
         exports.glob.timeZones = timeZones;
         get(types_1.Constants.sysPackage, types_1.SysCollection.objects, {
             query: { name: types_1.Constants.systemPropertiesObjectName },
             count: 1
-        }, (err, result) => {
+        }, function (err, result) {
             if (!result)
                 emerg('systemProperties object not found!');
             exports.glob.systemProperties = result ? result.properties : [];
@@ -564,30 +600,31 @@ function loadGeneralCollections(done) {
 }
 function loadAuditTypes(done) {
     log('loadAuditTypes ...');
-    get(types_1.Constants.sysPackage, types_1.SysCollection.auditTypes, null, (err, auditTypes) => {
+    get(types_1.Constants.sysPackage, types_1.SysCollection.auditTypes, null, function (err, auditTypes) {
         exports.glob.auditTypes = auditTypes;
         done();
     });
 }
 function getEnabledPackages() {
-    return exports.glob.sysConfig.packages.filter((pack) => {
+    return exports.glob.sysConfig.packages.filter(function (pack) {
         return pack.enabled;
     });
 }
 function loadSysConfig(done) {
-    connect(types_1.Constants.sysPackage, (err) => {
+    connect(types_1.Constants.sysPackage, function (err) {
         if (err)
             return done(err);
-        exports.glob.dbs[types_1.Constants.sysPackage].collection(types_1.SysCollection.systemConfig).findOne({}, (err, config) => {
+        exports.glob.dbs[types_1.Constants.sysPackage].collection(types_1.SysCollection.systemConfig).findOne({}, function (err, config) {
             exports.glob.sysConfig = config;
-            for (let pack of getEnabledPackages()) {
-                exports.glob.packages[pack.name] = require(`../${pack.name}/main`);
+            for (var _i = 0, _a = getEnabledPackages(); _i < _a.length; _i++) {
+                var pack = _a[_i];
+                exports.glob.packages[pack.name] = require("../../" + pack.name + "/server/main");
                 if (exports.glob.packages[pack.name] == null)
-                    error(`Error loading package ${pack.name}!`);
+                    error("Error loading package " + pack.name + "!");
                 else {
-                    let p = require(`../${pack.name}/package.json`);
+                    var p = require("../../" + pack.name + "/package.json");
                     exports.glob.packages[pack.name]._version = p.version;
-                    log(`package '${pack.name}' loaded. version: ${p.version}`);
+                    log("package '" + pack.name + "' loaded. version: " + p.version);
                 }
             }
             done();
@@ -602,27 +639,28 @@ function loadSystemCollections(done) {
     exports.glob.drives = [];
     if (!process.env.DB_ADDRESS)
         return done("Environment variable 'DB_ADDRESS' is needed!");
-    async.eachSeries(getEnabledPackages(), (packConfig, nextPackage) => {
-        let pack = packConfig.name;
-        connect(pack, (err) => {
+    async.eachSeries(getEnabledPackages(), function (packConfig, nextPackage) {
+        var pack = packConfig.name;
+        connect(pack, function (err) {
             if (err)
                 return nextPackage();
-            log(`Loading system collections package '${pack}' ...`);
+            log("Loading system collections package '" + pack + "' ...");
             async.series([
-                (next) => {
-                    exports.glob.dbs[pack].collection(types_1.SysCollection.configs).findOne(null, (err, config) => {
+                function (next) {
+                    exports.glob.dbs[pack].collection(types_1.SysCollection.configs).findOne(null, function (err, config) {
                         if (!config) {
                             packConfig.enabled = false;
-                            error(`Config for package '${pack}' not found!`);
+                            error("Config for package '" + pack + "' not found!");
                         }
                         else
                             exports.glob.packages[pack]._config = config;
                         next();
                     });
                 },
-                (next) => {
-                    exports.glob.dbs[pack].collection(types_1.SysCollection.objects).find({}).toArray((err, objects) => {
-                        for (let object of objects) {
+                function (next) {
+                    exports.glob.dbs[pack].collection(types_1.SysCollection.objects).find({}).toArray(function (err, objects) {
+                        for (var _i = 0, objects_1 = objects; _i < objects_1.length; _i++) {
+                            var object = objects_1[_i];
                             object._package = pack;
                             object.entityType = types_1.EntityType.Object;
                             exports.glob.entities.push(object);
@@ -630,9 +668,10 @@ function loadSystemCollections(done) {
                         next();
                     });
                 },
-                (next) => {
-                    exports.glob.dbs[pack].collection(types_1.SysCollection.functions).find({}).toArray((err, functions) => {
-                        for (let func of functions) {
+                function (next) {
+                    exports.glob.dbs[pack].collection(types_1.SysCollection.functions).find({}).toArray(function (err, functions) {
+                        for (var _i = 0, functions_1 = functions; _i < functions_1.length; _i++) {
+                            var func = functions_1[_i];
                             func._package = pack;
                             func.entityType = types_1.EntityType.Function;
                             exports.glob.entities.push(func);
@@ -640,9 +679,10 @@ function loadSystemCollections(done) {
                         next();
                     });
                 },
-                (next) => {
-                    exports.glob.dbs[pack].collection(types_1.SysCollection.views).find({}).toArray((err, views) => {
-                        for (let view of views) {
+                function (next) {
+                    exports.glob.dbs[pack].collection(types_1.SysCollection.views).find({}).toArray(function (err, views) {
+                        for (var _i = 0, views_1 = views; _i < views_1.length; _i++) {
+                            var view = views_1[_i];
                             view._package = pack;
                             view.entityType = types_1.EntityType.View;
                             exports.glob.entities.push(view);
@@ -650,35 +690,39 @@ function loadSystemCollections(done) {
                         next();
                     });
                 },
-                (next) => {
-                    exports.glob.dbs[pack].collection(types_1.SysCollection.dictionary).find({}).toArray((err, texts) => {
-                        for (let item of texts) {
+                function (next) {
+                    exports.glob.dbs[pack].collection(types_1.SysCollection.dictionary).find({}).toArray(function (err, texts) {
+                        for (var _i = 0, texts_1 = texts; _i < texts_1.length; _i++) {
+                            var item = texts_1[_i];
                             exports.glob.dictionary[pack + "." + item.name] = item.text;
                         }
                         next();
                     });
                 },
-                (next) => {
-                    exports.glob.dbs[pack].collection(types_1.SysCollection.menus).find({}).toArray((err, menus) => {
-                        for (let menu of menus) {
+                function (next) {
+                    exports.glob.dbs[pack].collection(types_1.SysCollection.menus).find({}).toArray(function (err, menus) {
+                        for (var _i = 0, menus_1 = menus; _i < menus_1.length; _i++) {
+                            var menu = menus_1[_i];
                             menu._package = pack;
                             exports.glob.menus.push(menu);
                         }
                         next();
                     });
                 },
-                (next) => {
-                    exports.glob.dbs[pack].collection(types_1.SysCollection.roles).find({}).toArray((err, roles) => {
-                        for (let role of roles) {
+                function (next) {
+                    exports.glob.dbs[pack].collection(types_1.SysCollection.roles).find({}).toArray(function (err, roles) {
+                        for (var _i = 0, roles_1 = roles; _i < roles_1.length; _i++) {
+                            var role = roles_1[_i];
                             role._package = pack;
                             exports.glob.roles.push(role);
                         }
                         next();
                     });
                 },
-                (next) => {
-                    exports.glob.dbs[pack].collection(types_1.SysCollection.drives).find({}).toArray((err, drives) => {
-                        for (let drive of drives) {
+                function (next) {
+                    exports.glob.dbs[pack].collection(types_1.SysCollection.drives).find({}).toArray(function (err, drives) {
+                        for (var _i = 0, drives_1 = drives; _i < drives_1.length; _i++) {
+                            var drive = drives_1[_i];
                             drive._package = pack;
                             exports.glob.drives.push(drive);
                         }
@@ -690,10 +734,10 @@ function loadSystemCollections(done) {
     }, done);
 }
 function configureLogger(silent) {
-    let logDir = path.join(__dirname, '../logs');
-    const infoLogFileName = 'info.log';
-    const errorLogFileName = 'error.log';
-    const logLevels = {
+    var logDir = path.join(__dirname, '../logs');
+    var infoLogFileName = 'info.log';
+    var errorLogFileName = 'error.log';
+    var logLevels = {
         levels: {
             emerg: 0,
             todo: 1,
@@ -717,44 +761,47 @@ function configureLogger(silent) {
             silly: 'gray'
         }
     };
-    let transports = [
+    var transports = [
         new logger.transports.File({
             filename: path.join(logDir, errorLogFileName),
             level: 'error',
-            format: logger.format.printf(info => `${moment().format('HH:mm:ss.SS')}  ${info.level}\t${info.message}`),
+            format: logger.format.printf(function (info) { return moment().format('HH:mm:ss.SS') + "  " + info.level + "\t" + info.message; }),
         }),
         new logger.transports.File({
             filename: path.join(logDir, infoLogFileName),
             level: 'debug',
-            format: logger.format.printf(info => `${moment().format('HH:mm:ss.SS')}  ${info.level}\t${info.message}`),
+            format: logger.format.printf(function (info) { return moment().format('HH:mm:ss.SS') + "  " + info.level + "\t" + info.message; }),
         })
     ];
     if (!silent)
         transports.unshift(new logger.transports.Console({
-            level: 'silly', format: logger.format.combine(logger.format.simple(), logger.format.printf(msg => logger.format.colorize().colorize(msg.level, "" + msg.message)))
+            level: 'silly', format: logger.format.combine(logger.format.simple(), logger.format.printf(function (msg) { return logger.format.colorize().colorize(msg.level, "" + msg.message); }))
         }));
-    logger.configure({ levels: logLevels.levels, exitOnError: false, transports });
+    logger.configure({ levels: logLevels.levels, exitOnError: false, transports: transports });
     logger.addColors(logLevels.colors);
 }
 exports.configureLogger = configureLogger;
 function validateApp(pack, app) {
     if (!app.defaultTemplate) {
-        warn(`app.defaultTemplate is required for package '${pack}'`);
+        warn("app.defaultTemplate is required for package '" + pack + "'");
         return false;
     }
     return true;
 }
 function initializeRoles(done) {
-    let g = new graphlib.Graph();
-    for (let role of exports.glob.roles) {
+    var g = new graphlib.Graph();
+    for (var _i = 0, _a = exports.glob.roles; _i < _a.length; _i++) {
+        var role = _a[_i];
         g.setNode(role._id.toString());
-        for (let subRole of role.roles || []) {
+        for (var _b = 0, _c = role.roles || []; _b < _c.length; _b++) {
+            var subRole = _c[_b];
             g.setEdge(role._id.toString(), subRole.toString());
         }
     }
-    for (let role of exports.glob.roles) {
-        let result = graphlib.alg.postorder(g, role._id.toString());
-        role.roles = result.map((item) => {
+    for (var _d = 0, _e = exports.glob.roles; _d < _e.length; _d++) {
+        var role = _e[_d];
+        var result = graphlib.alg.postorder(g, role._id.toString());
+        role.roles = result.map(function (item) {
             return new mongodb_1.ObjectId(item);
         });
     }
@@ -763,37 +810,41 @@ function initializeRoles(done) {
 exports.initializeRoles = initializeRoles;
 function checkAppMenu(app) {
     if (app.menu) {
-        app._menu = _.find(exports.glob.menus, (menu) => {
+        app._menu = _.find(exports.glob.menus, function (menu) {
             return menu._id.equals(app.menu);
         });
     }
     else {
-        app._menu = _.find(exports.glob.menus, (menu) => {
+        app._menu = _.find(exports.glob.menus, function (menu) {
             return menu._package == app._package;
         });
     }
     if (!app._menu)
-        warn(`Menu for app '${app.title}' not found!`);
+        warn("Menu for app '" + app.title + "' not found!");
 }
 exports.checkAppMenu = checkAppMenu;
 function initializePackages(done) {
-    log(`initializePackages: ${JSON.stringify(exports.glob.sysConfig.packages)}`);
+    log("initializePackages: " + JSON.stringify(exports.glob.sysConfig.packages));
     exports.glob.apps = [];
-    getEnabledPackages().forEach((pack) => {
-        let config = exports.glob.packages[pack.name]._config;
-        for (let app of (config.apps || [])) {
+    getEnabledPackages().forEach(function (pack) {
+        var config = exports.glob.packages[pack.name]._config;
+        var _loop_2 = function (app) {
             app._package = pack.name;
             app.dependencies = app.dependencies || [];
             app.dependencies.push(types_1.Constants.sysPackage);
             checkAppMenu(app);
             if (validateApp(pack.name, app)) {
                 exports.glob.apps.push(app);
-                let host = exports.glob.sysConfig.hosts.filter((host) => {
+                var host = exports.glob.sysConfig.hosts.filter(function (host) {
                     return host.app.equals(app._id);
                 }).pop();
                 if (host)
                     host._app = app;
             }
+        };
+        for (var _i = 0, _a = (config.apps || []); _i < _a.length; _i++) {
+            var app = _a[_i];
+            _loop_2(app);
         }
     });
     done();
@@ -805,7 +856,7 @@ function checkPropertyGtype(prop, entity) {
             return;
         }
         else {
-            warn(`property '${entity._package}.${entity.name}.${prop.name}' type is empty!`);
+            warn("property '" + entity._package + "." + entity.name + "." + prop.name + "' type is empty!");
             return;
         }
     }
@@ -842,21 +893,21 @@ function checkPropertyGtype(prop, entity) {
         prop._gtype = types_1.GlobalType.number;
         return;
     }
-    let type = findEntity(prop.type);
+    var type = findEntity(prop.type);
     if (type == null) {
         prop._gtype = types_1.GlobalType.unknown;
-        warn(`Property '${prop.name}' invalid type '${prop.type}' not found. entity: ${entity.name}!`);
+        warn("Property '" + prop.name + "' invalid type '" + prop.type + "' not found. entity: " + entity.name + "!");
         return;
     }
     if (type.entityType == types_1.EntityType.Function) {
-        let func = type;
+        var func = type;
         if (func.returnType && func.returnType.toString() == types_1.PType.text)
             prop._gtype = types_1.GlobalType.string;
         else
             prop._gtype = types_1.GlobalType.id;
     }
     else {
-        let refType = prop.referType;
+        var refType = prop.referType;
         if (!refType)
             refType = prop.type ? types_1.PropertyReferType.select : types_1.PropertyReferType.inlineData;
         switch (refType) {
@@ -881,7 +932,7 @@ function connect(dbName, callback) {
         if (!process.env.DB_ADDRESS) {
             return callback("Environment variable 'DB_ADDRESS' is needed.");
         }
-        let url = process.env.DB_ADDRESS.replace(/admin/, dbName);
+        var url = process.env.DB_ADDRESS.replace(/admin/, dbName);
         mongodb_1.MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true }, function (err, dbc) {
             if (err) {
                 error('Unable to connect to the mongoDB server. Error:' + err);
@@ -912,7 +963,7 @@ exports.getDatabase = getDatabase;
 function findEnum(type) {
     if (!type)
         return null;
-    return _.find(exports.glob.enums, (enm) => {
+    return _.find(exports.glob.enums, function (enm) {
         return enm._id.equals(type);
     });
 }
@@ -927,8 +978,8 @@ function findEntity(id) {
 exports.findEntity = findEntity;
 function sort(list, sort) {
     _.each(sort.split(','), function (propertySort) {
-        let descending = _.startsWith(propertySort, "-");
-        let prop = propertySort.substr(1);
+        var descending = _.startsWith(propertySort, "-");
+        var prop = propertySort.substr(1);
         list = _.sortBy(list, function (doc) {
             return doc[prop];
         });
@@ -941,12 +992,12 @@ exports.sort = sort;
 function getEnumItemName(enumName, val) {
     if (val === null)
         return null;
-    let theEnum = _.find(exports.glob.enums, (enm) => {
+    var theEnum = _.find(exports.glob.enums, function (enm) {
         return enm.name === enumName;
     });
     if (!theEnum)
         return null;
-    let item = _.find(theEnum.items, { value: val });
+    var item = _.find(theEnum.items, { value: val });
     return item ? item.name : "";
 }
 exports.getEnumItemName = getEnumItemName;
@@ -954,13 +1005,13 @@ function initializeEnums(callback) {
     log('initializeEnums ...');
     exports.glob.enums = [];
     exports.glob.enumTexts = {};
-    async.eachSeries(getEnabledPackages(), (pack, next) => {
-        get(pack.name, types_1.SysCollection.enums, null, (err, enums) => {
-            enums.forEach((theEnum) => {
+    async.eachSeries(getEnabledPackages(), function (pack, next) {
+        get(pack.name, types_1.SysCollection.enums, null, function (err, enums) {
+            enums.forEach(function (theEnum) {
                 theEnum._package = pack.name;
                 exports.glob.enums.push(theEnum);
-                let texts = {};
-                _.sortBy(theEnum.items, "_z").forEach((item) => {
+                var texts = {};
+                _.sortBy(theEnum.items, "_z").forEach(function (item) {
                     texts[item.value] = item.title || item.name;
                 });
                 exports.glob.enumTexts[pack.name + "." + theEnum.name] = texts;
@@ -983,13 +1034,15 @@ function allViews() {
 }
 function initializeEntities(callback) {
     try {
-        log(`Initializing '${allObjects().length}' Objects ...`);
-        let allObjs = allObjects();
-        for (let obj of allObjs) {
+        log("Initializing '" + allObjects().length + "' Objects ...");
+        var allObjs = allObjects();
+        for (var _i = 0, allObjs_1 = allObjs; _i < allObjs_1.length; _i++) {
+            var obj = allObjs_1[_i];
             initObject(obj);
         }
-        log(`Initializing '${allFunctions().length}' functions ...`);
-        for (let func of allFunctions()) {
+        log("Initializing '" + allFunctions().length + "' functions ...");
+        for (var _a = 0, _b = allFunctions(); _a < _b.length; _a++) {
+            var func = _b[_a];
             try {
                 func._access = {};
                 func._access[func._package] = func.access;
@@ -1010,8 +1063,9 @@ function initializeEntities(callback) {
 function initProperties(properties, entity, parentTitle) {
     if (!properties)
         return;
-    for (let prop of properties) {
-        let sysProperty = _.find(exports.glob.systemProperties, { name: prop.name });
+    for (var _i = 0, properties_1 = properties; _i < properties_1.length; _i++) {
+        var prop = properties_1[_i];
+        var sysProperty = _.find(exports.glob.systemProperties, { name: prop.name });
         if (sysProperty)
             _.defaultsDeep(prop, sysProperty);
         prop.group = prop.group || parentTitle;
@@ -1032,32 +1086,33 @@ function initObject(obj) {
         obj._access[obj._package] = obj.access;
         initProperties(obj.properties, obj);
         if (obj.reference) {
-            let referenceObj = findEntity(obj.reference);
+            var referenceObj = findEntity(obj.reference);
             if (!referenceObj)
-                return warn(`SimilarObject in service '${obj._package}' not found for object: '${obj.title}', SimilarObjectID:${obj.reference}`);
+                return warn("SimilarObject in service '" + obj._package + "' not found for object: '" + obj.title + "', SimilarObjectID:" + obj.reference);
             initObject(referenceObj);
             _.defaultsDeep(obj, referenceObj);
             compareParentProperties(obj.properties, referenceObj.properties, obj);
         }
         else if (obj.properties) {
-            for (let prop of obj.properties) {
+            for (var _i = 0, _a = obj.properties; _i < _a.length; _i++) {
+                var prop = _a[_i];
                 checkPropertyReference(prop, obj);
             }
         }
     }
     catch (ex) {
         exception(ex);
-        error(`initObject, Error in object ${obj._package}.${obj.name}`);
+        error("initObject, Error in object " + obj._package + "." + obj.name);
     }
 }
 exports.initObject = initObject;
 function checkPropertyReference(property, entity) {
     if (property._gtype == types_1.GlobalType.object && (!property.properties || !property.properties.length)) {
-        let propertyParentObject = findEntity(property.type);
+        var propertyParentObject = findEntity(property.type);
         if (!propertyParentObject) {
             if (property._gtype == types_1.GlobalType.object)
                 return;
-            return error(`Property '${entity._package}.${entity.name}.${property.name}' type '${property.type}' not found.`);
+            return error("Property '" + entity._package + "." + entity.name + "." + property.name + "' type '" + property.type + "' not found.");
         }
         initObject(propertyParentObject);
         property.properties = property.properties || [];
@@ -1067,14 +1122,15 @@ function checkPropertyReference(property, entity) {
         }
     }
     else if (property.properties)
-        for (let prop of property.properties) {
+        for (var _i = 0, _a = property.properties; _i < _a.length; _i++) {
+            var prop = _a[_i];
             checkPropertyReference(prop, entity);
         }
 }
 function compareParentProperties(properties, parentProperties, entity) {
     if (!parentProperties)
         return;
-    let parentNames = _.map(parentProperties, function (p) {
+    var parentNames = _.map(parentProperties, function (p) {
         return p.name;
     });
     _.filter(properties, function (p) {
@@ -1082,8 +1138,9 @@ function compareParentProperties(properties, parentProperties, entity) {
     }).forEach(function (newProperty) {
         checkPropertyReference(newProperty, entity);
     });
-    for (let parentProperty of parentProperties) {
-        let property = _.find(properties, { name: parentProperty.name });
+    for (var _i = 0, parentProperties_1 = parentProperties; _i < parentProperties_1.length; _i++) {
+        var parentProperty = parentProperties_1[_i];
+        var property = _.find(properties, { name: parentProperty.name });
         if (!property) {
             properties.push(parentProperty);
             continue;
@@ -1091,9 +1148,9 @@ function compareParentProperties(properties, parentProperties, entity) {
         _.defaultsDeep(property, parentProperty);
         if (property.referType == types_1.PropertyReferType.inlineData && property.type) {
             try {
-                let propertyParentObject = findEntity(property.type);
+                var propertyParentObject = findEntity(property.type);
                 if (!propertyParentObject) {
-                    error(`(HandleSimilarProperty) Object '${property.type}' not found as property ${property.title} reference.`);
+                    error("(HandleSimilarProperty) Object '" + property.type + "' not found as property " + property.title + " reference.");
                     continue;
                 }
                 if (!propertyParentObject._inited)
@@ -1118,7 +1175,7 @@ function compareParentProperties(properties, parentProperties, entity) {
     }
 }
 function getEntityName(id) {
-    let obj = findEntity(id);
+    var obj = findEntity(id);
     return obj ? obj.name : null;
 }
 exports.getEntityName = getEntityName;
@@ -1131,7 +1188,7 @@ function getText(cn, text, useDictionary) {
         text = exports.glob.dictionary[cn.pack + "." + text] || exports.glob.dictionary["sys." + text] || text;
     if (typeof text == "string")
         return text;
-    let localeName = types_1.Locale[cn.locale];
+    var localeName = types_1.Locale[cn.locale];
     if (text[localeName])
         return text[localeName];
     else
@@ -1141,27 +1198,27 @@ exports.getText = getText;
 function getEnumText(thePackage, dependencies, enumType, value, locale) {
     if (value == null)
         return "";
-    let theEnum = getEnumByName(thePackage, dependencies, enumType);
+    var theEnum = getEnumByName(thePackage, dependencies, enumType);
     if (!theEnum)
         return value;
-    let text = theEnum[value];
+    var text = theEnum[value];
     return getMultilLangugeText(text, locale);
 }
 exports.getEnumText = getEnumText;
 function getEnumByName(thePackage, dependencies, enumType) {
-    let theEnum = exports.glob.enumTexts[thePackage + "." + enumType];
-    for (let i = 0; !theEnum && i < dependencies.length; i++) {
+    var theEnum = exports.glob.enumTexts[thePackage + "." + enumType];
+    for (var i = 0; !theEnum && i < dependencies.length; i++) {
         theEnum = exports.glob.enumTexts[dependencies[i] + "." + enumType];
     }
     return theEnum;
 }
 exports.getEnumByName = getEnumByName;
 function createEnumDataSource(thePackage, dependencies, enumType, nullable, locale) {
-    let theEnum = getEnumByName(thePackage, dependencies, enumType);
-    let result = {};
+    var theEnum = getEnumByName(thePackage, dependencies, enumType);
+    var result = {};
     if (nullable)
         result[0] = " ";
-    for (let key in theEnum) {
+    for (var key in theEnum) {
         result[key] = getMultilLangugeText(theEnum[key], locale);
     }
     return result;
@@ -1170,12 +1227,12 @@ exports.createEnumDataSource = createEnumDataSource;
 function getEnumsTexts(thePackage, enumType, values, locale) {
     if (values == null)
         return null;
-    let theEnum = exports.glob.enumTexts[thePackage + "." + enumType];
+    var theEnum = exports.glob.enumTexts[thePackage + "." + enumType];
     if (!theEnum)
         return null;
-    let texts = [];
+    var texts = [];
     values.forEach(function (value) {
-        let text = theEnum[value];
+        var text = theEnum[value];
         texts.push(getMultilLangugeText(text, locale));
     });
     return texts;
@@ -1221,7 +1278,7 @@ function getAllFiles(path) {
     if (fs.statSync(path).isFile())
         return [path];
     return _.flatten(fs.readdirSync(path).map(function (file) {
-        let fileOrDir = fs.statSync([path, file].join('/'));
+        var fileOrDir = fs.statSync([path, file].join('/'));
         if (fileOrDir.isFile())
             return (path + '/' + file).replace(/^\.\/\/?/, '');
         else if (fileOrDir.isDirectory())
@@ -1230,8 +1287,8 @@ function getAllFiles(path) {
 }
 exports.getAllFiles = getAllFiles;
 function getPathSize(path) {
-    let files = getAllFiles(path);
-    let totalSize = 0;
+    var files = getAllFiles(path);
+    var totalSize = 0;
     files.forEach(function (f) {
         totalSize += fs.statSync(f).size;
     });
@@ -1240,12 +1297,12 @@ function getPathSize(path) {
 exports.getPathSize = getPathSize;
 function applyFileQuota(dir, quota) {
     while (true) {
-        let rootPathes = fs.readdirSync(dir);
-        let size = getPathSize(dir);
+        var rootPathes = fs.readdirSync(dir);
+        var size = getPathSize(dir);
         if (size < quota)
             break;
-        let oldestPath = _.minBy(rootPathes, function (f) {
-            let fullPath = path.join(dir, f);
+        var oldestPath = _.minBy(rootPathes, function (f) {
+            var fullPath = path.join(dir, f);
             return fs.statSync(fullPath).ctime;
         });
         oldestPath = path.join(dir, oldestPath);
@@ -1253,14 +1310,14 @@ function applyFileQuota(dir, quota) {
             fs.removeSync(oldestPath);
         }
         catch (ex) {
-            error(`Can not remove path: '${oldestPath}'`);
+            error("Can not remove path: '" + oldestPath + "'");
         }
     }
 }
 exports.applyFileQuota = applyFileQuota;
 function toQueryString(obj) {
-    let str = '';
-    for (let key in obj) {
+    var str = '';
+    for (var key in obj) {
         str += '&' + key + '=' + obj[key];
     }
     return str.slice(1);
@@ -1274,7 +1331,7 @@ function digitGroup(value) {
 exports.digitGroup = digitGroup;
 function jsonReviver(key, value) {
     if (value && value.toString().indexOf("__REGEXP ") == 0) {
-        let m = value.split("__REGEXP ")[1].match(/\/(.*)\/(.*)?/);
+        var m = value.split("__REGEXP ")[1].match(/\/(.*)\/(.*)?/);
         return new RegExp(m[1], m[2] || "");
     }
     else if (value && value.toString().indexOf("__ObjectID ") == 0) {
@@ -1296,23 +1353,23 @@ function jsonReplacer(key, value) {
 }
 exports.jsonReplacer = jsonReplacer;
 function aggergate(pack, objectName, query, callback) {
-    let collection = exports.glob.dbs[pack].collection(objectName);
+    var collection = exports.glob.dbs[pack].collection(objectName);
     return collection.aggregate(query).toArray(callback);
 }
 exports.aggergate = aggergate;
 function parseDate(loc, date) {
     if (!date)
         return null;
-    let match = date.match(/(\d+)\/(\d+)\/(\d+)/);
+    var match = date.match(/(\d+)\/(\d+)\/(\d+)/);
     if (!match)
         return new Date(date);
-    let year = parseInt(match[1]);
-    let month = parseInt(match[2]);
-    let day = parseInt(match[3]);
-    let result = null;
+    var year = parseInt(match[1]);
+    var month = parseInt(match[2]);
+    var day = parseInt(match[3]);
+    var result = null;
     if (loc == types_1.Locale.fa) {
         if (day > 31) {
-            let t = day;
+            var t = day;
             day = year;
             year = t;
         }
@@ -1335,22 +1392,22 @@ function parseDate(loc, date) {
 }
 exports.parseDate = parseDate;
 function getTypes(cn, done) {
-    let objects = allObjects().map((ent) => {
-        let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
-        return { ref: ent._id, title };
+    var objects = allObjects().map(function (ent) {
+        var title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
+        return { ref: ent._id, title: title };
     });
-    let functions = allFunctions().map((ent) => {
-        let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
-        return { ref: ent._id, title };
+    var functions = allFunctions().map(function (ent) {
+        var title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
+        return { ref: ent._id, title: title };
     });
-    let enums = exports.glob.enums.map((ent) => {
-        let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
-        return { ref: ent._id, title };
+    var enums = exports.glob.enums.map(function (ent) {
+        var title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
+        return { ref: ent._id, title: title };
     });
-    let types = objects.concat(functions, enums);
+    var types = objects.concat(functions, enums);
     types = _.orderBy(types, ['title']);
-    let ptypes = [];
-    for (let type in types_1.PType) {
+    var ptypes = [];
+    for (var type in types_1.PType) {
         ptypes.push({ ref: new mongodb_1.ObjectId(types_1.PType[type]), title: getText(cn, type, true) });
     }
     types.unshift({ ref: "", title: "-" });
@@ -1359,9 +1416,9 @@ function getTypes(cn, done) {
 }
 exports.getTypes = getTypes;
 function getAllEntities(cn, done) {
-    let entities = exports.glob.entities.map((ent) => {
-        let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
-        return { ref: ent._id, title };
+    var entities = exports.glob.entities.map(function (ent) {
+        var title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
+        return { ref: ent._id, title: title };
     });
     entities = _.orderBy(entities, ['title']);
     done(null, entities);
@@ -1377,15 +1434,15 @@ function bson2json(doc) {
 exports.bson2json = bson2json;
 function stringify(value) {
     value._0 = "";
-    const getCircularReplacer = () => {
-        const seen = new WeakSet();
-        return (key, value) => {
+    var getCircularReplacer = function () {
+        var seen = new WeakSet();
+        return function (key, value) {
             if (typeof value === "object" && value !== null) {
                 if (seen.has(value)) {
                     return { _$: value._0 };
                 }
-                for (let attr in value) {
-                    let val = value[attr];
+                for (var attr in value) {
+                    var val = value[attr];
                     if (val) {
                         if (val.constructor == mongodb_1.ObjectId)
                             value[attr] = { "$oid": val.toString() };
@@ -1398,48 +1455,48 @@ function stringify(value) {
             return value;
         };
     };
-    const seen = new WeakSet();
-    const setKeys = (obj, parentKey) => {
+    var seen = new WeakSet();
+    var setKeys = function (obj, parentKey) {
         if (seen.has(obj))
             return;
         seen.add(obj);
-        for (let key in obj) {
-            let val = obj[key];
+        for (var key in obj) {
+            var val = obj[key];
             if (!val)
                 continue;
             if (typeof val === "object" && val.constructor != mongodb_1.ObjectId) {
                 if (val._0 == null) {
-                    val._0 = parentKey + (Array.isArray(obj) ? `[${key}]` : `['${key}']`);
+                    val._0 = parentKey + (Array.isArray(obj) ? "[" + key + "]" : "['" + key + "']");
                 }
                 setKeys(val, val._0);
             }
         }
     };
     setKeys(value, "");
-    let str = JSON.stringify(value, getCircularReplacer());
+    var str = JSON.stringify(value, getCircularReplacer());
     return str;
 }
 exports.stringify = stringify;
 function parse(str) {
-    let json = typeof str == "string" ? JSON.parse(str) : str;
-    let keys = {};
-    const findKeys = (obj) => {
+    var json = typeof str == "string" ? JSON.parse(str) : str;
+    var keys = {};
+    var findKeys = function (obj) {
         if (obj && obj._0) {
             keys[obj._0] = obj;
             delete obj._0;
         }
-        for (let key in obj) {
+        for (var key in obj) {
             if (typeof obj[key] === "object")
                 findKeys(obj[key]);
         }
     };
-    const seen = new WeakSet();
-    const replaceRef = (obj) => {
+    var seen = new WeakSet();
+    var replaceRef = function (obj) {
         if (seen.has(obj))
             return;
         seen.add(obj);
-        for (let key in obj) {
-            let val = obj[key];
+        for (var key in obj) {
+            var val = obj[key];
             if (!val)
                 continue;
             if (typeof val === "object") {
@@ -1469,30 +1526,31 @@ function parse(str) {
 exports.parse = parse;
 function getPropertyReferenceValues(cn, prop, instance, done) {
     if (prop._enum) {
-        let items = _.map(prop._enum.items, (item) => {
+        var items = _.map(prop._enum.items, function (item) {
             return { ref: item.value, title: getText(cn, item.title) };
         });
         return done(null, items);
     }
-    let entity = findEntity(prop.type);
+    var entity = findEntity(prop.type);
     if (!entity) {
-        error(`Property '${prop.name}' type '${prop.type}' not found.`);
+        error("Property '" + prop.name + "' type '" + prop.type + "' not found.");
         return done(types_1.StatusCode.NotFound, null);
     }
     if (entity.entityType == types_1.EntityType.Object)
-        return get(cn.pack, entity.name, { count: 10 }, (err, result) => {
+        return get(cn.pack, entity.name, { count: 10 }, function (err, result) {
             if (result) {
-                let items = _.map(result, (item) => {
+                var items = _.map(result, function (item) {
                     return { ref: item._id, title: getText(cn, item.title) };
                 });
                 done(null, items);
             }
         });
     else if (entity.entityType == types_1.EntityType.Function) {
-        let typeFunc = entity;
-        let args = [];
+        var typeFunc = entity;
+        var args = [];
         if (typeFunc.parameters)
-            for (let param of typeFunc.parameters) {
+            for (var _i = 0, _a = typeFunc.parameters; _i < _a.length; _i++) {
+                var param = _a[_i];
                 switch (param.name) {
                     case "meta":
                         args.push(prop);
@@ -1521,32 +1579,33 @@ function envMode() {
 }
 exports.envMode = envMode;
 function mockCheckMatchInput(cn, func, args, sample) {
-    for (let key in sample.input) {
+    for (var key in sample.input) {
         if (!_.isEqual(sample.input[key], cn.req[key]))
             return false;
     }
     return true;
 }
 function mock(cn, func, args, done) {
-    log(`mocking function '${cn.pack}.${func.name}' ...`);
+    log("mocking function '" + cn.pack + "." + func.name + "' ...");
     if (!func.test.samples || !func.test.samples.length)
         return done({ code: types_1.StatusCode.Ok, message: "No sample data!" });
-    let withInputs = func.test.samples.filter((sample) => {
+    var withInputs = func.test.samples.filter(function (sample) {
         return sample.input;
     });
-    for (let sample of withInputs) {
+    for (var _i = 0, withInputs_1 = withInputs; _i < withInputs_1.length; _i++) {
+        var sample = withInputs_1[_i];
         if (mockCheckMatchInput(cn, func, args, sample)) {
-            let err = null;
+            var err = null;
             if (sample.code)
                 err = { code: sample.code, message: sample.message };
             return done(err, sample.result);
         }
     }
-    let withoutInput = _.find(func.test.samples, (sample) => {
+    var withoutInput = _.find(func.test.samples, function (sample) {
         return !sample.input;
     });
     if (withoutInput) {
-        let err = null;
+        var err = null;
         if (withoutInput.code)
             err = { code: withoutInput.code, message: withoutInput.message };
         return done(err, withoutInput.result);
@@ -1560,34 +1619,35 @@ function invoke(cn, func, args, done) {
             mock(cn, func, args, done);
             return;
         }
-        let action = require(`../${func._package}/main`)[func.name];
+        var action = require("../../" + func._package + "/server/main")[func.name];
         if (!action) {
             if (func._package == types_1.Constants.sysPackage)
-                action = require(`../web/main`)[func.name];
+                action = require("../../web/server/main")[func.name];
             if (!action) {
-                let app = _.find(exports.glob.apps, { _package: cn.pack });
-                for (let pack of app.dependencies) {
-                    action = require(`../${pack}/main`)[func.name];
+                var app = _.find(exports.glob.apps, { _package: cn.pack });
+                for (var _i = 0, _a = app.dependencies; _i < _a.length; _i++) {
+                    var pack = _a[_i];
+                    action = require("../../" + pack + "/server/main")[func.name];
                     if (action)
                         break;
                 }
             }
         }
         if (!action)
-            return done(`Function'${func.name}'notfound.`);
-        const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
-        const ARGUMENT_NAMES = /([^\s,]+)/g;
-        let fnStr = action.toString().replace(STRIP_COMMENTS, '');
-        let argNames = fnStr.slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
+            return done("Function'" + func.name + "'notfound.");
+        var STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
+        var ARGUMENT_NAMES = /([^\s,]+)/g;
+        var fnStr = action.toString().replace(STRIP_COMMENTS, '');
+        var argNames = fnStr.slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
         if (argNames === null)
             argNames = [];
         if (args.length == 0)
             return action(cn, done);
         else
-            return action(cn, ...args, done);
+            return action.apply(void 0, __spreadArrays([cn], args, [done]));
     }
     catch (ex) {
-        if (ex.message == `${func.name} is not defined`) {
+        if (ex.message == func.name + " is not defined") {
             todo(ex.message);
             done(types_1.StatusCode.NotImplemented);
         }
@@ -1599,16 +1659,17 @@ function invoke(cn, func, args, done) {
 }
 exports.invoke = invoke;
 function runFunction(cn, functionId, input, done) {
-    let func = findEntity(functionId);
+    var func = findEntity(functionId);
     if (!func)
         return done(types_1.StatusCode.NotFound);
     input = input || {};
-    let args = [];
+    var args = [];
     if (func.parameters)
-        for (let para of func.parameters) {
+        for (var _i = 0, _a = func.parameters; _i < _a.length; _i++) {
+            var para = _a[_i];
             args.push(input[para.name]);
         }
-    invoke(cn, func, args, (err, result) => {
+    invoke(cn, func, args, function (err, result) {
         done(err, result, func);
     });
 }

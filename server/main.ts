@@ -725,11 +725,11 @@ function loadSysConfig(done) {
 		glob.dbs[Constants.sysPackage].collection(SysCollection.systemConfig).findOne({}, (err, config: SystemConfig) => {
 			glob.sysConfig = config;
 			for (let pack of getEnabledPackages()) {
-				glob.packages[pack.name] = require(`../${pack.name}/main`);
+				glob.packages[pack.name] = require(`../../${pack.name}/server/main`);
 				if (glob.packages[pack.name] == null)
 					error(`Error loading package ${pack.name}!`);
 				else {
-					let p = require(`../${pack.name}/package.json`);
+					let p = require(`../../${pack.name}/package.json`);
 					glob.packages[pack.name]._version = p.version;
 					log(`package '${pack.name}' loaded. version: ${p.version}`);
 				}
@@ -1789,14 +1789,14 @@ export function invoke(cn: Context, func: Function, args: any[], done: (err, res
 			return;
 		}
 
-		let action = require(`../${func._package}/main`)[func.name];
+		let action = require(`../../${func._package}/server/main`)[func.name];
 		if (!action) {
 			if (func._package == Constants.sysPackage)
-				action = require(`../web/main`)[func.name];
+				action = require(`../../web/server/main`)[func.name];
 			if (!action) {
 				let app = _.find(glob.apps, {_package: cn.pack});
 				for (let pack of app.dependencies) {
-					action = require(`../${pack}/main`)[func.name];
+					action = require(`../../${pack}/server/main`)[func.name];
 					if (action)
 						break;
 				}
