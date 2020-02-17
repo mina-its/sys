@@ -838,7 +838,7 @@ function loadSystemCollections(done) {
 }
 
 export function configureLogger(silent: boolean) {
-	let logDir = path.join(__dirname, '../logs');
+	let logDir = path.join(__dirname, '../../logs');
 	const infoLogFileName = 'info.log';
 	const errorLogFileName = 'error.log';
 	const logLevels = {
