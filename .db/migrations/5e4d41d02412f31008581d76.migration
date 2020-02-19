@@ -1,1 +1,21 @@
-{"_id":{"$oid":"5e4d41d02412f31008581d76"},"changes":[{"op":1,"data":"[{\"query\":{\"_id\":{\"$oid\":\"5d78ecdf7b7c752a18d096b6\"}},\"update\":{\"$unset\":{\"items.$[item1]\":\"\"}},\"options\":{\"arrayFilters\":[{\"item1._id\":{\"$oid\":\"5d839cbfd71ebe1c38f36df0\"}}]}}]","ns":"menus","_id":{"$oid":"5e4d41d02412f31008581d77"}}],"filename":"5e4d41d02412f31008581d76.migration","node":"Farhad","commitDate":{"$date":"2020-02-19T14:10:24.387Z"},"state":0}
+{
+  "_id": {
+    "$oid": "5e4d41d02412f31008581d76"
+  },
+  "changes": [
+    {
+      "op": 1,
+      "data": "[{\"query\":{\"_id\":{\"$oid\":\"5d78ecdf7b7c752a18d096b6\"}},\"update\":{\"$unset\":{\"items.$[item1]\":\"\"}},\"options\":{\"arrayFilters\":[{\"item1._id\":{\"$oid\":\"5d839cbfd71ebe1c38f36df0\"}}]}}]",
+      "ns": "menus",
+      "_id": {
+        "$oid": "5e4d41d02412f31008581d77"
+      }
+    }
+  ],
+  "filename": "5e4d41d02412f31008581d76.migration",
+  "node": "Farhad",
+  "commitDate": {
+    "$date": "2020-02-19T14:10:24.387Z"
+  },
+  "state": 0
+}
