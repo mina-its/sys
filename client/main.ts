@@ -128,6 +128,17 @@ export function notify(content: string | IError, type?: NotifyType, params?: Not
 
 }
 
+export function getBsonId(item: any): string {
+	if (!item)
+		throw "Item is null";
+	else if (!item._id) {
+		console.error("Invalid item data, _id is expected:", item);
+		notify('Invalid data, please check the logs!');
+		return null;
+	} else
+		return item._id.$oid;
+}
+
 export function head_script(src) {
 	if (document.querySelector("script[src='" + src + "']")) {
 		return;

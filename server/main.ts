@@ -1842,3 +1842,6 @@ export function runFunction(cn: Context, functionId: ObjectId, input: any, done)
 	});
 }
 
+export function isObjectId(value: any): boolean {
+	return value._bsontype == "ObjectID";
+}

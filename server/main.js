@@ -1613,4 +1613,8 @@ function runFunction(cn, functionId, input, done) {
     });
 }
 exports.runFunction = runFunction;
+function isObjectId(value) {
+    return value._bsontype == "ObjectID";
+}
+exports.isObjectId = isObjectId;
 //# sourceMappingURL=main.js.map

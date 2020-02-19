@@ -27,7 +27,6 @@
     "async": "^2.6.2",
     "aws-sdk": "^2.611.0",
     "bson": "^4.0.2",
-    "deepfake": "^1.0.0",
     "docxtemplater": "^3.14.0",
     "expect": "^25.1.0",
     "fs-extra": "^8.1.0",
