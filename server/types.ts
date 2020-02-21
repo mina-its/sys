@@ -816,6 +816,7 @@ export class WebResponse implements IError {
 	meta: any = {};
 	view: any;
 	redirect: string;
+	menu: any[] = [];
 	message: string;
 	code: StatusCode;
 	config: {
