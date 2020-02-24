@@ -4,8 +4,6 @@ import xmlBuilder = require('xmlbuilder');
 import fs = require('fs-extra');
 import path = require('path');
 import moment = require('moment');
-import _ = require('lodash');
-import async = require('async');
 import graphlib = require('graphlib');
 import Jalali = require('jalali-moment');
 import AWS = require('aws-sdk');
@@ -58,39 +56,35 @@ const {EJSON} = require('bson');
 
 export let glob = new Global();
 
-export function reload(cn: Context, done: (err) => void) {
+export async function reload(cn?: Context) {
 	let startTime = moment();
 	log(`reload ...`);
-	async.series([
-		loadSysConfig,
-		loadSystemCollections,
-		loadGeneralCollections,
-		loadAuditTypes,
-		initializeEnums,
-		initializePackages,
-		initializeRoles,
-		initializeEntities
-	], (err) => {
-		let period = moment().diff(startTime, 'ms', true);
-		info(`reload done in '${period}' ms.`);
-		done(err);
-	});
+
+	await loadSysConfig();
+	await loadSystemCollections();
+	await loadGeneralCollections();
+	await loadAuditTypes();
+	await initializeEnums();
+	await initializePackages();
+	await initializeRoles();
+	await initializeEntities();
+
+	let period = moment().diff(startTime, 'ms', true);
+	info(`reload done in '${period}' ms.`);
 }
 
-export function start(callback: (err, glob: Global) => void) {
-	process.on('uncaughtException', function (err) {
-		audit(SysAuditTypes.uncaughtException, {level: LogLevel.Emerg, comment: err.message + ". " + err.stack});
-	});
+export async function start() {
+	process.on('uncaughtException', (err) =>
+		audit(SysAuditTypes.uncaughtException, {level: LogLevel.Emerg, comment: err.message + ". " + err.stack})
+	);
 
 	process.on('unhandledRejection', (reason, p) => {
 		audit(SysAuditTypes.unhandledRejection, {level: LogLevel.Emerg, detail: reason});
 	});
 
 	configureLogger(false);
-
-	reload(null, (err) => {
-		callback(err, glob);
-	});
+	await reload();
+	return glob;
 }
 
 function isWindows() {
@@ -1048,39 +1042,17 @@ function checkPropertyGtype(prop: Property, entity: Entity) {
 	}
 }
 
-export function connect(dbName: string, callback) {
-	try {
-		//log("Connect to database {0} ...", dbName);
-		if (glob.dbs[dbName]) return callback();
+export async function connect(dbName: string) {
+	if (glob.dbs[dbName]) return glob.dbs[dbName];
+	if (!process.env.DB_ADDRESS)
+		throw("Environment variable 'DB_ADDRESS' is needed.");
 
-		if (!process.env.DB_ADDRESS) {
-			return callback("Environment variable 'DB_ADDRESS' is needed.");
-		}
-
-		let url = process.env.DB_ADDRESS.replace(/admin/, dbName);
-		MongoClient.connect(url, {useNewUrlParser: true, useUnifiedTopology: true} as any, function (err, dbc) {
-			if (err) {
-				error('Unable to connect to the mongoDB server. Error:' + err);
-				callback(err);
-			} else {
-				//log("Connection to database {0} established.", dbName);
-				glob.dbs[dbName] = dbc.db(dbName);
-				callback();
-			}
-		});
-	} catch (ex) {
-		exception(ex);
-		callback(ex.message);
-	}
-}
-
-export function getDatabase(db: string, callback: (err, db?: mongodb.Db) => void) {
-	if (glob.dbs[db]) return callback(null, glob.dbs[db]);
-
-	connect(db, function (err) {
-		if (err) return callback(err);
-		callback(null, glob.dbs[db]);
-	});
+	let url = process.env.DB_ADDRESS.replace(/admin/, dbName);
+	let dbc = await MongoClient.connect(url, {useNewUrlParser: true, useUnifiedTopology: true});
+	if (!dbc)
+		return null;
+	glob.dbs[dbName] = dbc.db(dbName);
+	return dbc;
 }
 
 export function findEnum(type: ObjectId): Enum {
