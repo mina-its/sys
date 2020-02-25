@@ -74,6 +74,10 @@ class Elem {
 }
 exports.Elem = Elem;
 class ErrorResult {
+    constructor(code, message) {
+        this.code = code;
+        this.message = message;
+    }
 }
 exports.ErrorResult = ErrorResult;
 class ChartSeries {

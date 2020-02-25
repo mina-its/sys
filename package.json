@@ -2,9 +2,9 @@
   "name": "sys",
   "version": "5.3.3",
   "description": "mina sys package",
-  "main": "server/main.js",
+  "main": "src/main.js",
   "scripts": {
-    "test": "jest --watchAll"
+    "test": "jest"
   },
   "jest": {
     "moduleFileExtensions": [

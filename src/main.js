@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const logger = require("winston");
 const mongodb = require("mongodb");
+const _ = require("lodash");
 const xmlBuilder = require("xmlbuilder");
 const fs = require("fs-extra");
 const path = require("path");
@@ -29,19 +30,29 @@ async function reload(cn) {
 }
 exports.reload = reload;
 async function start() {
-    process.on('uncaughtException', (err) => audit(types_1.SysAuditTypes.uncaughtException, { level: types_1.LogLevel.Emerg, comment: err.message + ". " + err.stack }));
-    process.on('unhandledRejection', (reason, p) => {
-        audit(types_1.SysAuditTypes.unhandledRejection, { level: types_1.LogLevel.Emerg, detail: reason });
-    });
-    configureLogger(false);
-    await reload();
-    return exports.glob;
+    try {
+        process.on('uncaughtException', async (err) => await audit(types_1.SysAuditTypes.uncaughtException, { level: types_1.LogLevel.Emerg, comment: err.message + ". " + err.stack }));
+        process.on('unhandledRejection', async (err) => {
+            await audit(types_1.SysAuditTypes.unhandledRejection, {
+                level: types_1.LogLevel.Emerg,
+                comment: err.message + ". " + err.stack
+            });
+        });
+        require('source-map-support').install({ handleUncaughtExceptions: true });
+        configureLogger(false);
+        await reload();
+        return exports.glob;
+    }
+    catch (ex) {
+        exception(ex);
+        return null;
+    }
 }
 exports.start = start;
 function isWindows() {
     return /^win/.test(process.platform);
 }
-function audit(auditType, args) {
+async function audit(auditType, args) {
     args.type = args.type || new mongodb_1.ObjectId(auditType);
     args.time = new Date();
     let comment = args.comment || "";
@@ -68,7 +79,7 @@ function audit(auditType, args) {
     }
     if (type && type.disabled)
         return;
-    put(args.pack || types_1.Constants.sysPackage, types_1.SysCollection.audits, args);
+    await put(args.pack || types_1.Constants.sysPackage, types_1.SysCollection.audits, args);
 }
 exports.audit = audit;
 function run(cn, func, ...args) {
@@ -81,14 +92,11 @@ function run(cn, func, ...args) {
     }
 }
 exports.run = run;
-function get(pack, objectName, options, done) {
-    let db = exports.glob.dbs[pack];
-    if (!db)
-        return done(`db for pack '${pack}' not found.`, null);
+async function get(pack, objectName, options) {
+    let collection = await getCollection(pack, objectName);
     options = options || {};
-    let collection = db.collection(objectName);
     if (options.itemId)
-        collection.findOne(options.itemId, done);
+        return collection.findOne(options.itemId);
     else {
         let find = collection.find(options.query);
         if (options.sort)
@@ -98,135 +106,99 @@ function get(pack, objectName, options, done) {
         if (options.count)
             find = find.limit(options.count);
         if (options.skip)
-            find = find.skip(options.skip);
-        find.toArray((err, result) => {
-            if (options.count === 1 && result)
-                done(null, result[0]);
-            else
-                done(err, result);
-        });
+            find = await find.skip(options.skip);
+        let result = await find.toArray();
+        if (options.count === 1 && result)
+            return result[0];
+        else
+            return result;
     }
 }
 exports.get = get;
-function put(pack, objectName, item, options, done) {
-    let collection = exports.glob.dbs[pack].collection(objectName);
-    done = done || (() => {
-    });
-    if (!collection)
-        return done(types_1.StatusCode.BadRequest);
+async function getCollection(pack, objectName) {
+    let db = await connect(pack);
+    return db.collection(objectName);
+}
+async function put(pack, objectName, item, options) {
+    let collection = await getCollection(pack, objectName);
     item = item || {};
     if (!options || !options.portions || options.portions.length == 1) {
-        if (item._id)
-            collection.replaceOne({ _id: item._id }, item, (err, result) => {
-                if (err) {
-                    error(err);
-                    done(types_1.StatusCode.ServerError);
-                }
-                else {
-                    done((result && result.modifiedCount) ? types_1.StatusCode.Ok : types_1.StatusCode.ResetContent, {
-                        type: types_1.ObjectModifyType.Update,
-                        item: item,
-                        itemId: item._id
-                    });
-                }
-            });
-        else
-            collection.insertOne(item, (err, result) => {
-                if (err) {
-                    error(err);
-                    done(types_1.StatusCode.ServerError);
-                }
-                else {
-                    done((result && result.insertedCount) ? types_1.StatusCode.Ok : types_1.StatusCode.ResetContent, {
-                        type: types_1.ObjectModifyType.Insert,
-                        item: item,
-                        itemId: item._id
-                    });
-                }
-            });
-        return;
+        if (item._id) {
+            await collection.replaceOne({ _id: item._id }, item);
+            return {
+                type: types_1.ObjectModifyType.Update,
+                item: item,
+                itemId: item._id
+            };
+        }
+        else {
+            await collection.insertOne(item);
+            return {
+                type: types_1.ObjectModifyType.Insert,
+                item: item,
+                itemId: item._id
+            };
+        }
     }
     let portions = options.portions;
     switch (portions.length) {
         case 2:
-            collection.save(item, (err, result) => {
-                if (err) {
-                    error(err);
-                    done(types_1.StatusCode.ServerError);
-                }
-                else {
-                    done((result && result.insertedCount) ? types_1.StatusCode.Ok : types_1.StatusCode.ResetContent, {
-                        type: types_1.ObjectModifyType.Update,
-                        item: item,
-                        itemId: item._id
-                    });
-                }
+            await collection.save(item);
+            return ({
+                type: types_1.ObjectModifyType.Update,
+                item: item,
+                itemId: item._id
             });
-            break;
         default:
             let command = { $addToSet: {} };
             item._id = item._id || new mongodb_1.ObjectId();
             let rootId = portions[1].itemId;
-            portionsToMongoPath(pack, rootId, portions, portions.length, (err, path) => {
-                command.$addToSet[path] = item;
-                collection.updateOne({ _id: rootId }, command, (err, result) => {
-                    if (err) {
-                        error(err);
-                        done(types_1.StatusCode.ServerError);
-                    }
-                    else {
-                        done((result && result.modifiedCount) ? types_1.StatusCode.Ok : types_1.StatusCode.ResetContent, {
-                            type: types_1.ObjectModifyType.Patch,
-                            item: item,
-                            itemId: rootId
-                        });
-                    }
-                });
-            });
-            break;
+            let pth = await portionsToMongoPath(pack, rootId, portions, portions.length);
+            command.$addToSet[pth] = item;
+            await collection.updateOne({ _id: rootId }, command);
+            return {
+                type: types_1.ObjectModifyType.Patch,
+                item: item,
+                itemId: rootId
+            };
     }
 }
 exports.put = put;
-function portionsToMongoPath(pack, rootId, portions, endIndex, done) {
+async function portionsToMongoPath(pack, rootId, portions, endIndex) {
     if (endIndex == 3)
-        return done(null, portions[2].property.name);
+        return portions[2].property.name;
     let collection = exports.glob.dbs[pack].collection(portions[0].value);
     if (!collection)
-        return done(types_1.StatusCode.BadRequest);
-    collection.findOne({ _id: rootId }, (err, item) => {
-        let value = item;
-        if (err || !value)
-            return done(err || types_1.StatusCode.ServerError);
-        let path = "";
-        for (let i = 2; i < endIndex; i++) {
-            let part = portions[i].value;
-            if (portions[i].type == types_1.RefPortionType.property) {
-                path += "." + part;
-                value = value[part];
-                if (value == null)
-                    value = {};
-            }
-            else {
-                let partItem = _.find(value, (it) => {
-                    return it._id && it._id.toString() == part;
-                });
-                if (!partItem)
-                    return done(types_1.StatusCode.ServerError);
-                path += "." + value.indexOf(partItem);
-                value = partItem;
-            }
+        throw types_1.StatusCode.BadRequest;
+    let value = await collection.findOne({ _id: rootId });
+    if (!value)
+        throw types_1.StatusCode.ServerError;
+    let path = "";
+    for (let i = 2; i < endIndex; i++) {
+        let part = portions[i].value;
+        if (portions[i].type == types_1.RefPortionType.property) {
+            path += "." + part;
+            value = value[part];
+            if (value == null)
+                value = {};
         }
-        done(null, _.trim(path, '.'));
-    });
+        else {
+            let partItem = _.find(value, (it) => {
+                return it._id && it._id.toString() == part;
+            });
+            if (!partItem)
+                throw types_1.StatusCode.ServerError;
+            path += "." + value.indexOf(partItem);
+            value = partItem;
+        }
+    }
+    return _.trim(path, '.');
 }
 exports.portionsToMongoPath = portionsToMongoPath;
-function count(pack, objectName, options, done) {
-    get(pack, objectName, options, (err, result) => {
-        if (err)
-            return done(null);
-        let count = !result ? 0 : (Array.isArray(result) ? result.length : 1);
-        done(count);
-    });
+async function count(pack, objectName, options) {
+    let collection = await getCollection(pack, objectName);
+    options = options || {};
+    return await collection.countDocuments(options);
 }
 exports.count = count;
 function extractRefPortions(pack, appDependencies, ref, _default) {
@@ -288,123 +260,86 @@ function extractRefPortions(pack, appDependencies, ref, _default) {
     }
 }
 exports.extractRefPortions = extractRefPortions;
-function patch(pack, objectName, patchData, options, done) {
+async function patch(pack, objectName, patchData, options) {
     let collection = exports.glob.dbs[pack].collection(objectName);
-    done = done || (() => {
-    });
     if (!collection)
-        return done(types_1.StatusCode.BadRequest);
+        throw types_1.StatusCode.BadRequest;
     if (!options)
         options = { portions: [] };
     let portions = options.portions;
     if (!portions)
         portions = [{ type: types_1.RefPortionType.entity, value: objectName }];
     if (portions.length == 1)
-        return done(types_1.StatusCode.BadRequest);
-    let rootId = portions.length < 2 ? patchData._id : portions[1].itemId;
-    portionsToMongoPath(pack, rootId, portions, portions.length, (err, path) => {
-        let command = { $set: {}, $unset: {} };
-        if (portions[portions.length - 1].property && portions[portions.length - 1].property._gtype == types_1.GlobalType.file)
-            command["$set"][path] = patchData;
-        else
-            for (let key in patchData) {
-                if (key == "_id")
-                    continue;
-                command[patchData[key] == null ? "$unset" : "$set"][path + (path ? "." : "") + key] = patchData[key];
-            }
-        if (_.isEmpty(command.$unset))
-            delete command.$unset;
-        if (_.isEmpty(command.$set))
-            delete command.$set;
-        let rootId = portions[1].itemId;
-        collection.updateOne({ _id: rootId }, command, (err, result) => {
-            if (err) {
-                error(err);
-                done(types_1.StatusCode.ServerError);
-            }
-            else {
-                done((result && result.modifiedCount) ? types_1.StatusCode.Ok : types_1.StatusCode.ResetContent, {
-                    type: types_1.ObjectModifyType.Patch,
-                    item: patchData,
-                    itemId: rootId
-                });
-            }
-        });
-    });
+        throw types_1.StatusCode.BadRequest;
+    let theRootId = portions.length < 2 ? patchData._id : portions[1].itemId;
+    let path = await portionsToMongoPath(pack, theRootId, portions, portions.length);
+    let command = { $set: {}, $unset: {} };
+    if (portions[portions.length - 1].property && portions[portions.length - 1].property._gtype == types_1.GlobalType.file)
+        command["$set"][path] = patchData;
+    else
+        for (let key in patchData) {
+            if (key == "_id")
+                continue;
+            command[patchData[key] == null ? "$unset" : "$set"][path + (path ? "." : "") + key] = patchData[key];
+        }
+    if (_.isEmpty(command.$unset))
+        delete command.$unset;
+    if (_.isEmpty(command.$set))
+        delete command.$set;
+    let rootId = portions[1].itemId;
+    let result = await collection.updateOne({ _id: rootId }, command);
+    return {
+        type: types_1.ObjectModifyType.Patch,
+        item: patchData,
+        itemId: rootId
+    };
 }
 exports.patch = patch;
-function del(pack, objectName, options, done) {
+async function del(pack, objectName, options) {
     let collection = exports.glob.dbs[pack].collection(objectName);
     if (!collection || !options)
-        return done(types_1.StatusCode.BadRequest);
-    if (options.itemId)
-        return collection.deleteOne({ _id: options.itemId }, (err, result) => {
-            if (err) {
-                error(err);
-                done(types_1.StatusCode.ServerError);
-            }
-            else {
-                done((result && result.deletedCount) ? types_1.StatusCode.Ok : types_1.StatusCode.ResetContent, {
-                    type: types_1.ObjectModifyType.Delete,
-                    item: null,
-                    itemId: options.itemId
-                });
-            }
-        });
+        throw types_1.StatusCode.BadRequest;
+    if (options.itemId) {
+        let result = await collection.deleteOne({ _id: options.itemId });
+        return {
+            type: types_1.ObjectModifyType.Delete,
+            item: null,
+            itemId: options.itemId
+        };
+    }
     let portions = options.portions;
     if (portions.length == 1 || portions.length == 3)
-        return done(types_1.StatusCode.BadRequest);
+        throw types_1.StatusCode.BadRequest;
     switch (portions.length) {
         case 2:
-            collection.deleteOne({ _id: portions[1].itemId }, (err, result) => {
-                if (err) {
-                    error(err);
-                    done(types_1.StatusCode.ServerError);
-                }
-                else {
-                    done((result && result.deletedCount) ? types_1.StatusCode.Ok : types_1.StatusCode.ResetContent, {
-                        type: types_1.ObjectModifyType.Delete,
-                        item: null,
-                        itemId: portions[1].itemId
-                    });
-                }
-            });
-            break;
+            await collection.deleteOne({ _id: portions[1].itemId });
+            return {
+                type: types_1.ObjectModifyType.Delete,
+                item: null,
+                itemId: portions[1].itemId
+            };
         default:
             let command = { $pull: {} };
             let rootId = portions[1].itemId;
             let itemId = portions[portions.length - 1].itemId;
-            portionsToMongoPath(pack, rootId, portions, portions.length - 1, (err, path) => {
-                command.$pull[path] = { _id: itemId };
-                collection.updateOne({ _id: rootId }, command, (err, result) => {
-                    if (err) {
-                        error(err);
-                        done(types_1.StatusCode.ServerError);
-                    }
-                    else {
-                        done((result && result.modifiedCount) ? types_1.StatusCode.Ok : types_1.StatusCode.ResetContent, {
-                            type: types_1.ObjectModifyType.Patch,
-                            item: null,
-                            itemId: rootId
-                        });
-                    }
-                });
-            });
-            break;
+            let path = await portionsToMongoPath(pack, rootId, portions, portions.length - 1);
+            command.$pull[path] = { _id: itemId };
+            await collection.updateOne({ _id: rootId }, command);
+            return {
+                type: types_1.ObjectModifyType.Patch,
+                item: null,
+                itemId: rootId
+            };
     }
 }
 exports.del = del;
-function getFile(drive, filePath, done) {
+async function getFile(drive, filePath) {
     switch (drive.type) {
         case types_1.SourceType.File:
             let _path = path.join(drive.address, filePath);
-            fs.readFile(_path, (err, file) => {
-                if (err)
-                    error(err);
-                if (!file)
-                    return done(types_1.StatusCode.NotFound);
-                done(null, file);
-            });
+            let file = await fs.readFile(_path);
+            if (!file)
+                throw types_1.StatusCode.NotFound;
             break;
         case types_1.SourceType.Db:
             let db = exports.glob.dbs[drive._package];
@@ -412,73 +347,57 @@ function getFile(drive, filePath, done) {
             let stream = bucket.openDownloadStreamByName(filePath);
             let data;
             stream.on("end", function () {
-                return done(null, data);
+                return data;
             }).on("data", function (chunk) {
                 data = data ? Buffer.concat([data, chunk]) : chunk;
             }).on("error", function (err) {
                 error(err);
-                return done(types_1.StatusCode.NotFound);
+                throw types_1.StatusCode.NotFound;
             });
             break;
         default:
-            return done(types_1.StatusCode.NotImplemented);
+            throw types_1.StatusCode.NotImplemented;
     }
 }
 exports.getFile = getFile;
-function putFile(host, drive, filePath, file, done) {
+async function putFile(host, drive, filePath, file) {
     switch (drive.type) {
         case types_1.SourceType.File:
             let _path = path.join(drive.address, filePath);
-            fs.mkdir(path.dirname(_path), { recursive: true }, (err) => {
-                if (err)
-                    return done(err);
-                fs.writeFile(_path, file, (err) => {
-                    if (err)
-                        error(err);
-                    done(err ? types_1.StatusCode.ServerError : types_1.StatusCode.Ok);
-                });
-            });
+            await fs.mkdir(path.dirname(_path), { recursive: true });
+            await fs.writeFile(_path, file);
             break;
         case types_1.SourceType.Db:
             let db = exports.glob.dbs[host];
             let bucket = new mongodb.GridFSBucket(db);
             let stream = bucket.openUploadStream(filePath);
-            delFile(host, filePath, () => {
-                stream.on("error", function (err) {
-                    error(err);
-                    done(err ? types_1.StatusCode.ServerError : types_1.StatusCode.Ok);
-                }).end(file, done);
-            });
+            await delFile(host, filePath);
+            stream.on("error", function (err) {
+                error(err);
+            }).end(file);
             break;
         case types_1.SourceType.S3:
             if (!exports.glob.sysConfig.amazon || !exports.glob.sysConfig.amazon.accessKeyId) {
                 error('s3 accessKeyId, secretAccessKey is required in sysConfig!');
-                return done(types_1.StatusCode.SystemConfigurationProblem);
+                throw types_1.StatusCode.SystemConfigurationProblem;
             }
             AWS.config.accessKeyId = exports.glob.sysConfig.amazon.accessKeyId;
             AWS.config.secretAccessKey = exports.glob.sysConfig.amazon.secretAccessKey;
             let s3 = new AWS.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion });
-            s3.upload({ Bucket: drive.address, Key: path.basename(filePath), Body: file }, function (err, data) {
-                if (err || !data) {
-                    error(err || "s3 upload failed");
-                    done(types_1.StatusCode.ServerError);
-                }
-                else
-                    done(null, { url: data.Location });
-            });
-            break;
+            let data = await s3.upload({ Bucket: drive.address, Key: path.basename(filePath), Body: file });
+            return { url: data.Location };
         default:
-            return done(types_1.StatusCode.NotImplemented);
+            throw types_1.StatusCode.NotImplemented;
     }
 }
 exports.putFile = putFile;
-function getFileInfo(host, filePath, done) {
+async function getFileInfo(host, filePath) {
 }
 exports.getFileInfo = getFileInfo;
-function delFile(host, filePath, done) {
+async function delFile(host, filePath) {
 }
 exports.delFile = delFile;
-function movFile(host, sourcePath, targetPath, done) {
+async function movFile(host, sourcePath, targetPath) {
 }
 exports.movFile = movFile;
 function authorizeUser(email, password, done) {
@@ -538,147 +457,106 @@ function isRtl(lang) {
     return lang === types_1.Locale.fa || lang === types_1.Locale.ar;
 }
 exports.isRtl = isRtl;
-function loadGeneralCollections(done) {
+async function loadGeneralCollections() {
     log('loadGeneralCollections ...');
-    get(types_1.Constants.sysPackage, types_1.Constants.timeZonesCollection, null, (err, timeZones) => {
-        exports.glob.timeZones = timeZones;
-        get(types_1.Constants.sysPackage, types_1.SysCollection.objects, {
-            query: { name: types_1.Constants.systemPropertiesObjectName },
-            count: 1
-        }, (err, result) => {
-            if (!result)
-                emerg('systemProperties object not found!');
-            exports.glob.systemProperties = result ? result.properties : [];
-            done();
-        });
+    exports.glob.timeZones = await get(types_1.Constants.sysPackage, types_1.Constants.timeZonesCollection);
+    let result = await get(types_1.Constants.sysPackage, types_1.SysCollection.objects, {
+        query: { name: types_1.Constants.systemPropertiesObjectName },
+        count: 1
     });
+    if (!result)
+        emerg('systemProperties object not found!');
+    exports.glob.systemProperties = result ? result.properties : [];
 }
-function loadAuditTypes(done) {
+async function loadAuditTypes() {
     log('loadAuditTypes ...');
-    get(types_1.Constants.sysPackage, types_1.SysCollection.auditTypes, null, (err, auditTypes) => {
-        exports.glob.auditTypes = auditTypes;
-        done();
-    });
+    exports.glob.auditTypes = await get(types_1.Constants.sysPackage, types_1.SysCollection.auditTypes);
 }
 function getEnabledPackages() {
-    return exports.glob.sysConfig.packages.filter((pack) => {
-        return pack.enabled;
-    });
+    return exports.glob.sysConfig.packages.filter(pack => pack.enabled);
 }
-function loadSysConfig(done) {
-    connect(types_1.Constants.sysPackage, (err) => {
-        if (err)
-            return done(err);
-        exports.glob.dbs[types_1.Constants.sysPackage].collection(types_1.SysCollection.systemConfig).findOne({}, (err, config) => {
-            exports.glob.sysConfig = config;
-            for (let pack of getEnabledPackages()) {
-                exports.glob.packages[pack.name] = require(`../../${pack.name}/server/main`);
-                if (exports.glob.packages[pack.name] == null)
-                    error(`Error loading package ${pack.name}!`);
-                else {
-                    let p = require(`../../${pack.name}/package.json`);
-                    exports.glob.packages[pack.name]._version = p.version;
-                    log(`package '${pack.name}' loaded. version: ${p.version}`);
-                }
+async function loadSysConfig() {
+    exports.glob.sysConfig = await get(types_1.Constants.sysPackage, types_1.SysCollection.systemConfig, { count: 1 });
+    for (let pack of getEnabledPackages()) {
+        try {
+            exports.glob.packages[pack.name] = require(`../../${pack.name}/src/main`);
+            if (exports.glob.packages[pack.name] == null)
+                error(`Error loading package ${pack.name}!`);
+            else {
+                let p = require(`../../${pack.name}/package.json`);
+                exports.glob.packages[pack.name]._version = p.version;
+                log(`package '${pack.name}' loaded. version: ${p.version}`);
             }
-            done();
-        });
-    });
+        }
+        catch (ex) {
+            exception(ex);
+            pack.enabled = false;
+        }
+    }
 }
-function loadSystemCollections(done) {
+async function loadPackageSystemCollections(packConfig) {
+    let pack = packConfig.name;
+    log(`Loading system collections package '${pack}' ...`);
+    let config = await get(pack, types_1.SysCollection.configs, { count: 1 });
+    if (!config) {
+        packConfig.enabled = false;
+        error(`Config for package '${pack}' not found!`);
+    }
+    else
+        exports.glob.packages[pack]._config = config;
+    let objects = await get(pack, types_1.SysCollection.objects);
+    for (let object of objects) {
+        object._package = pack;
+        object.entityType = types_1.EntityType.Object;
+        exports.glob.entities.push(object);
+    }
+    let functions = await get(pack, types_1.SysCollection.functions);
+    for (let func of functions) {
+        func._package = pack;
+        func.entityType = types_1.EntityType.Function;
+        exports.glob.entities.push(func);
+    }
+    let views = await get(pack, types_1.SysCollection.views);
+    for (let view of views) {
+        view._package = pack;
+        view.entityType = types_1.EntityType.View;
+        exports.glob.entities.push(view);
+    }
+    let texts = await get(pack, types_1.SysCollection.dictionary);
+    for (let item of texts) {
+        exports.glob.dictionary[pack + "." + item.name] = item.text;
+    }
+    let menus = await get(pack, types_1.SysCollection.menus);
+    for (let menu of menus) {
+        menu._package = pack;
+        exports.glob.menus.push(menu);
+    }
+    let roles = await get(pack, types_1.SysCollection.roles);
+    for (let role of roles) {
+        role._package = pack;
+        exports.glob.roles.push(role);
+    }
+    let drives = await get(pack, types_1.SysCollection.drives);
+    for (let drive of drives) {
+        drive._package = pack;
+        exports.glob.drives.push(drive);
+    }
+}
+async function loadSystemCollections() {
     exports.glob.entities = [];
     exports.glob.dictionary = {};
     exports.glob.menus = [];
     exports.glob.roles = [];
     exports.glob.drives = [];
-    if (!process.env.DB_ADDRESS)
-        return done("Environment variable 'DB_ADDRESS' is needed!");
-    async.eachSeries(getEnabledPackages(), (packConfig, nextPackage) => {
-        let pack = packConfig.name;
-        connect(pack, (err) => {
-            if (err)
-                return nextPackage();
-            log(`Loading system collections package '${pack}' ...`);
-            async.series([
-                (next) => {
-                    exports.glob.dbs[pack].collection(types_1.SysCollection.configs).findOne(null, (err, config) => {
-                        if (!config) {
-                            packConfig.enabled = false;
-                            error(`Config for package '${pack}' not found!`);
-                        }
-                        else
-                            exports.glob.packages[pack]._config = config;
-                        next();
-                    });
-                },
-                (next) => {
-                    exports.glob.dbs[pack].collection(types_1.SysCollection.objects).find({}).toArray((err, objects) => {
-                        for (let object of objects) {
-                            object._package = pack;
-                            object.entityType = types_1.EntityType.Object;
-                            exports.glob.entities.push(object);
-                        }
-                        next();
-                    });
-                },
-                (next) => {
-                    exports.glob.dbs[pack].collection(types_1.SysCollection.functions).find({}).toArray((err, functions) => {
-                        for (let func of functions) {
-                            func._package = pack;
-                            func.entityType = types_1.EntityType.Function;
-                            exports.glob.entities.push(func);
-                        }
-                        next();
-                    });
-                },
-                (next) => {
-                    exports.glob.dbs[pack].collection(types_1.SysCollection.views).find({}).toArray((err, views) => {
-                        for (let view of views) {
-                            view._package = pack;
-                            view.entityType = types_1.EntityType.View;
-                            exports.glob.entities.push(view);
-                        }
-                        next();
-                    });
-                },
-                (next) => {
-                    exports.glob.dbs[pack].collection(types_1.SysCollection.dictionary).find({}).toArray((err, texts) => {
-                        for (let item of texts) {
-                            exports.glob.dictionary[pack + "." + item.name] = item.text;
-                        }
-                        next();
-                    });
-                },
-                (next) => {
-                    exports.glob.dbs[pack].collection(types_1.SysCollection.menus).find({}).toArray((err, menus) => {
-                        for (let menu of menus) {
-                            menu._package = pack;
-                            exports.glob.menus.push(menu);
-                        }
-                        next();
-                    });
-                },
-                (next) => {
-                    exports.glob.dbs[pack].collection(types_1.SysCollection.roles).find({}).toArray((err, roles) => {
-                        for (let role of roles) {
-                            role._package = pack;
-                            exports.glob.roles.push(role);
-                        }
-                        next();
-                    });
-                },
-                (next) => {
-                    exports.glob.dbs[pack].collection(types_1.SysCollection.drives).find({}).toArray((err, drives) => {
-                        for (let drive of drives) {
-                            drive._package = pack;
-                            exports.glob.drives.push(drive);
-                        }
-                        next();
-                    });
-                }
-            ], nextPackage);
-        });
-    }, done);
+    for (let packConfig of getEnabledPackages()) {
+        try {
+            await loadPackageSystemCollections(packConfig);
+        }
+        catch (err) {
+            exception(err);
+            packConfig.enabled = false;
+        }
+    }
 }
 function configureLogger(silent) {
     let logDir = path.join(__dirname, '../../logs');
@@ -735,7 +613,7 @@ function validateApp(pack, app) {
     }
     return true;
 }
-function initializeRoles(done) {
+function initializeRoles() {
     let g = new graphlib.Graph();
     for (let role of exports.glob.roles) {
         g.setNode(role._id.toString());
@@ -749,28 +627,21 @@ function initializeRoles(done) {
             return new mongodb_1.ObjectId(item);
         });
     }
-    done();
 }
 exports.initializeRoles = initializeRoles;
 function checkAppMenu(app) {
-    if (app.menu) {
-        app._menu = _.find(exports.glob.menus, (menu) => {
-            return menu._id.equals(app.menu);
-        });
-    }
-    else {
-        app._menu = _.find(exports.glob.menus, (menu) => {
-            return menu._package == app._package;
-        });
-    }
+    if (app.menu)
+        app._menu = exports.glob.menus.find(menu => menu._id.equals(app.menu));
+    else
+        app._menu = exports.glob.menus.find(menu => menu._package == app._package);
     if (!app._menu)
         warn(`Menu for app '${app.title}' not found!`);
 }
 exports.checkAppMenu = checkAppMenu;
-function initializePackages(done) {
+function initializePackages() {
     log(`initializePackages: ${JSON.stringify(exports.glob.sysConfig.packages)}`);
     exports.glob.apps = [];
-    getEnabledPackages().forEach((pack) => {
+    for (let pack of getEnabledPackages()) {
         let config = exports.glob.packages[pack.name]._config;
         for (let app of (config.apps || [])) {
             app._package = pack.name;
@@ -779,15 +650,12 @@ function initializePackages(done) {
             checkAppMenu(app);
             if (validateApp(pack.name, app)) {
                 exports.glob.apps.push(app);
-                let host = exports.glob.sysConfig.hosts.filter((host) => {
-                    return host.app.equals(app._id);
-                }).pop();
+                let host = exports.glob.sysConfig.hosts.find(host => host.app.equals(app._id));
                 if (host)
                     host._app = app;
             }
         }
-    });
-    done();
+    }
 }
 function checkPropertyGtype(prop, entity) {
     if (!prop.type) {
@@ -866,121 +734,83 @@ function checkPropertyGtype(prop, entity) {
     }
 }
 async function connect(dbName) {
-    if (exports.glob.dbs[dbName])
-        return exports.glob.dbs[dbName];
-    if (!process.env.DB_ADDRESS)
-        throw ("Environment variable 'DB_ADDRESS' is needed.");
-    let url = process.env.DB_ADDRESS.replace(/admin/, dbName);
-    let dbc = await mongodb_1.MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
-    if (!dbc)
-        return null;
-    exports.glob.dbs[dbName] = dbc.db(dbName);
-    return dbc;
+    try {
+        if (exports.glob.dbs[dbName])
+            return exports.glob.dbs[dbName];
+        if (!process.env.DB_ADDRESS)
+            throw ("Environment variable 'DB_ADDRESS' is needed.");
+        let dbc = await mongodb_1.MongoClient.connect(process.env.DB_ADDRESS, { useNewUrlParser: true, useUnifiedTopology: true });
+        if (!dbc)
+            return null;
+        return exports.glob.dbs[dbName] = dbc.db(dbName);
+    }
+    catch (e) {
+        throw `db '${dbName}' connection failed [${process.env.DB_ADDRESS}]`;
+    }
 }
 exports.connect = connect;
 function findEnum(type) {
     if (!type)
         return null;
-    return _.find(exports.glob.enums, (enm) => {
-        return enm._id.equals(type);
-    });
+    return exports.glob.enums.find(enm => enm._id.equals(type));
 }
 exports.findEnum = findEnum;
 function findEntity(id) {
     if (!id)
         return null;
-    return _.find(exports.glob.entities, function (a) {
-        return a._id.toString() == id.toString();
-    });
+    return exports.glob.entities.find(a => a._id.equals(id));
 }
 exports.findEntity = findEntity;
-function sort(list, sort) {
-    _.each(sort.split(','), function (propertySort) {
-        let descending = _.startsWith(propertySort, "-");
-        let prop = propertySort.substr(1);
-        list = _.sortBy(list, function (doc) {
-            return doc[prop];
-        });
-        if (descending)
-            list = list.reverse();
-    });
-    return list;
-}
-exports.sort = sort;
-function getEnumItemName(enumName, val) {
-    if (val === null)
-        return null;
-    let theEnum = _.find(exports.glob.enums, (enm) => {
-        return enm.name === enumName;
-    });
-    if (!theEnum)
-        return null;
-    let item = _.find(theEnum.items, { value: val });
-    return item ? item.name : "";
-}
-exports.getEnumItemName = getEnumItemName;
-function initializeEnums(callback) {
+async function initializeEnums() {
     log('initializeEnums ...');
     exports.glob.enums = [];
     exports.glob.enumTexts = {};
-    async.eachSeries(getEnabledPackages(), (pack, next) => {
-        get(pack.name, types_1.SysCollection.enums, null, (err, enums) => {
-            enums.forEach((theEnum) => {
-                theEnum._package = pack.name;
-                exports.glob.enums.push(theEnum);
-                let texts = {};
-                _.sortBy(theEnum.items, "_z").forEach((item) => {
-                    texts[item.value] = item.title || item.name;
-                });
-                exports.glob.enumTexts[pack.name + "." + theEnum.name] = texts;
+    for (let pack of getEnabledPackages()) {
+        let enums = await get(pack.name, types_1.SysCollection.enums);
+        enums.forEach((theEnum) => {
+            theEnum._package = pack.name;
+            exports.glob.enums.push(theEnum);
+            let texts = {};
+            _.sortBy(theEnum.items, "_z").forEach((item) => {
+                texts[item.value] = item.title || item.name;
             });
-            next();
+            exports.glob.enumTexts[pack.name + "." + theEnum.name] = texts;
         });
-    }, callback);
+    }
 }
 exports.initializeEnums = initializeEnums;
 function allObjects() {
-    return _.filter(exports.glob.entities, { entityType: types_1.EntityType.Object });
+    return exports.glob.entities.filter(en => en.entityType == types_1.EntityType.Object);
 }
 exports.allObjects = allObjects;
 function allFunctions() {
-    return _.filter(exports.glob.entities, { entityType: types_1.EntityType.Function });
+    return exports.glob.entities.filter(en => en.entityType == types_1.EntityType.Function);
 }
 exports.allFunctions = allFunctions;
-function allViews() {
-    return _.filter(exports.glob.entities, { entityType: types_1.EntityType.View });
-}
-function initializeEntities(callback) {
-    try {
-        log(`Initializing '${allObjects().length}' Objects ...`);
-        let allObjs = allObjects();
-        for (let obj of allObjs) {
-            initObject(obj);
-        }
-        log(`Initializing '${allFunctions().length}' functions ...`);
-        for (let func of allFunctions()) {
-            try {
-                func._access = {};
-                func._access[func._package] = func.access;
-                initProperties(func.parameters, func, func.title);
-            }
-            catch (ex) {
-                exception(ex);
-                error("Init functions, Module: " + func._package + ", Action: " + func.name);
-            }
-        }
-        callback();
+function initializeEntities() {
+    log(`Initializing '${allObjects().length}' Objects ...`);
+    let allObjs = allObjects();
+    for (let obj of allObjs) {
+        initObject(obj);
     }
-    catch (ex) {
-        exception(ex);
-        callback();
+    log(`Initializing '${allFunctions().length}' functions ...`);
+    for (let func of allFunctions()) {
+        try {
+            func._access = {};
+            func._access[func._package] = func.access;
+            initProperties(func.parameters, func, func.title);
+        }
+        catch (ex) {
+            exception(ex);
+            error("Init functions, Module: " + func._package + ", Action: " + func.name);
+        }
     }
 }
 function initProperties(properties, entity, parentTitle) {
     if (!properties)
         return;
     for (let prop of properties) {
-        let sysProperty = _.find(exports.glob.systemProperties, { name: prop.name });
+        let sysProperty = exports.glob.systemProperties.find(p => p.name === prop.name);
         if (sysProperty)
             _.defaultsDeep(prop, sysProperty);
         prop.group = prop.group || parentTitle;
@@ -1043,16 +873,10 @@ function checkPropertyReference(property, entity) {
 function compareParentProperties(properties, parentProperties, entity) {
     if (!parentProperties)
         return;
-    let parentNames = _.map(parentProperties, function (p) {
-        return p.name;
-    });
-    _.filter(properties, function (p) {
-        return parentNames.indexOf(p.name) == -1;
-    }).forEach(function (newProperty) {
-        checkPropertyReference(newProperty, entity);
-    });
+    let parentNames = parentProperties.map(p => p.name);
+    properties.filter(p => parentNames.indexOf(p.name) == -1).forEach(newProperty => checkPropertyReference(newProperty, entity));
     for (let parentProperty of parentProperties) {
-        let property = _.find(properties, { name: parentProperty.name });
+        let property = properties.find(p => p.name === parentProperty.name);
         if (!property) {
             properties.push(parentProperty);
             continue;
@@ -1189,7 +1013,7 @@ function getAllFiles(path) {
     path = _.trim(path, '/');
     if (fs.statSync(path).isFile())
         return [path];
-    return _.flatten(fs.readdirSync(path).map(function (file) {
+    return _.flatten(fs.readdirSync(path).map(file => {
         let fileOrDir = fs.statSync([path, file].join('/'));
         if (fileOrDir.isFile())
             return (path + '/' + file).replace(/^\.\/\/?/, '');
@@ -1264,11 +1088,6 @@ function jsonReplacer(key, value) {
         return value;
 }
 exports.jsonReplacer = jsonReplacer;
-function aggergate(pack, objectName, query, callback) {
-    let collection = exports.glob.dbs[pack].collection(objectName);
-    return collection.aggregate(query).toArray(callback);
-}
-exports.aggergate = aggergate;
 function parseDate(loc, date) {
     if (!date)
         return null;
@@ -1303,7 +1122,7 @@ function parseDate(loc, date) {
     return result;
 }
 exports.parseDate = parseDate;
-function getTypes(cn, done) {
+async function getTypes(cn) {
     let objects = allObjects().map((ent) => {
         let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
         return { ref: ent._id, title };
@@ -1324,16 +1143,16 @@ function getTypes(cn, done) {
     }
     types.unshift({ ref: "", title: "-" });
     types = ptypes.concat(types);
-    done(null, types);
+    return types;
 }
 exports.getTypes = getTypes;
-function getAllEntities(cn, done) {
-    let entities = exports.glob.entities.map((ent) => {
+async function getAllEntities(cn) {
+    let entities = exports.glob.entities.map(ent => {
         let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
         return { ref: ent._id, title };
     });
     entities = _.orderBy(entities, ['title']);
-    done(null, entities);
+    return entities;
 }
 exports.getAllEntities = getAllEntities;
 function json2bson(doc) {
@@ -1436,28 +1255,29 @@ function parse(str) {
     return json;
 }
 exports.parse = parse;
-function getPropertyReferenceValues(cn, prop, instance, done) {
+async function getPropertyReferenceValues(cn, prop, instance) {
     if (prop._enum) {
         let items = _.map(prop._enum.items, (item) => {
             return { ref: item.value, title: getText(cn, item.title) };
         });
-        return done(null, items);
+        return items;
     }
     let entity = findEntity(prop.type);
     if (!entity) {
         error(`Property '${prop.name}' type '${prop.type}' not found.`);
-        return done(types_1.StatusCode.NotFound, null);
+        throw types_1.StatusCode.NotFound;
     }
-    if (entity.entityType == types_1.EntityType.Object)
-        return get(cn.pack, entity.name, { count: 10 }, (err, result) => {
-            if (result) {
-                let items = _.map(result, (item) => {
-                    return { ref: item._id, title: getText(cn, item.title) };
-                });
-                done(null, items);
-            }
-        });
-    else if (entity.entityType == types_1.EntityType.Function) {
+    if (entity.entityType == types_1.EntityType.Object) {
+        let result = await get(cn.pack, entity.name, { count: 10 });
+        if (result) {
+            return _.map(result, (item) => {
+                return { ref: item._id, title: getText(cn, item.title) };
+            });
+        }
+        else
+            return null;
+    }
+    else if (entity.entityType === types_1.EntityType.Function) {
         let typeFunc = entity;
         let args = [];
         if (typeFunc.parameters)
@@ -1474,9 +1294,8 @@ function getPropertyReferenceValues(cn, prop, instance, done) {
                         break;
                 }
             }
-        return invoke(cn, typeFunc, args, done);
+        return await invoke(cn, typeFunc, args);
     }
-    done(null, null);
 }
 exports.getPropertyReferenceValues = getPropertyReferenceValues;
 function envMode() {
@@ -1496,54 +1315,51 @@ function mockCheckMatchInput(cn, func, args, sample) {
     }
     return true;
 }
-function mock(cn, func, args, done) {
+async function mock(cn, func, args) {
     log(`mocking function '${cn.pack}.${func.name}' ...`);
     if (!func.test.samples || !func.test.samples.length)
-        return done({ code: types_1.StatusCode.Ok, message: "No sample data!" });
+        return { code: types_1.StatusCode.Ok, message: "No sample data!" };
     let withInputs = func.test.samples.filter((sample) => {
         return sample.input;
     });
     for (let sample of withInputs) {
         if (mockCheckMatchInput(cn, func, args, sample)) {
-            let err = null;
             if (sample.code)
-                err = { code: sample.code, message: sample.message };
-            return done(err, sample.result);
+                return { code: sample.code, message: sample.message, result: sample.result };
+            else
+                return sample.input;
         }
     }
-    let withoutInput = _.find(func.test.samples, (sample) => {
-        return !sample.input;
-    });
+    let withoutInput = func.test.samples.find(sample => !sample.input);
     if (withoutInput) {
-        let err = null;
         if (withoutInput.code)
-            err = { code: withoutInput.code, message: withoutInput.message };
-        return done(err, withoutInput.result);
+            return { code: withoutInput.code, message: withoutInput.message };
+        else
+            return withoutInput.input;
     }
-    return done({ code: types_1.StatusCode.Ok, message: "No default sample data!" });
+    return { code: types_1.StatusCode.Ok, message: "No default sample data!" };
 }
 exports.mock = mock;
-function invoke(cn, func, args, done) {
+async function invoke(cn, func, args) {
     try {
         if (func.test && func.test.mock && envMode() == types_1.EnvMode.Development && cn.url.pathname != "/functionTest") {
-            mock(cn, func, args, done);
-            return;
+            return await mock(cn, func, args);
         }
-        let action = require(`../../${func._package}/server/main`)[func.name];
+        let action = require(`../../${func._package}/src/main`)[func.name];
         if (!action) {
             if (func._package == types_1.Constants.sysPackage)
-                action = require(`../../web/server/main`)[func.name];
+                action = require(`../../web/src/main`)[func.name];
             if (!action) {
-                let app = _.find(exports.glob.apps, { _package: cn.pack });
+                let app = exports.glob.apps.find(app => app._package == cn.pack);
                 for (let pack of app.dependencies) {
-                    action = require(`../../${pack}/server/main`)[func.name];
+                    action = require(`../../${pack}/src/main`)[func.name];
                     if (action)
                         break;
                 }
             }
         }
         if (!action)
-            return done(`Function'${func.name}'notfound.`);
+            throw `Function'${func.name}'notfound.`;
         const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
         const ARGUMENT_NAMES = /([^\s,]+)/g;
         let fnStr = action.toString().replace(STRIP_COMMENTS, '');
@@ -1551,39 +1367,41 @@ function invoke(cn, func, args, done) {
         if (argNames === null)
             argNames = [];
         if (args.length == 0)
-            return action(cn, done);
+            return await action(cn);
         else
-            return action(cn, ...args, done);
+            return await action(cn, ...args);
     }
     catch (ex) {
         if (ex.message == `${func.name} is not defined`) {
             todo(ex.message);
-            done(types_1.StatusCode.NotImplemented);
+            throw types_1.StatusCode.NotImplemented;
         }
         else {
             exception(ex);
-            done(ex.message);
+            throw ex.message;
         }
     }
 }
 exports.invoke = invoke;
-function runFunction(cn, functionId, input, done) {
+async function runFunction(cn, functionId, input) {
     let func = findEntity(functionId);
     if (!func)
-        return done(types_1.StatusCode.NotFound);
+        throw types_1.StatusCode.NotFound;
     input = input || {};
     let args = [];
     if (func.parameters)
         for (let para of func.parameters) {
             args.push(input[para.name]);
         }
-    invoke(cn, func, args, (err, result) => {
-        done(err, result, func);
-    });
+    return invoke(cn, func, args);
 }
 exports.runFunction = runFunction;
 function isObjectId(value) {
     return value._bsontype == "ObjectID";
 }
 exports.isObjectId = isObjectId;
+function throwError(code, message) {
+    throw new types_1.ErrorResult(code, message);
+}
+exports.throwError = throwError;
 //# sourceMappingURL=main.js.map

@@ -7,13 +7,9 @@ const types = require("./types");
 const util = require('util');
 let sys = require('./main');
 let reloadError;
-beforeAll(done => {
+beforeAll(async () => {
     sys.configureLogger(true);
-    sys.configureLogger(true);
-    sys.reload(null, (err) => {
-        reloadError = err;
-        done();
-    });
+    await sys.reload();
 });
 describe('reload test', () => {
     test('load sys config', () => {

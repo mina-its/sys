@@ -304,6 +304,10 @@ export class Elem {
 }
 
 export class ErrorResult {
+	constructor(code: StatusCode, message: string) {
+		this.code = code;
+		this.message = message;
+	}
 	code: StatusCode;
 	message: string;
 }
