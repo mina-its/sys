@@ -824,9 +824,12 @@ export class WebResponse implements IError {
 	message: string;
 	code: StatusCode;
 	config: {
-		locale?: string;
-		appLocales?: Pair[];
-		// timeZone
+		locale: string;
+		appLocales: Pair[];
+		brandingLogo: string;
+		appTitle: string;
+		loginRef: string;
+		loginTitle: string;
 	}
 }
 
