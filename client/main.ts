@@ -1,6 +1,6 @@
 declare let $, Vue, axios, text: any;
 import {AjaxConfig, NotificationInfo, NotifyType} from "./types";
-import {GetOptions, IError, StatusCode, WebMethod, WebResponse} from "../server/types";
+import {GetOptions, IError, StatusCode, WebMethod, WebResponse} from "../src/types";
 
 class ComponentParams {
 	template?: string;

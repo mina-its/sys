@@ -1,11 +1,10 @@
 import logger = require('winston');
 import mongodb = require('mongodb');
+import _ = require('lodash');
 import xmlBuilder = require('xmlbuilder');
 import fs = require('fs-extra');
 import path = require('path');
 import moment = require('moment');
-import _ = require('lodash');
-import async = require('async');
 import graphlib = require('graphlib');
 import Jalali = require('jalali-moment');
 import AWS = require('aws-sdk');
@@ -51,53 +50,59 @@ import {
 	SysCollection,
 	SystemProperty,
 	Text,
-	View,
+	View, ErrorResult,
 } from './types';
 
 const {EJSON} = require('bson');
 
 export let glob = new Global();
 
-export function reload(cn: Context, done: (err) => void) {
+export async function reload(cn?: Context) {
 	let startTime = moment();
 	log(`reload ...`);
-	async.series([
-		loadSysConfig,
-		loadSystemCollections,
-		loadGeneralCollections,
-		loadAuditTypes,
-		initializeEnums,
-		initializePackages,
-		initializeRoles,
-		initializeEntities
-	], (err) => {
-		let period = moment().diff(startTime, 'ms', true);
-		info(`reload done in '${period}' ms.`);
-		done(err);
-	});
+
+	await loadSysConfig();
+	await loadSystemCollections();
+	await loadGeneralCollections();
+	await loadAuditTypes();
+	await initializeEnums();
+	await initializePackages();
+	await initializeRoles();
+	await initializeEntities();
+
+	let period = moment().diff(startTime, 'ms', true);
+	info(`reload done in '${period}' ms.`);
 }
 
-export function start(callback: (err, glob: Global) => void) {
-	process.on('uncaughtException', function (err) {
-		audit(SysAuditTypes.uncaughtException, {level: LogLevel.Emerg, comment: err.message + ". " + err.stack});
-	});
+export async function start() {
+	try {
+		process.on('uncaughtException', async err =>
+			await audit(SysAuditTypes.uncaughtException, {level: LogLevel.Emerg, comment: err.message + ". " + err.stack})
+		);
 
-	process.on('unhandledRejection', (reason, p) => {
-		audit(SysAuditTypes.unhandledRejection, {level: LogLevel.Emerg, detail: reason});
-	});
+		process.on('unhandledRejection', async (err: any) => {
+			await audit(SysAuditTypes.unhandledRejection, {
+				level: LogLevel.Emerg,
+				comment: err.message + ". " + err.stack
+			});
+		});
 
-	configureLogger(false);
+		require('source-map-support').install({handleUncaughtExceptions: true});
 
-	reload(null, (err) => {
-		callback(err, glob);
-	});
+		configureLogger(false);
+		await reload();
+		return glob;
+	} catch (ex) {
+		exception(ex);
+		return null;
+	}
 }
 
 function isWindows() {
 	return /^win/.test(process.platform);
 }
 
-export function audit(auditType: string, args: AuditArgs) {
+export async function audit(auditType: string, args: AuditArgs) {
 	args.type = args.type || new ObjectId(auditType);
 	args.time = new Date();
 	let comment = args.comment || "";
@@ -125,7 +130,7 @@ export function audit(auditType: string, args: AuditArgs) {
 	}
 
 	if (type && type.disabled) return;
-	put(args.pack || Constants.sysPackage, SysCollection.audits, args);
+	await put(args.pack || Constants.sysPackage, SysCollection.audits, args);
 }
 
 export function run(cn, func: string, ...args) {
@@ -137,156 +142,110 @@ export function run(cn, func: string, ...args) {
 	}
 }
 
-/**
- * Gets or Queries from an object source
- * @param pack - packages name, e.g. 'sys'
- * @param objectName - name of the object to retrieve
- * @param options:
- *          itemId?: ObjectId;
- *          query?: any;
- *          count?: number;
- *          skip?: number;
- *          sort?: any;
- *          last?: boolean;
- */
-export function get(pack: string, objectName: string, options: GetOptions, done: (err, result?) => void) {
-	let db = glob.dbs[pack];
-	if (!db) return done(`db for pack '${pack}' not found.`, null);
+export async function get(pack: string, objectName: string, options?: GetOptions) {
+	let collection = await getCollection(pack, objectName);
 	options = options || {} as GetOptions;
-	let collection = db.collection(objectName);
 
 	if (options.itemId)
-		collection.findOne(options.itemId, done);
+		return collection.findOne(options.itemId);
 	else {
 		let find = collection.find(options.query);
 		if (options.sort) find = find.sort(options.sort);
 		if (options.last) find = find.sort({$natural: -1});
 		if (options.count) find = find.limit(options.count);
-		if (options.skip) find = find.skip(options.skip);
-		find.toArray((err, result) => {
-			if (options.count === 1 && result)
-				done(null, result[0]);
-			else
-				done(err, result);
-		});
+		if (options.skip) find = await find.skip(options.skip);
+		let result = await find.toArray();
+		if (options.count === 1 && result)
+			return result[0];
+		else
+			return result;
 	}
 }
 
-export function put(pack: string, objectName: string, item: any, options?: PutOptions, done?: (status: StatusCode, result?: ObjectModifyState) => void) {
-	let collection = glob.dbs[pack].collection(objectName);
-	done = done || (() => {
-	});
-	if (!collection) return done(StatusCode.BadRequest);
+async function getCollection(pack: string, objectName: string) {
+	let db = await connect(pack);
+	return db.collection(objectName);
+}
 
+export async function put(pack: string, objectName: string, item: any, options?: PutOptions) {
+	let collection = await getCollection(pack, objectName);
 	item = item || {};
 	if (!options || !options.portions || options.portions.length == 1) {
-		if (item._id)
-			collection.replaceOne({_id: item._id}, item, (err, result) => {
-				if (err) {
-					error(err);
-					done(StatusCode.ServerError);
-				} else {
-					done((result && result.modifiedCount) ? StatusCode.Ok : StatusCode.ResetContent, {
-						type: ObjectModifyType.Update,
-						item: item,
-						itemId: item._id
-					});
-				}
-			});
-		else
-			collection.insertOne(item, (err, result) => {
-				if (err) {
-					error(err);
-					done(StatusCode.ServerError);
-				} else {
-					done((result && result.insertedCount) ? StatusCode.Ok : StatusCode.ResetContent, {
-						type: ObjectModifyType.Insert,
-						item: item,
-						itemId: item._id
-					});
-				}
-			});
-		return;
+		if (item._id) {
+			await collection.replaceOne({_id: item._id}, item);
+			return {
+				type: ObjectModifyType.Update,
+				item: item,
+				itemId: item._id
+			} as ObjectModifyState;
+		} else {
+			await collection.insertOne(item);
+			return {
+				type: ObjectModifyType.Insert,
+				item: item,
+				itemId: item._id
+			};
+		}
 	}
-
 	let portions = options.portions;
 	switch (portions.length) {
 		case 2: // Update new root item
-			collection.save(item, (err, result) => {
-				if (err) {
-					error(err);
-					done(StatusCode.ServerError);
-				} else {
-					done((result && result.insertedCount) ? StatusCode.Ok : StatusCode.ResetContent, {
-						type: ObjectModifyType.Update,
-						item: item,
-						itemId: item._id
-					});
-				}
+			await collection.save(item);
+			return ({
+				type: ObjectModifyType.Update,
+				item: item,
+				itemId: item._id
 			});
-			break;
 
 		default: // Insert / Update not root item
 			let command = {$addToSet: {}};
 			item._id = item._id || new ObjectId();
 			let rootId = portions[1].itemId;
-			portionsToMongoPath(pack, rootId, portions, portions.length, (err, path: string) => {
-				command.$addToSet[path] = item;
-				collection.updateOne({_id: rootId}, command, (err, result) => {
-					if (err) {
-						error(err);
-						done(StatusCode.ServerError);
-					} else {
-						done((result && result.modifiedCount) ? StatusCode.Ok : StatusCode.ResetContent, {
-							type: ObjectModifyType.Patch,
-							item: item,
-							itemId: rootId
-						});
-					}
-				});
-			});
-			break;
+			let pth: string = await portionsToMongoPath(pack, rootId, portions, portions.length);
+			command.$addToSet[pth] = item;
+			await collection.updateOne({_id: rootId}, command);
+			return {
+				type: ObjectModifyType.Patch,
+				item: item,
+				itemId: rootId
+			};
 	}
 }
 
-export function portionsToMongoPath(pack: string, rootId: ObjectId, portions: RefPortion[], endIndex: number, done: (err: StatusCode, path?: string) => void) {
+export async function portionsToMongoPath(pack: string, rootId: ObjectId, portions: RefPortion[], endIndex: number) {
 	if (endIndex == 3) // not need to fetch data
-		return done(null, portions[2].property.name);
+		return portions[2].property.name;
 
 	let collection = glob.dbs[pack].collection(portions[0].value);
-	if (!collection) return done(StatusCode.BadRequest);
+	if (!collection) throw StatusCode.BadRequest;
 
-	collection.findOne({_id: rootId}, (err, item) => {
-		let value = item;
-		if (err || !value) return done(err || StatusCode.ServerError);
+	let value = await collection.findOne({_id: rootId});
+	if (!value) throw StatusCode.ServerError;
 
-		let path = "";
-		for (let i = 2; i < endIndex; i++) {
-			let part = portions[i].value;
-			if (portions[i].type == RefPortionType.property) {
-				path += "." + part;
-				value = value[part];
-				if (value == null)
-					value = {}; // sample: access.items
-			} else {
-				let partItem = _.find(value, (it) => {
-					return it._id && it._id.toString() == part;
-				});
-				if (!partItem) return done(StatusCode.ServerError);
-				path += "." + value.indexOf(partItem);
-				value = partItem;
-			}
+	let path = "";
+	for (let i = 2; i < endIndex; i++) {
+		let part = portions[i].value;
+		if (portions[i].type == RefPortionType.property) {
+			path += "." + part;
+			value = value[part];
+			if (value == null)
+				value = {}; // sample: access.items
+		} else {
+			let partItem = _.find(value, (it) => {
+				return it._id && it._id.toString() == part;
+			});
+			if (!partItem) throw StatusCode.ServerError;
+			path += "." + value.indexOf(partItem);
+			value = partItem;
 		}
-		done(null, _.trim(path, '.'));
-	});
+	}
+	return _.trim(path, '.');
 }
 
-export function count(pack: string, objectName: string, options: GetOptions, done: (count) => void) {
-	get(pack, objectName, options, (err, result) => {
-		if (err) return done(null);
-		let count = !result ? 0 : (Array.isArray(result) ? result.length : 1);
-		done(count);
-	});
+export async function count(pack: string, objectName: string, options: GetOptions) {
+	let collection = await getCollection(pack, objectName);
+	options = options || {} as GetOptions;
+	return await collection.countDocuments(options);
 }
 
 export function extractRefPortions(pack: string, appDependencies: string[], ref: string, _default?: string): RefPortion[] {
@@ -351,122 +310,87 @@ export function extractRefPortions(pack: string, appDependencies: string[], ref:
 	}
 }
 
-export function patch(pack: string, objectName: string, patchData: any, options?: PutOptions, done?: (status: StatusCode, result?: ObjectModifyState) => void) {
+export async function patch(pack: string, objectName: string, patchData: any, options?: PutOptions) {
 	let collection = glob.dbs[pack].collection(objectName);
-	done = done || (() => {
-	});
-	if (!collection) return done(StatusCode.BadRequest);
-
+	if (!collection) throw StatusCode.BadRequest;
 	if (!options) options = {portions: []};
 	let portions = options.portions;
 	if (!portions)
 		portions = [{type: RefPortionType.entity, value: objectName} as RefPortion];
 
 	if (portions.length == 1)
-		return done(StatusCode.BadRequest);
+		throw StatusCode.BadRequest;
 
-	let rootId = portions.length < 2 ? patchData._id : portions[1].itemId;
-	portionsToMongoPath(pack, rootId, portions, portions.length, (err, path: string) => {
-		let command = {$set: {}, $unset: {}};
-		if (portions[portions.length - 1].property && portions[portions.length - 1].property._gtype == GlobalType.file)
-			command["$set"][path] = patchData; // e.g. multiple values for files in 'tests' object
-		else
-			for (let key in patchData) {
-				if (key == "_id") continue;
-				command[patchData[key] == null ? "$unset" : "$set"][path + (path ? "." : "") + key] = patchData[key];
-			}
+	let theRootId = portions.length < 2 ? patchData._id : portions[1].itemId;
+	let path = await portionsToMongoPath(pack, theRootId, portions, portions.length);
+	let command = {$set: {}, $unset: {}};
+	if (portions[portions.length - 1].property && portions[portions.length - 1].property._gtype == GlobalType.file)
+		command["$set"][path] = patchData; // e.g. multiple values for files in 'tests' object
+	else
+		for (let key in patchData) {
+			if (key == "_id") continue;
+			command[patchData[key] == null ? "$unset" : "$set"][path + (path ? "." : "") + key] = patchData[key];
+		}
 
-		if (_.isEmpty(command.$unset)) delete command.$unset;
-		if (_.isEmpty(command.$set)) delete command.$set;
+	if (_.isEmpty(command.$unset)) delete command.$unset;
+	if (_.isEmpty(command.$set)) delete command.$set;
 
-		let rootId = portions[1].itemId;
-		collection.updateOne({_id: rootId}, command, (err, result) => {
-			if (err) {
-				error(err);
-				done(StatusCode.ServerError);
-			} else {
-				done((result && result.modifiedCount) ? StatusCode.Ok : StatusCode.ResetContent, {
-					type: ObjectModifyType.Patch,
-					item: patchData,
-					itemId: rootId
-				});
-			}
-		});
-	});
+	let rootId = portions[1].itemId;
+	let result = await collection.updateOne({_id: rootId}, command);
+	return {
+		type: ObjectModifyType.Patch,
+		item: patchData,
+		itemId: rootId
+	} as ObjectModifyState;
 }
 
-export function del(pack: string, objectName: string, options?: DelOptions, done?: (status: StatusCode, result?: ObjectModifyState) => void) {
+export async function del(pack: string, objectName: string, options?: DelOptions) {
 	let collection = glob.dbs[pack].collection(objectName);
-	if (!collection || !options) return done(StatusCode.BadRequest);
-
-	if (options.itemId)
-		return collection.deleteOne({_id: options.itemId}, (err, result) => {
-			if (err) {
-				error(err);
-				done(StatusCode.ServerError);
-			} else {
-				done((result && result.deletedCount) ? StatusCode.Ok : StatusCode.ResetContent, {
-					type: ObjectModifyType.Delete,
-					item: null,
-					itemId: options.itemId
-				});
-			}
-		});
-
+	if (!collection || !options) throw StatusCode.BadRequest;
+	if (options.itemId) {
+		let result = await collection.deleteOne({_id: options.itemId});
+		return {
+			type: ObjectModifyType.Delete,
+			item: null,
+			itemId: options.itemId
+		};
+	}
 
 	let portions = options.portions;
 	if (portions.length == 1 || portions.length == 3)
-		return done(StatusCode.BadRequest);
+		throw StatusCode.BadRequest;
 
 	switch (portions.length) {
 		case 2: // Delete root item
-			collection.deleteOne({_id: portions[1].itemId}, (err, result) => {
-				if (err) {
-					error(err);
-					done(StatusCode.ServerError);
-				} else {
-					done((result && result.deletedCount) ? StatusCode.Ok : StatusCode.ResetContent, {
-						type: ObjectModifyType.Delete,
-						item: null,
-						itemId: portions[1].itemId
-					});
-				}
-			});
-			break;
+			await collection.deleteOne({_id: portions[1].itemId});
+			return {
+				type: ObjectModifyType.Delete,
+				item: null,
+				itemId: portions[1].itemId
+			};
 
 		default: // Delete nested property item
 			let command = {$pull: {}};
 			let rootId = portions[1].itemId;
 			let itemId = portions[portions.length - 1].itemId;
 
-			portionsToMongoPath(pack, rootId, portions, portions.length - 1, (err, path: string) => {
-				command.$pull[path] = {_id: itemId};
-				collection.updateOne({_id: rootId}, command, (err, result) => {
-					if (err) {
-						error(err);
-						done(StatusCode.ServerError);
-					} else {
-						done((result && result.modifiedCount) ? StatusCode.Ok : StatusCode.ResetContent, {
-							type: ObjectModifyType.Patch,
-							item: null,
-							itemId: rootId
-						});
-					}
-				});
-			});
-			break;
+			let path = await portionsToMongoPath(pack, rootId, portions, portions.length - 1);
+			command.$pull[path] = {_id: itemId};
+			await collection.updateOne({_id: rootId}, command);
+			return {
+				type: ObjectModifyType.Patch,
+				item: null,
+				itemId: rootId
+			};
 	}
 }
 
-export function getFile(drive: Drive, filePath: string, done: (err: StatusCode, file?) => void) {
+export async function getFile(drive: Drive, filePath: string) {
 	switch (drive.type) {
 		case SourceType.File:
 			let _path = path.join(drive.address, filePath);
-			fs.readFile(_path, (err, file) => {
-				if (err) error(err);
-				if (!file) return done(StatusCode.NotFound);
-				done(null, file);
-			});
+			let file = await fs.readFile(_path);
+			if (!file) throw StatusCode.NotFound;
 			break;
 
 		case SourceType.Db:
@@ -475,69 +399,56 @@ export function getFile(drive: Drive, filePath: string, done: (err: StatusCode, 
 			let stream = bucket.openDownloadStreamByName(filePath);
 			let data: Buffer;
 			stream.on("end", function () {
-				return done(null, data);
+				return data;
 			}).on("data", function (chunk: Buffer) {
 				data = data ? Buffer.concat([data, chunk]) : chunk;
 			}).on("error", function (err) {
 				error(err);
-				return done(StatusCode.NotFound);
+				throw StatusCode.NotFound;
 			});
 			break;
 
 		default:
-			return done(StatusCode.NotImplemented);
+			throw StatusCode.NotImplemented;
 	}
 }
 
-export function putFile(host: string, drive: Drive, filePath: string, file: Buffer, done: (err?: StatusCode, result?) => void) {
+export async function putFile(host: string, drive: Drive, filePath: string, file: Buffer) {
 	switch (drive.type) {
 		case SourceType.File:
 			let _path = path.join(drive.address, filePath);
-			fs.mkdir(path.dirname(_path), {recursive: true}, (err) => {
-				if (err) return done(err);
-				fs.writeFile(_path, file, (err) => {
-					if (err) error(err);
-					done(err ? StatusCode.ServerError : StatusCode.Ok);
-				});
-			});
+			await fs.mkdir(path.dirname(_path), {recursive: true});
+			await fs.writeFile(_path, file);
 			break;
 
 		case SourceType.Db:
 			let db = glob.dbs[host];
 			let bucket = new mongodb.GridFSBucket(db);
 			let stream = bucket.openUploadStream(filePath);
-			delFile(host, filePath, () => {
-				stream.on("error", function (err) {
-					error(err);
-					done(err ? StatusCode.ServerError : StatusCode.Ok);
-				}).end(file, done);
-			});
+			await delFile(host, filePath);
+			stream.on("error", function (err) {
+				error(err);
+				// done(err ? StatusCode.ServerError : StatusCode.Ok);
+			}).end(file);
 			break;
 
 		case SourceType.S3:
 			if (!glob.sysConfig.amazon || !glob.sysConfig.amazon.accessKeyId) {
 				error('s3 accessKeyId, secretAccessKey is required in sysConfig!');
-				return done(StatusCode.SystemConfigurationProblem);
+				throw StatusCode.SystemConfigurationProblem;
 			}
-
 			AWS.config.accessKeyId = glob.sysConfig.amazon.accessKeyId;
 			AWS.config.secretAccessKey = glob.sysConfig.amazon.secretAccessKey;
 			let s3 = new AWS.S3({apiVersion: Constants.amazonS3ApiVersion});
-			s3.upload({Bucket: drive.address, Key: path.basename(filePath), Body: file}, function (err, data) {
-				if (err || !data) {
-					error(err || "s3 upload failed");
-					done(StatusCode.ServerError);
-				} else
-					done(null, {url: data.Location});
-			});
-			break;
+			let data: any = await s3.upload({Bucket: drive.address, Key: path.basename(filePath), Body: file});
+			return {url: data.Location};
 
 		default:
-			return done(StatusCode.NotImplemented);
+			throw StatusCode.NotImplemented;
 	}
 }
 
-export function getFileInfo(host: string, filePath: string, done: (err: StatusCode, info?: File) => void) {
+export async function getFileInfo(host: string, filePath: string) {
 	// let rep: repository = mem.sources[host];
 	// if (!rep) return done(statusCode.notFound);
 	//
@@ -574,7 +485,7 @@ export function getFileInfo(host: string, filePath: string, done: (err: StatusCo
 	// }
 }
 
-export function delFile(host: string, filePath: string, done: (err: StatusCode) => void) {
+export async function delFile(host: string, filePath: string) {
 	// let rep: repository = mem.sources[host];
 	// if (!rep) return done(statusCode.notFound);
 	//
@@ -603,8 +514,7 @@ export function delFile(host: string, filePath: string, done: (err: StatusCode) 
 	// }
 }
 
-export function movFile(host: string, sourcePath: string, targetPath: string, done: (err: StatusCode) => void) {
-	// todo('movFile: pseudocode!');
+export async function movFile(host: string, sourcePath: string, targetPath: string) {
 	// let rep: repository = mem.sources[host];
 	// if (!rep) return done(statusCode.notFound);
 	//
@@ -685,156 +595,118 @@ export function isRtl(lang: Locale): boolean {
 	return lang === Locale.fa || lang === Locale.ar;
 }
 
-function loadGeneralCollections(done) {
+async function loadGeneralCollections() {
 	log('loadGeneralCollections ...');
 
-	get(Constants.sysPackage, Constants.timeZonesCollection, null, (err, timeZones) => {
-		glob.timeZones = timeZones;
-
-		get(Constants.sysPackage, SysCollection.objects, {
-			query: {name: Constants.systemPropertiesObjectName},
-			count: 1
-		}, (err, result: mObject) => {
-			if (!result)
-				emerg('systemProperties object not found!');
-			glob.systemProperties = result ? result.properties : [];
-			done();
-		});
+	glob.timeZones = await get(Constants.sysPackage, Constants.timeZonesCollection);
+	let result: mObject = await get(Constants.sysPackage, SysCollection.objects, {
+		query: {name: Constants.systemPropertiesObjectName},
+		count: 1
 	});
+	if (!result)
+		emerg('systemProperties object not found!');
+	glob.systemProperties = result ? result.properties : [];
 }
 
-function loadAuditTypes(done) {
+async function loadAuditTypes() {
 	log('loadAuditTypes ...');
-
-	get(Constants.sysPackage, SysCollection.auditTypes, null, (err, auditTypes) => {
-		glob.auditTypes = auditTypes;
-		done();
-	});
+	glob.auditTypes = await get(Constants.sysPackage, SysCollection.auditTypes);
 }
 
 function getEnabledPackages(): SystemConfigPackage[] {
-	return glob.sysConfig.packages.filter((pack) => {
-		return pack.enabled;
-	});
+	return glob.sysConfig.packages.filter(pack => pack.enabled);
 }
 
-function loadSysConfig(done) {
-	connect(Constants.sysPackage, (err) => {
-		if (err) return done(err);
-
-		glob.dbs[Constants.sysPackage].collection(SysCollection.systemConfig).findOne({}, (err, config: SystemConfig) => {
-			glob.sysConfig = config;
-			for (let pack of getEnabledPackages()) {
-				glob.packages[pack.name] = require(`../../${pack.name}/server/main`);
-				if (glob.packages[pack.name] == null)
-					error(`Error loading package ${pack.name}!`);
-				else {
-					let p = require(`../../${pack.name}/package.json`);
-					glob.packages[pack.name]._version = p.version;
-					log(`package '${pack.name}' loaded. version: ${p.version}`);
-				}
+async function loadSysConfig() {
+	glob.sysConfig = await get(Constants.sysPackage, SysCollection.systemConfig, {count: 1});
+	for (let pack of getEnabledPackages()) {
+		try {
+			glob.packages[pack.name] = require(`../../${pack.name}/src/main`);
+			if (glob.packages[pack.name] == null)
+				error(`Error loading package ${pack.name}!`);
+			else {
+				let p = require(`../../${pack.name}/package.json`);
+				glob.packages[pack.name]._version = p.version;
+				log(`package '${pack.name}' loaded. version: ${p.version}`);
 			}
-			done();
-		});
-	});
+		} catch (ex) {
+			exception(ex);
+			pack.enabled = false;
+		}
+	}
 }
 
-function loadSystemCollections(done) {
+async function loadPackageSystemCollections(packConfig: SystemConfigPackage) {
+	let pack = packConfig.name;
+
+	log(`Loading system collections package '${pack}' ...`);
+	let config: PackageConfig = await get(pack, SysCollection.configs, {count: 1});
+	if (!config) {
+		packConfig.enabled = false;
+		error(`Config for package '${pack}' not found!`);
+	} else
+		glob.packages[pack]._config = config;
+
+	let objects: mObject[] = await get(pack, SysCollection.objects);
+	for (let object of objects) {
+		object._package = pack;
+		object.entityType = EntityType.Object;
+		glob.entities.push(object);
+	}
+
+	let functions: Function[] = await get(pack, SysCollection.functions);
+	for (let func of functions) {
+		func._package = pack;
+		func.entityType = EntityType.Function;
+		glob.entities.push(func);
+	}
+
+	let views: View[] = await get(pack, SysCollection.views);
+	for (let view of views) {
+		view._package = pack;
+		view.entityType = EntityType.View;
+		glob.entities.push(view);
+	}
+
+	let texts: Text[] = await get(pack, SysCollection.dictionary);
+	for (let item of texts) {
+		glob.dictionary[pack + "." + item.name] = item.text;
+	}
+
+	let menus: Menu[] = await get(pack, SysCollection.menus);
+	for (let menu of menus) {
+		menu._package = pack;
+		glob.menus.push(menu);
+	}
+
+	let roles: Role[] = await get(pack, SysCollection.roles);
+	for (let role of roles) {
+		role._package = pack;
+		glob.roles.push(role);
+	}
+
+	let drives: Drive[] = await get(pack, SysCollection.drives);
+	for (let drive of drives) {
+		drive._package = pack;
+		glob.drives.push(drive);
+	}
+}
+
+async function loadSystemCollections() {
 	glob.entities = [];
 	glob.dictionary = {};
 	glob.menus = [];
 	glob.roles = [];
 	glob.drives = [];
 
-	if (!process.env.DB_ADDRESS)
-		return done("Environment variable 'DB_ADDRESS' is needed!");
-
-	async.eachSeries(getEnabledPackages(), (packConfig, nextPackage) => {
-		let pack = packConfig.name;
-		connect(pack, (err) => {
-			if (err) return nextPackage();
-
-			log(`Loading system collections package '${pack}' ...`);
-			async.series([
-				(next) => {
-					glob.dbs[pack].collection(SysCollection.configs).findOne(null, (err, config: PackageConfig) => {
-						if (!config) {
-							packConfig.enabled = false;
-							error(`Config for package '${pack}' not found!`);
-						} else
-							glob.packages[pack]._config = config;
-						next();
-					});
-				},
-				(next) => {
-					glob.dbs[pack].collection(SysCollection.objects).find({}).toArray((err, objects: mObject[]) => {
-						for (let object of objects) {
-							object._package = pack;
-							object.entityType = EntityType.Object;
-							glob.entities.push(object);
-						}
-						next();
-					});
-				},
-				(next) => {
-					glob.dbs[pack].collection(SysCollection.functions).find({}).toArray((err, functions: Function[]) => {
-						for (let func of functions) {
-							func._package = pack;
-							func.entityType = EntityType.Function;
-							glob.entities.push(func);
-						}
-						next();
-					});
-				},
-				(next) => {
-					glob.dbs[pack].collection(SysCollection.views).find({}).toArray((err, views: View[]) => {
-						for (let view of views) {
-							view._package = pack;
-							view.entityType = EntityType.View;
-							glob.entities.push(view);
-						}
-						next();
-					});
-				},
-				(next) => {
-					glob.dbs[pack].collection(SysCollection.dictionary).find({}).toArray((err, texts: Text[]) => {
-						for (let item of texts) {
-							glob.dictionary[pack + "." + item.name] = item.text;
-						}
-						next();
-					});
-				},
-				(next) => {
-					glob.dbs[pack].collection(SysCollection.menus).find({}).toArray((err, menus: Menu[]) => {
-						for (let menu of menus) {
-							menu._package = pack;
-							glob.menus.push(menu);
-						}
-						next();
-					});
-				},
-				(next) => {
-					glob.dbs[pack].collection(SysCollection.roles).find({}).toArray((err, roles: Role[]) => {
-						for (let role of roles) {
-							role._package = pack;
-							glob.roles.push(role);
-						}
-						next();
-					});
-				},
-				(next) => {
-					glob.dbs[pack].collection(SysCollection.drives).find({}).toArray((err, drives: Drive[]) => {
-						for (let drive of drives) {
-							drive._package = pack;
-							glob.drives.push(drive);
-						}
-						next();
-					});
-				}
-			], nextPackage);
-		});
-
-	}, done);
+	for (let packConfig of getEnabledPackages()) {
+		try {
+			await loadPackageSystemCollections(packConfig);
+		} catch (err) {
+			exception(err);
+			packConfig.enabled = false;
+		}
+	}
 }
 
 export function configureLogger(silent: boolean) {
@@ -901,7 +773,7 @@ function validateApp(pack: string, app: App): boolean {
 	return true;
 }
 
-export function initializeRoles(done) {
+export function initializeRoles() {
 	let g = new graphlib.Graph();
 	for (let role of glob.roles) {
 		g.setNode(role._id.toString());
@@ -916,29 +788,25 @@ export function initializeRoles(done) {
 			return new ObjectId(item);
 		});
 	}
-
-	done();
 }
 
 export function checkAppMenu(app: App) {
-	if (app.menu) {
-		app._menu = _.find(glob.menus, (menu: Menu) => {
-			return menu._id.equals(app.menu);
-		});
-	} else { // return the first found menu in the app
-		app._menu = _.find(glob.menus, (menu: Menu) => {
-			return menu._package == app._package;
-		});
-	}
+	if (app.menu)
+		app._menu = glob.menus.find(menu => menu._id.equals(app.menu));
+	else  // return the first found menu in the app
+		app._menu = glob.menus.find(menu => menu._package == app._package);
+
+	if (app.navmenu)
+		app._navmenu = glob.menus.find(menu => menu._id.equals(app.navmenu));
 
 	if (!app._menu)
 		warn(`Menu for app '${app.title}' not found!`);
 }
 
-function initializePackages(done) {
+function initializePackages() {
 	log(`initializePackages: ${JSON.stringify(glob.sysConfig.packages)}`);
 	glob.apps = [];
-	getEnabledPackages().forEach((pack) => {
+	for (let pack of getEnabledPackages()) {
 		let config = glob.packages[pack.name]._config;
 		for (let app of (config.apps || [])) {
 			app._package = pack.name;
@@ -947,15 +815,11 @@ function initializePackages(done) {
 			checkAppMenu(app);
 			if (validateApp(pack.name, app)) {
 				glob.apps.push(app);
-				let host = glob.sysConfig.hosts.filter((host) => {
-					return host.app.equals(app._id);
-				}).pop();
+				let host = glob.sysConfig.hosts.find(host => host.app.equals(app._id));
 				if (host) host._app = app;
 			}
 		}
-	});
-
-	done();
+	}
 }
 
 function checkPropertyGtype(prop: Property, entity: Entity) {
@@ -1048,152 +912,83 @@ function checkPropertyGtype(prop: Property, entity: Entity) {
 	}
 }
 
-export function connect(dbName: string, callback) {
+export async function connect(dbName: string) {
 	try {
-		//log("Connect to database {0} ...", dbName);
-		if (glob.dbs[dbName]) return callback();
+		if (glob.dbs[dbName]) return glob.dbs[dbName];
+		if (!process.env.DB_ADDRESS)
+			throw("Environment variable 'DB_ADDRESS' is needed.");
 
-		if (!process.env.DB_ADDRESS) {
-			return callback("Environment variable 'DB_ADDRESS' is needed.");
-		}
-
-		let url = process.env.DB_ADDRESS.replace(/admin/, dbName);
-		MongoClient.connect(url, {useNewUrlParser: true, useUnifiedTopology: true} as any, function (err, dbc) {
-			if (err) {
-				error('Unable to connect to the mongoDB server. Error:' + err);
-				callback(err);
-			} else {
-				//log("Connection to database {0} established.", dbName);
-				glob.dbs[dbName] = dbc.db(dbName);
-				callback();
-			}
-		});
-	} catch (ex) {
-		exception(ex);
-		callback(ex.message);
+		let dbc = await MongoClient.connect(process.env.DB_ADDRESS, {useNewUrlParser: true, useUnifiedTopology: true});
+		if (!dbc)
+			return null;
+		return glob.dbs[dbName] = dbc.db(dbName);
+	} catch (e) {
+		throw `db '${dbName}' connection failed [${process.env.DB_ADDRESS}]`;
 	}
-}
-
-export function getDatabase(db: string, callback: (err, db?: mongodb.Db) => void) {
-	if (glob.dbs[db]) return callback(null, glob.dbs[db]);
-
-	connect(db, function (err) {
-		if (err) return callback(err);
-		callback(null, glob.dbs[db]);
-	});
 }
 
 export function findEnum(type: ObjectId): Enum {
 	if (!type) return null;
-	return _.find(glob.enums, (enm: Enum) => {
-		return enm._id.equals(type);
-	});
+	return glob.enums.find(enm => enm._id.equals(type));
 }
 
 export function findEntity(id: ObjectId): Entity {
 	if (!id) return null;
-	return _.find(glob.entities, function (a: any) {
-		return a._id.toString() == id.toString()
-	});
+	return glob.entities.find(a => a._id.equals(id));
 }
 
-export function sort(list, sort) {
-	_.each(sort.split(','), function (propertySort) {
-		let descending = _.startsWith(propertySort, "-");
-		let prop = propertySort.substr(1);
-
-		list = _.sortBy(list, function (doc) {
-			return doc[prop]
-		});
-		if (descending)
-			list = list.reverse();
-	});
-	return list;
-}
-
-export function getEnumItemName(enumName: string, val: number): string {
-	if (val === null) return null;
-
-	let theEnum = _.find(glob.enums, (enm: Enum) => {
-		return enm.name === enumName
-	});
-
-	if (!theEnum) return null;
-	let item = _.find(theEnum.items, {value: val});
-	return item ? item.name : "";
-}
-
-export function initializeEnums(callback) {
+export async function initializeEnums() {
 	log('initializeEnums ...');
 	glob.enums = [];
 	glob.enumTexts = {};
 
-	async.eachSeries(getEnabledPackages(), (pack: SystemConfigPackage, next) => {
-		get(pack.name, SysCollection.enums, null, (err, enums: Enum[]) => {
-			enums.forEach((theEnum) => {
-				theEnum._package = pack.name;
-				glob.enums.push(theEnum);
+	for (let pack of getEnabledPackages()) {
+		let enums = await get(pack.name, SysCollection.enums);
+		enums.forEach((theEnum) => {
+			theEnum._package = pack.name;
+			glob.enums.push(theEnum);
 
-				let texts = {};
-				_.sortBy(theEnum.items, "_z").forEach((item) => {
-					texts[item.value] = item.title || item.name;
-				});
-				glob.enumTexts[pack.name + "." + theEnum.name] = texts;
+			let texts = {};
+			_.sortBy(theEnum.items, "_z").forEach((item) => {
+				texts[item.value] = item.title || item.name;
 			});
-			next();
+			glob.enumTexts[pack.name + "." + theEnum.name] = texts;
 		});
-	}, callback);
-}
-
-export function allObjects(): mObject[] {
-	return _.filter(glob.entities, {entityType: EntityType.Object}) as any[];
-}
-
-export function allFunctions(): Function[] {
-	return _.filter(glob.entities, {entityType: EntityType.Function}) as any[];
-}
-
-function allViews(): View[] {
-	return _.filter(glob.entities, {entityType: EntityType.View}) as any[];
-}
-
-function initializeEntities(callback) {
-	try {
-		log(`Initializing '${allObjects().length}' Objects ...`);
-		let allObjs = allObjects();
-		for (let obj of allObjs) {
-			initObject(obj);
-		}
-
-		log(`Initializing '${allFunctions().length}' functions ...`);
-		for (let func of allFunctions()) {
-			try {
-				func._access = {};
-				func._access[func._package] = func.access;
-				initProperties(func.parameters, func, func.title);
-			} catch (ex) {
-				exception(ex);
-				error("Init functions, Module: " + func._package + ", Action: " + func.name);
-			}
-		}
-
-		callback();
-	} catch (ex) {
-		exception(ex);
-		callback();
 	}
 }
 
-// export function getPropReferType(prop: Property): PropertyReferType {
-// 	if (prop._gtype != GlobalType.object) return null;
-// 	else if (prop.referType) return prop.referType;
-// 	else return prop.type ? PropertyReferType.select : PropertyReferType.inlineData;
-// }
+export function allObjects(): mObject[] {
+	return glob.entities.filter(en => en.entityType == EntityType.Object) as mObject[];
+}
+
+export function allFunctions(): Function[] {
+	return glob.entities.filter(en => en.entityType == EntityType.Function) as Function[];
+}
+
+function initializeEntities() {
+	log(`Initializing '${allObjects().length}' Objects ...`);
+	let allObjs = allObjects();
+	for (let obj of allObjs) {
+		initObject(obj);
+	}
+
+	log(`Initializing '${allFunctions().length}' functions ...`);
+	for (let func of allFunctions()) {
+		try {
+			func._access = {};
+			func._access[func._package] = func.access;
+			initProperties(func.parameters, func, func.title);
+		} catch (ex) {
+			exception(ex);
+			error("Init functions, Module: " + func._package + ", Action: " + func.name);
+		}
+	}
+}
 
 export function initProperties(properties: Property[], entity: Entity, parentTitle?) {
 	if (!properties) return;
 	for (let prop of properties) {
-		let sysProperty: Property = _.find(glob.systemProperties, {name: prop.name});
+		let sysProperty: Property = glob.systemProperties.find(p => p.name === prop.name);
 		if (sysProperty)
 			_.defaultsDeep(prop, sysProperty);
 
@@ -1261,17 +1056,11 @@ function compareParentProperties(properties: Property[], parentProperties: Prope
 	if (!parentProperties)
 		return;
 
-	let parentNames = _.map(parentProperties, function (p) {
-		return p.name;
-	});
-	_.filter(properties, function (p) {
-		return parentNames.indexOf(p.name) == -1
-	}).forEach(function (newProperty) {
-		checkPropertyReference(newProperty, entity);
-	});
+	let parentNames = parentProperties.map(p => p.name);
+	properties.filter(p => parentNames.indexOf(p.name) == -1).forEach(newProperty => checkPropertyReference(newProperty, entity));
 
 	for (let parentProperty of parentProperties) {
-		let property: Property = _.find(properties, {name: parentProperty.name});
+		let property: Property = properties.find(p => p.name === parentProperty.name);
 		if (!property) {
 			//properties.push(_.cloneDeep(parentProperty));  // e.x. Objects > View Elem > Properties > Panel > Sub Properties > StackPanel
 			properties.push(parentProperty);
@@ -1422,7 +1211,7 @@ export function getAllFiles(path) {
 	path = _.trim(path, '/');
 	if (fs.statSync(path).isFile())
 		return [path];
-	return _.flatten(fs.readdirSync(path).map(function (file) {
+	return _.flatten(fs.readdirSync(path).map(file => {
 		let fileOrDir = fs.statSync([path, file].join('/'));
 		if (fileOrDir.isFile())
 			return (path + '/' + file).replace(/^\.\/\/?/, '');
@@ -1433,7 +1222,7 @@ export function getAllFiles(path) {
 
 export function getPathSize(path) {
 	let files = getAllFiles(path);
-	let totalSize = 0
+	let totalSize = 0;
 	files.forEach(function (f) {
 		totalSize += fs.statSync(f).size;
 	});
@@ -1493,11 +1282,6 @@ export function jsonReplacer(key, value) {
 		return value;
 }
 
-export function aggergate(pack: string, objectName: string, query: any, callback) {
-	let collection = glob.dbs[pack].collection(objectName);
-	return collection.aggregate(query).toArray(callback);
-}
-
 export function parseDate(loc: Locale, date: string): Date {
 	if (!date) return null;
 
@@ -1537,7 +1321,7 @@ export function parseDate(loc: Locale, date: string): Date {
 	return result;
 }
 
-export function getTypes(cn: Context, done: (err, result?: Pair[]) => void) {
+export async function getTypes(cn: Context) {
 	let objects = allObjects().map((ent: mObject) => {
 		let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
 		return {ref: ent._id, title} as Pair
@@ -1552,7 +1336,6 @@ export function getTypes(cn: Context, done: (err, result?: Pair[]) => void) {
 	});
 
 	let types = objects.concat(functions, enums);
-
 	types = _.orderBy(types, ['title']);
 
 	let ptypes: Pair[] = [];
@@ -1562,16 +1345,16 @@ export function getTypes(cn: Context, done: (err, result?: Pair[]) => void) {
 
 	types.unshift({ref: "", title: "-"} as Pair);
 	types = ptypes.concat(types);
-	done(null, types);
+	return types;
 }
 
-export function getAllEntities(cn: Context, done: (err, result?: Pair[]) => void) {
-	let entities = glob.entities.map((ent: Entity) => {
+export async function getAllEntities(cn: Context) {
+	let entities = glob.entities.map(ent => {
 		let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
 		return {ref: ent._id, title} as Pair
 	});
 	entities = _.orderBy(entities, ['title']);
-	done(null, entities);
+	return entities;
 }
 
 export function json2bson(doc: any): any {
@@ -1681,31 +1464,29 @@ export function parse(str: string | any): any {
 	return json;
 }
 
-export function getPropertyReferenceValues(cn: Context, prop: Property, instance: any, done: (err, items: Pair[]) => void) {
+export async function getPropertyReferenceValues(cn: Context, prop: Property, instance: any) {
 	if (prop._enum) {
 		let items = _.map(prop._enum.items, (item: EnumItem) => {
 			return {ref: item.value, title: getText(cn, item.title)} as Pair;
 		});
-		return done(null, items);
+		return items;
 	}
 
 	let entity = findEntity(prop.type);
 	if (!entity) {
 		error(`Property '${prop.name}' type '${prop.type}' not found.`);
-		return done(StatusCode.NotFound, null);
+		throw StatusCode.NotFound;
 	}
 
-	if (entity.entityType == EntityType.Object)
-		return get(cn.pack, entity.name, {count: 10}, (err, result) => {
-			if (result) {
-				let items = _.map(result, (item) => {
-					return {ref: item._id, title: getText(cn, item.title)} as Pair;
-				});
-				done(null, items);
-			}
-		});
-
-	else if (entity.entityType == EntityType.Function) {
+	if (entity.entityType == EntityType.Object) {
+		let result = await get(cn.pack, entity.name, {count: 10});
+		if (result) {
+			return _.map(result, (item) => {
+				return {ref: item._id, title: getText(cn, item.title)} as Pair;
+			});
+		} else
+			return null;
+	} else if (entity.entityType === EntityType.Function) {
 		let typeFunc = entity as Function;
 		let args = [];
 		if (typeFunc.parameters)
@@ -1725,10 +1506,8 @@ export function getPropertyReferenceValues(cn: Context, prop: Property, instance
 				}
 			}
 
-		return invoke(cn, typeFunc, args, done);
+		return await invoke(cn, typeFunc, args);
 	}
-
-	done(null, null);
 }
 
 export function envMode(): EnvMode {
@@ -1750,60 +1529,56 @@ function mockCheckMatchInput(cn: Context, func: Function, args: any[], sample: F
 	return true;
 }
 
-export function mock(cn: Context, func: Function, args: any[], done: (err, result?) => void) {
+export async function mock(cn: Context, func: Function, args: any[]) {
 	log(`mocking function '${cn.pack}.${func.name}' ...`);
 
 	if (!func.test.samples || !func.test.samples.length)
-		return done({code: StatusCode.Ok, message: "No sample data!"});
+		return {code: StatusCode.Ok, message: "No sample data!"};
 
 	let withInputs = func.test.samples.filter((sample) => {
 		return sample.input;
 	});
 	for (let sample of withInputs) {
 		if (mockCheckMatchInput(cn, func, args, sample)) {
-			let err = null;
 			if (sample.code)
-				err = {code: sample.code, message: sample.message};
-			return done(err, sample.result);
+				return {code: sample.code, message: sample.message, result: sample.result};
+			else
+				return sample.input;
 		}
 	}
 
-	let withoutInput: FunctionTestSample = _.find(func.test.samples, (sample) => {
-		return !sample.input;
-	});
-
+	let withoutInput: FunctionTestSample = func.test.samples.find(sample => !sample.input);
 	if (withoutInput) {
-		let err = null;
 		if (withoutInput.code)
-			err = {code: withoutInput.code, message: withoutInput.message};
-		return done(err, withoutInput.result);
+			return {code: withoutInput.code, message: withoutInput.message};
+		else
+			return withoutInput.input;
 	}
 
-	return done({code: StatusCode.Ok, message: "No default sample data!"});
+	return {code: StatusCode.Ok, message: "No default sample data!"};
 }
 
-export function invoke(cn: Context, func: Function, args: any[], done: (err, result?) => void) {
+export async function invoke(cn: Context, func: Function, args: any[]) {
 	try {
 		if (func.test && func.test.mock && envMode() == EnvMode.Development && cn.url.pathname != "/functionTest") {
-			mock(cn, func, args, done);
-			return;
+			return await mock(cn, func, args);
 		}
 
-		let action = require(`../../${func._package}/server/main`)[func.name];
+		let action = require(`../../${func._package}/src/main`)[func.name];
 		if (!action) {
 			if (func._package == Constants.sysPackage)
-				action = require(`../../web/server/main`)[func.name];
+				action = require(`../../web/src/main`)[func.name];
 			if (!action) {
-				let app = _.find(glob.apps, {_package: cn.pack});
+				let app = glob.apps.find(app => app._package == cn.pack);
 				for (let pack of app.dependencies) {
-					action = require(`../../${pack}/server/main`)[func.name];
+					action = require(`../../${pack}/src/main`)[func.name];
 					if (action)
 						break;
 				}
 			}
 		}
 
-		if (!action) return done(`Function'${func.name}'notfound.`);
+		if (!action) throw `Function'${func.name}'notfound.`;
 		const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
 		const ARGUMENT_NAMES = /([^\s,]+)/g;
 
@@ -1813,23 +1588,23 @@ export function invoke(cn: Context, func: Function, args: any[], done: (err, res
 			argNames = [];
 
 		if (args.length == 0)
-			return action(cn, done);
+			return await action(cn);
 		else
-			return action(cn, ...args, done);
+			return await action(cn, ...args);
 	} catch (ex) {
 		if (ex.message == `${func.name} is not defined`) {
 			todo(ex.message);
-			done(StatusCode.NotImplemented);
+			throw StatusCode.NotImplemented;
 		} else {
 			exception(ex);
-			done(ex.message);
+			throw ex.message;
 		}
 	}
 }
 
-export function runFunction(cn: Context, functionId: ObjectId, input: any, done) {
+export async function runFunction(cn: Context, functionId: ObjectId, input: any) {
 	let func = findEntity(functionId) as Function;
-	if (!func) return done(StatusCode.NotFound);
+	if (!func) throw StatusCode.NotFound;
 
 	input = input || {};
 	let args = [];
@@ -1837,11 +1612,15 @@ export function runFunction(cn: Context, functionId: ObjectId, input: any, done)
 		for (let para of func.parameters) {
 			args.push(input[para.name]);
 		}
-	invoke(cn, func, args, (err, result) => {
-		done(err, result, func);
-	});
+
+	return invoke(cn, func, args);
+	//done(err, result, func);
 }
 
 export function isObjectId(value: any): boolean {
 	return value._bsontype == "ObjectID";
+}
+
+export function throwError(code: StatusCode, message?: string) {
+	throw new ErrorResult(code, message);
 }

@@ -304,6 +304,10 @@ export class Elem {
 }
 
 export class ErrorResult {
+	constructor(code: StatusCode, message: string) {
+		this.code = code;
+		this.message = message;
+	}
 	code: StatusCode;
 	message: string;
 }
@@ -365,6 +369,8 @@ export class App {
 	redirect: RedirectType;
 	menu: ObjectId;
 	_menu: Menu;
+	navmenu: ObjectId;
+	_navmenu: Menu;
 	title: string;
 	gridPageSize: number;
 	addressRules: PackageAddressRule[];
@@ -817,12 +823,16 @@ export class WebResponse implements IError {
 	view: any;
 	redirect: string;
 	menu: any[] = [];
+	navmenu: any[] = [];
 	message: string;
 	code: StatusCode;
 	config: {
-		locale?: string;
-		appLocales?: Pair[];
-		// timeZone
+		locale: string;
+		appLocales: Pair[];
+		brandingLogo: string;
+		appTitle: string;
+		loginRef: string;
+		loginTitle: string;
 	}
 }
 
