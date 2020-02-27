@@ -369,6 +369,8 @@ export class App {
 	redirect: RedirectType;
 	menu: ObjectId;
 	_menu: Menu;
+	navmenu: ObjectId;
+	_navmenu: Menu;
 	title: string;
 	gridPageSize: number;
 	addressRules: PackageAddressRule[];
@@ -821,6 +823,7 @@ export class WebResponse implements IError {
 	view: any;
 	redirect: string;
 	menu: any[] = [];
+	navmenu: any[] = [];
 	message: string;
 	code: StatusCode;
 	config: {

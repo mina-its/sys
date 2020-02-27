@@ -998,6 +998,8 @@ function checkAppMenu(app) {
         app._menu = exports.glob.menus.find(function (menu) { return menu._id.equals(app.menu); });
     else
         app._menu = exports.glob.menus.find(function (menu) { return menu._package == app._package; });
+    if (app.navmenu)
+        app._navmenu = exports.glob.menus.find(function (menu) { return menu._id.equals(app.navmenu); });
     if (!app._menu)
         warn("Menu for app '" + app.title + "' not found!");
 }

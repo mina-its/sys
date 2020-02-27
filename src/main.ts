@@ -796,6 +796,9 @@ export function checkAppMenu(app: App) {
 	else  // return the first found menu in the app
 		app._menu = glob.menus.find(menu => menu._package == app._package);
 
+	if (app.navmenu)
+		app._navmenu = glob.menus.find(menu => menu._id.equals(app.navmenu));
+
 	if (!app._menu)
 		warn(`Menu for app '${app.title}' not found!`);
 }
