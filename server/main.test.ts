@@ -1,6 +1,6 @@
 ///<reference path="../node_modules/@types/jest/index.d.ts"/>
 import {glob} from "./main";
-import {Constants, mObject, StatusCode, SysCollection, UnitTestObject} from "./types";
+import {Constants, Context, mObject, StatusCode, SysCollection, UnitTestObject} from "./types";
 import {ObjectId} from "bson";
 
 const types = require("./types");
@@ -12,6 +12,8 @@ let reloadError;
 
 beforeAll(done => {
   sys.configureLogger(true);
+
+
 //   let reload = util.promisify(sys.reload(null));
 //    reload(null)
 //      .then(()=>{
