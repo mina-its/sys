@@ -784,11 +784,11 @@ function loadSysConfig() {
                     for (_i = 0, _b = getEnabledPackages(); _i < _b.length; _i++) {
                         pack = _b[_i];
                         try {
-                            exports.glob.packages[pack.name] = require("../../" + pack.name + "/src/main");
+                            exports.glob.packages[pack.name] = require(path.join(process.env.PACKAGES_ROOT, pack.name, "src/main"));
                             if (exports.glob.packages[pack.name] == null)
                                 error("Error loading package " + pack.name + "!");
                             else {
-                                p = require("../../" + pack.name + "/package.json");
+                                p = require(path.join(process.env.PACKAGES_ROOT, pack.name, "package.json"));
                                 exports.glob.packages[pack.name]._version = p.version;
                                 log("package '" + pack.name + "' loaded. version: " + p.version);
                             }
@@ -1802,15 +1802,15 @@ function invoke(cn, func, args) {
                     return [4, mock(cn, func, args)];
                 case 1: return [2, _b.sent()];
                 case 2:
-                    action = require("../../" + func._package + "/src/main")[func.name];
+                    action = require(path.join(process.env.PACKAGES_ROOT, func._package, "src/main"))[func.name];
                     if (!action) {
                         if (func._package == types_1.Constants.sysPackage)
-                            action = require("../../web/src/main")[func.name];
+                            action = require(path.join(process.env.PACKAGES_ROOT, "web/src/main"))[func.name];
                         if (!action) {
                             app = exports.glob.apps.find(function (app) { return app._package == cn.pack; });
                             for (_i = 0, _a = app.dependencies; _i < _a.length; _i++) {
                                 pack = _a[_i];
-                                action = require("../../" + pack + "/src/main")[func.name];
+                                action = require(path.join(process.env.PACKAGES_ROOT, pack, "src/main"))[func.name];
                                 if (action)
                                     break;
                             }
