@@ -969,6 +969,10 @@ function initializeEntities() {
 	log(`Initializing '${allObjects().length}' Objects ...`);
 	let allObjs = allObjects();
 	for (let obj of allObjs) {
+		obj._inited = false;
+	}
+
+	for (let obj of allObjs) {
 		initObject(obj);
 	}
 
