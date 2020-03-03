@@ -748,11 +748,6 @@ export function configureLogger(silent: boolean) {
 }
 
 function validateApp(pack: string, app: App): boolean {
-	if (!app.defaultTemplate) {
-		warn(`app.defaultTemplate is required for package '${pack}'`);
-		return false;
-	}
-
 	return true;
 }
 

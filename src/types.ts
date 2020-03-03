@@ -365,6 +365,7 @@ export class App {
 	defaultTemplate: string;
 	_package: string;
 	locales: Locale[];
+	style: string;
 	defaultLocale: Locale;
 	redirect: RedirectType;
 	menu: ObjectId;
@@ -824,8 +825,8 @@ export class WebResponse implements IError {
 	message: string;
 	code: StatusCode;
 	config: {
-		locale: string;
-		appLocales: Pair[];
+		locale?: string;
+		appLocales?: Pair[];
 		brandingLogo: string;
 		appTitle: string;
 		loginRef: string;
