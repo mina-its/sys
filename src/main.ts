@@ -390,48 +390,46 @@ export async function getFile(drive: Drive, filePath: string) {
 	switch (drive.type) {
 		case SourceType.File:
 			let _path = path.join(drive.address, filePath);
-			let file = await fs.readFile(_path);
-			if (!file) throw StatusCode.NotFound;
-			break;
+			return await fs.readFile(_path);
 
 		case SourceType.Db:
 			let db = glob.dbs[drive._package];
 			let bucket = new mongodb.GridFSBucket(db);
 			let stream = bucket.openDownloadStreamByName(filePath);
 			let data: Buffer;
-			stream.on("end", function () {
-				return data;
-			}).on("data", function (chunk: Buffer) {
-				data = data ? Buffer.concat([data, chunk]) : chunk;
-			}).on("error", function (err) {
-				error(err);
-				throw StatusCode.NotFound;
+			return new Promise((resolve, reject) => {
+				stream.on("end", function () {
+					resolve(data);
+				}).on("data", function (chunk: Buffer) {
+					data = data ? Buffer.concat([data, chunk]) : chunk;
+				}).on("error", function (err) {
+					reject(err);
+				});
 			});
-			break;
 
 		default:
 			throw StatusCode.NotImplemented;
 	}
 }
 
-export async function putFile(host: string, drive: Drive, filePath: string, file: Buffer) {
+export async function putFile(host: string, drive: Drive, relativePath: string, file: Buffer) {
 	switch (drive.type) {
 		case SourceType.File:
-			let _path = path.join(drive.address, filePath);
+			let _path = path.join(drive.address, relativePath);
 			await fs.mkdir(path.dirname(_path), {recursive: true});
 			await fs.writeFile(_path, file);
-			break;
+			return {path: _path};
 
 		case SourceType.Db:
 			let db = glob.dbs[host];
 			let bucket = new mongodb.GridFSBucket(db);
-			let stream = bucket.openUploadStream(filePath);
-			await delFile(host, filePath);
+			let stream = bucket.openUploadStream(relativePath);
+			await delFile(host, relativePath);
 			stream.on("error", function (err) {
 				error(err);
 				// done(err ? StatusCode.ServerError : StatusCode.Ok);
 			}).end(file);
-			break;
+			return {};
 
 		case SourceType.S3:
 			if (!glob.sysConfig.amazon || !glob.sysConfig.amazon.accessKeyId) {
@@ -441,8 +439,8 @@ export async function putFile(host: string, drive: Drive, filePath: string, file
 			AWS.config.accessKeyId = glob.sysConfig.amazon.accessKeyId;
 			AWS.config.secretAccessKey = glob.sysConfig.amazon.secretAccessKey;
 			let s3 = new AWS.S3({apiVersion: Constants.amazonS3ApiVersion});
-			let data: any = await s3.upload({Bucket: drive.address, Key: path.basename(filePath), Body: file});
-			return {url: data.Location};
+			let data: any = await s3.upload({Bucket: drive.address, Key: path.basename(relativePath), Body: file});
+			return {uri: data.Location};
 
 		default:
 			throw StatusCode.NotImplemented;

@@ -338,45 +338,42 @@ async function getFile(drive, filePath) {
     switch (drive.type) {
         case types_1.SourceType.File:
             let _path = path.join(drive.address, filePath);
-            let file = await fs.readFile(_path);
-            if (!file)
-                throw types_1.StatusCode.NotFound;
-            break;
+            return await fs.readFile(_path);
         case types_1.SourceType.Db:
             let db = exports.glob.dbs[drive._package];
             let bucket = new mongodb.GridFSBucket(db);
             let stream = bucket.openDownloadStreamByName(filePath);
             let data;
-            stream.on("end", function () {
-                return data;
-            }).on("data", function (chunk) {
-                data = data ? Buffer.concat([data, chunk]) : chunk;
-            }).on("error", function (err) {
-                error(err);
-                throw types_1.StatusCode.NotFound;
+            return new Promise((resolve, reject) => {
+                stream.on("end", function () {
+                    resolve(data);
+                }).on("data", function (chunk) {
+                    data = data ? Buffer.concat([data, chunk]) : chunk;
+                }).on("error", function (err) {
+                    reject(err);
+                });
             });
-            break;
         default:
             throw types_1.StatusCode.NotImplemented;
     }
 }
 exports.getFile = getFile;
-async function putFile(host, drive, filePath, file) {
+async function putFile(host, drive, relativePath, file) {
     switch (drive.type) {
         case types_1.SourceType.File:
-            let _path = path.join(drive.address, filePath);
+            let _path = path.join(drive.address, relativePath);
             await fs.mkdir(path.dirname(_path), { recursive: true });
             await fs.writeFile(_path, file);
-            break;
+            return { path: _path };
         case types_1.SourceType.Db:
             let db = exports.glob.dbs[host];
             let bucket = new mongodb.GridFSBucket(db);
-            let stream = bucket.openUploadStream(filePath);
-            await delFile(host, filePath);
+            let stream = bucket.openUploadStream(relativePath);
+            await delFile(host, relativePath);
             stream.on("error", function (err) {
                 error(err);
             }).end(file);
-            break;
+            return {};
         case types_1.SourceType.S3:
             if (!exports.glob.sysConfig.amazon || !exports.glob.sysConfig.amazon.accessKeyId) {
                 error('s3 accessKeyId, secretAccessKey is required in sysConfig!');
@@ -385,8 +382,8 @@ async function putFile(host, drive, filePath, file) {
             AWS.config.accessKeyId = exports.glob.sysConfig.amazon.accessKeyId;
             AWS.config.secretAccessKey = exports.glob.sysConfig.amazon.secretAccessKey;
             let s3 = new AWS.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion });
-            let data = await s3.upload({ Bucket: drive.address, Key: path.basename(filePath), Body: file });
-            return { url: data.Location };
+            let data = await s3.upload({ Bucket: drive.address, Key: path.basename(relativePath), Body: file });
+            return { uri: data.Location };
         default:
             throw types_1.StatusCode.NotImplemented;
     }

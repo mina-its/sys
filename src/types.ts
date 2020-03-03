@@ -158,6 +158,7 @@ export class Property {
 	file: {
 		drive: Reference;
 		path: string;
+		preview: boolean;
 		sizeLimit: number;
 	};
 	time: {
@@ -467,7 +468,7 @@ export class FileInfo {
 	size: number;
 	name: string;
 	path: string;
-	url: string;
+	uri: string;
 	created: Date;
 }
 
