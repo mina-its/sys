@@ -556,12 +556,9 @@ export enum StatusCode {
 }
 
 export enum LogLevel {
-	Emerg = 0,
-	Todo = 1,
-	Critical = 2,
+	Fatal = 0,
 	Error = 3,
 	Warning = 4,
-	Notice = 5,
 	Info = 6,
 	Debug = 7,
 	Silly = 8

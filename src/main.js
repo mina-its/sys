@@ -107,7 +107,7 @@ function start() {
                     _a.trys.push([0, 2, , 3]);
                     process.on('uncaughtException', function (err) { return __awaiter(_this, void 0, void 0, function () { return __generator(this, function (_a) {
                         switch (_a.label) {
-                            case 0: return [4, audit(types_1.SysAuditTypes.uncaughtException, { level: types_1.LogLevel.Emerg, comment: err.message + ". " + err.stack })];
+                            case 0: return [4, audit(types_1.SysAuditTypes.uncaughtException, { level: types_1.LogLevel.Fatal, comment: err.message + ". " + err.stack })];
                             case 1: return [2, _a.sent()];
                         }
                     }); }); });
@@ -115,7 +115,7 @@ function start() {
                         return __generator(this, function (_a) {
                             switch (_a.label) {
                                 case 0: return [4, audit(types_1.SysAuditTypes.unhandledRejection, {
-                                        level: types_1.LogLevel.Emerg,
+                                        level: types_1.LogLevel.Fatal,
                                         comment: err.message + ". " + err.stack
                                     })];
                                 case 1:
@@ -132,7 +132,7 @@ function start() {
                     return [2, exports.glob];
                 case 2:
                     ex_1 = _a.sent();
-                    exception(ex_1);
+                    error(ex_1);
                     return [2, null];
                 case 3: return [2];
             }
@@ -157,14 +157,11 @@ function audit(auditType, args) {
                     });
                     msg = "audit(" + (type ? type.name : args.type) + "): " + comment;
                     switch (args.level) {
-                        case types_1.LogLevel.Emerg:
-                            emerg(msg);
+                        case types_1.LogLevel.Fatal:
+                            fatal(msg);
                             break;
                         case types_1.LogLevel.Error:
                             error(msg);
-                            break;
-                        case types_1.LogLevel.Notice:
-                            notice(msg);
                             break;
                         case types_1.LogLevel.Info:
                             info(msg);
@@ -236,6 +233,14 @@ function get(pack, objectName, options) {
     });
 }
 exports.get = get;
+function getOne(pack, objectName) {
+    return __awaiter(this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            return [2, get(pack, objectName, { count: 1 })];
+        });
+    });
+}
+exports.getOne = getOne;
 function getCollection(pack, objectName) {
     return __awaiter(this, void 0, void 0, function () {
         var db;
@@ -427,7 +432,7 @@ function extractRefPortions(pack, appDependencies, ref, _default) {
         return portions_1;
     }
     catch (ex) {
-        exception(ex);
+        error(ex);
     }
 }
 exports.extractRefPortions = extractRefPortions;
@@ -677,10 +682,6 @@ function info() {
     logger.info(message);
 }
 exports.info = info;
-function notice(message) {
-    logger.log('notice', message);
-}
-exports.notice = notice;
 function warn() {
     var message = [];
     for (var _i = 0; _i < arguments.length; _i++) {
@@ -690,29 +691,17 @@ function warn() {
 }
 exports.warn = warn;
 function error() {
-    var message = [];
+    var err = [];
     for (var _i = 0; _i < arguments.length; _i++) {
-        message[_i] = arguments[_i];
+        err[_i] = arguments[_i];
     }
-    logger.error(message);
+    logger.error(err);
 }
 exports.error = error;
-function todo(message) {
-    logger.log('todo', '#ToDo: ' + message);
+function fatal(message) {
+    logger.log('fatal', message);
 }
-exports.todo = todo;
-function exception(err) {
-    logger.log("crit", err.stack || err.message || err);
-}
-exports.exception = exception;
-function emerg(message) {
-    logger.log('emerg', message);
-    logger.error("terminating process ...");
-    setTimeout(function () {
-        process.exit();
-    }, 2000);
-}
-exports.emerg = emerg;
+exports.fatal = fatal;
 function getFullname(pack, name) {
     if (!name)
         name = "";
@@ -744,8 +733,10 @@ function loadGeneralCollections() {
                         })];
                 case 2:
                     result = _b.sent();
-                    if (!result)
-                        emerg('systemProperties object not found!');
+                    if (!result) {
+                        logger.error("loadGeneralCollections failed terminating process ...");
+                        process.exit();
+                    }
                     exports.glob.systemProperties = result ? result.properties : [];
                     return [2];
             }
@@ -794,7 +785,7 @@ function loadSysConfig() {
                             }
                         }
                         catch (ex) {
-                            exception(ex);
+                            error(ex);
                             pack.enabled = false;
                         }
                     }
@@ -908,7 +899,7 @@ function loadSystemCollections() {
                     return [3, 5];
                 case 4:
                     err_1 = _b.sent();
-                    exception(err_1);
+                    error(err_1);
                     packConfig.enabled = false;
                     return [3, 5];
                 case 5:
@@ -925,9 +916,7 @@ function configureLogger(silent) {
     var errorLogFileName = 'error.log';
     var logLevels = {
         levels: {
-            emerg: 0,
-            todo: 1,
-            crit: 2,
+            fatal: 0,
             error: 3,
             warn: 4,
             notice: 5,
@@ -936,9 +925,7 @@ function configureLogger(silent) {
             silly: 8
         },
         colors: {
-            emerg: 'red',
-            todo: 'red',
-            crit: 'red',
+            fatal: 'red',
             error: 'red',
             warn: 'yellow',
             notice: 'green',
@@ -1213,7 +1200,7 @@ function initializeEntities() {
             initProperties(func.parameters, func, func.title);
         }
         catch (ex) {
-            exception(ex);
+            error(ex);
             error("Init functions, Module: " + func._package + ", Action: " + func.name);
         }
     }
@@ -1262,7 +1249,7 @@ function initObject(obj) {
         }
     }
     catch (ex) {
-        exception(ex);
+        error(ex);
         error("initObject, Error in object " + obj._package + "." + obj.name);
     }
 }
@@ -1315,7 +1302,7 @@ function compareParentProperties(properties, parentProperties, entity) {
                 }
             }
             catch (ex) {
-                exception(ex);
+                error(ex);
             }
         }
         else {
@@ -1793,11 +1780,10 @@ function mock(cn, func, args) {
 exports.mock = mock;
 function invoke(cn, func, args) {
     return __awaiter(this, void 0, void 0, function () {
-        var action, app, _i, _a, pack, STRIP_COMMENTS, ARGUMENT_NAMES, fnStr, argNames, ex_2;
+        var action, app, _i, _a, pack, STRIP_COMMENTS, ARGUMENT_NAMES, fnStr, argNames;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
-                    _b.trys.push([0, 7, , 8]);
                     if (!(func.test && func.test.mock && envMode() == types_1.EnvMode.Development && cn.url.pathname != "/functionTest")) return [3, 2];
                     return [4, mock(cn, func, args)];
                 case 1: return [2, _b.sent()];
@@ -1817,7 +1803,7 @@ function invoke(cn, func, args) {
                         }
                     }
                     if (!action)
-                        throw "Function'" + func.name + "'notfound.";
+                        throw types_1.StatusCode.NotImplemented;
                     STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
                     ARGUMENT_NAMES = /([^\s,]+)/g;
                     fnStr = action.toString().replace(STRIP_COMMENTS, '');
@@ -1829,19 +1815,6 @@ function invoke(cn, func, args) {
                 case 3: return [2, _b.sent()];
                 case 4: return [4, action.apply(void 0, __spreadArrays([cn], args))];
                 case 5: return [2, _b.sent()];
-                case 6: return [3, 8];
-                case 7:
-                    ex_2 = _b.sent();
-                    if (ex_2.message == func.name + " is not defined") {
-                        todo(ex_2.message);
-                        throw types_1.StatusCode.NotImplemented;
-                    }
-                    else {
-                        exception(ex_2);
-                        throw ex_2.message;
-                    }
-                    return [3, 8];
-                case 8: return [2];
             }
         });
     });

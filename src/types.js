@@ -324,12 +324,9 @@ var StatusCode;
 })(StatusCode = exports.StatusCode || (exports.StatusCode = {}));
 var LogLevel;
 (function (LogLevel) {
-    LogLevel[LogLevel["Emerg"] = 0] = "Emerg";
-    LogLevel[LogLevel["Todo"] = 1] = "Todo";
-    LogLevel[LogLevel["Critical"] = 2] = "Critical";
+    LogLevel[LogLevel["Fatal"] = 0] = "Fatal";
     LogLevel[LogLevel["Error"] = 3] = "Error";
     LogLevel[LogLevel["Warning"] = 4] = "Warning";
-    LogLevel[LogLevel["Notice"] = 5] = "Notice";
     LogLevel[LogLevel["Info"] = 6] = "Info";
     LogLevel[LogLevel["Debug"] = 7] = "Debug";
     LogLevel[LogLevel["Silly"] = 8] = "Silly";
