@@ -2,11 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var types_1 = require("./types");
 var types_2 = require("../src/types");
-var ComponentParams = (function () {
-    function ComponentParams() {
-    }
-    return ComponentParams;
-}());
 function component(name, props, params) {
     params.props = props;
     Vue.component(name, params);
@@ -79,11 +74,6 @@ function ajax(url, data, config, done, fail) {
     });
 }
 exports.ajax = ajax;
-var notifyCallback;
-function setNotifyCallback(callback) {
-    notifyCallback = callback;
-}
-exports.setNotifyCallback = setNotifyCallback;
 function notify(content, type, params) {
     if (!content)
         return;
@@ -94,20 +84,8 @@ function notify(content, type, params) {
         else
             type = types_1.NotifyType.Information;
     }
-    switch (type) {
-        case types_1.NotifyType.Information:
-            $("#snackbar").addClass("visible").text(message);
-            setTimeout(function () {
-                $("#snackbar").removeClass("visible");
-            }, 3000);
-            break;
-        case types_1.NotifyType.Warning:
-            notifyCallback({ message: message, type: type });
-            break;
-        case types_1.NotifyType.Error:
-            notifyCallback({ message: message, type: type });
-            break;
-    }
+    var evt = new CustomEvent('notify', { detail: { message: message, type: type } });
+    window.dispatchEvent(evt);
 }
 exports.notify = notify;
 function getBsonId(item) {

@@ -1,23 +1,7 @@
-declare let $, Vue, axios, text: any;
-import {AjaxConfig, NotificationInfo, NotifyType} from "./types";
+import {AjaxConfig, ComponentParams, NotificationInfo, NotifyType} from "./types";
 import {GetOptions, IError, StatusCode, WebMethod, WebResponse} from "../src/types";
 
-class ComponentParams {
-	template?: string;
-	computed?: any;
-	methods?: any;
-	watch?: any;
-	beforeCreate?: () => void;
-	created?: () => void;
-	beforeMount?: () => void;
-	mounted?: () => void;
-	beforeUpdate?: () => void;
-	updated?: () => void;
-	beforeDestroy?: () => void;
-	destroyed?: () => void;
-	data?: () => void;
-	render?: (ce) => any;
-}
+declare let $, Vue, axios, text: any;
 
 export function component(name: string, props: string[], params: ComponentParams) {
 	(params as any).props = props;
@@ -93,12 +77,6 @@ export function ajax(url: string, data: any, config: AjaxConfig, done: (res: Web
 	});
 }
 
-let notifyCallback: (info: NotificationInfo) => void;
-
-export function setNotifyCallback(callback: (info: NotificationInfo) => void) {
-	notifyCallback = callback;
-}
-
 export function notify(content: string | IError, type?: NotifyType, params?: NotificationInfo) {
 	if (!content) return;
 	let message = typeof content == "string" ? content : content.message;
@@ -108,24 +86,8 @@ export function notify(content: string | IError, type?: NotifyType, params?: Not
 		else
 			type = NotifyType.Information;
 	}
-
-	switch (type) {
-		case NotifyType.Information:
-			$("#snackbar").addClass("visible").text(message);
-			setTimeout(function () {
-				$("#snackbar").removeClass("visible");
-			}, 3000);
-			break;
-
-		case NotifyType.Warning: // e.g. property value requirement warning
-			notifyCallback({message, type});
-			break;
-
-		case NotifyType.Error:
-			notifyCallback({message, type});
-			break;
-	}
-
+	let evt = new CustomEvent('notify', {detail: {message, type}});
+	window.dispatchEvent(evt);
 }
 
 export function getBsonId(item: any): string {

@@ -24,4 +24,10 @@ var NotificationInfo = (function () {
     return NotificationInfo;
 }());
 exports.NotificationInfo = NotificationInfo;
+var ComponentParams = (function () {
+    function ComponentParams() {
+    }
+    return ComponentParams;
+}());
+exports.ComponentParams = ComponentParams;
 //# sourceMappingURL=types.js.map

@@ -158,6 +158,7 @@ export class Property {
 	file: {
 		drive: Reference;
 		path: string;
+		preview: boolean;
 		sizeLimit: number;
 	};
 	time: {
@@ -365,6 +366,7 @@ export class App {
 	defaultTemplate: string;
 	_package: string;
 	locales: Locale[];
+	style: string;
 	defaultLocale: Locale;
 	redirect: RedirectType;
 	menu: ObjectId;
@@ -466,7 +468,7 @@ export class FileInfo {
 	size: number;
 	name: string;
 	path: string;
-	url: string;
+	uri: string;
 	created: Date;
 }
 
@@ -556,12 +558,9 @@ export enum StatusCode {
 }
 
 export enum LogLevel {
-	Emerg = 0,
-	Todo = 1,
-	Critical = 2,
+	Fatal = 0,
 	Error = 3,
 	Warning = 4,
-	Notice = 5,
 	Info = 6,
 	Debug = 7,
 	Silly = 8
@@ -827,8 +826,8 @@ export class WebResponse implements IError {
 	message: string;
 	code: StatusCode;
 	config: {
-		locale: string;
-		appLocales: Pair[];
+		locale?: string;
+		appLocales?: Pair[];
 		brandingLogo: string;
 		appTitle: string;
 		loginRef: string;

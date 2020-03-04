@@ -77,12 +77,12 @@ export async function reload(cn?: Context) {
 export async function start() {
 	try {
 		process.on('uncaughtException', async err =>
-			await audit(SysAuditTypes.uncaughtException, {level: LogLevel.Emerg, comment: err.message + ". " + err.stack})
+			await audit(SysAuditTypes.uncaughtException, {level: LogLevel.Fatal, comment: err.message + ". " + err.stack})
 		);
 
 		process.on('unhandledRejection', async (err: any) => {
 			await audit(SysAuditTypes.unhandledRejection, {
-				level: LogLevel.Emerg,
+				level: LogLevel.Fatal,
 				comment: err.message + ". " + err.stack
 			});
 		});
@@ -93,7 +93,7 @@ export async function start() {
 		await reload();
 		return glob;
 	} catch (ex) {
-		exception(ex);
+		error(ex);
 		return null;
 	}
 }
@@ -112,14 +112,11 @@ export async function audit(auditType: string, args: AuditArgs) {
 	let msg = "audit(" + (type ? type.name : args.type) + "): " + comment;
 
 	switch (args.level) {
-		case LogLevel.Emerg:
-			emerg(msg);
+		case LogLevel.Fatal:
+			fatal(msg);
 			break;
 		case LogLevel.Error:
 			error(msg);
-			break;
-		case LogLevel.Notice:
-			notice(msg);
 			break;
 		case LogLevel.Info:
 			info(msg);
@@ -160,6 +157,10 @@ export async function get(pack: string, objectName: string, options?: GetOptions
 		else
 			return result;
 	}
+}
+
+export async function getOne(pack: string, objectName: string) {
+	return get(pack, objectName, {count: 1});
 }
 
 async function getCollection(pack: string, objectName: string) {
@@ -306,7 +307,7 @@ export function extractRefPortions(pack: string, appDependencies: string[], ref:
 
 		return portions;
 	} catch (ex) {
-		exception(ex);
+		error(ex);
 	}
 }
 
@@ -389,48 +390,46 @@ export async function getFile(drive: Drive, filePath: string) {
 	switch (drive.type) {
 		case SourceType.File:
 			let _path = path.join(drive.address, filePath);
-			let file = await fs.readFile(_path);
-			if (!file) throw StatusCode.NotFound;
-			break;
+			return await fs.readFile(_path);
 
 		case SourceType.Db:
 			let db = glob.dbs[drive._package];
 			let bucket = new mongodb.GridFSBucket(db);
 			let stream = bucket.openDownloadStreamByName(filePath);
 			let data: Buffer;
-			stream.on("end", function () {
-				return data;
-			}).on("data", function (chunk: Buffer) {
-				data = data ? Buffer.concat([data, chunk]) : chunk;
-			}).on("error", function (err) {
-				error(err);
-				throw StatusCode.NotFound;
+			return new Promise((resolve, reject) => {
+				stream.on("end", function () {
+					resolve(data);
+				}).on("data", function (chunk: Buffer) {
+					data = data ? Buffer.concat([data, chunk]) : chunk;
+				}).on("error", function (err) {
+					reject(err);
+				});
 			});
-			break;
 
 		default:
 			throw StatusCode.NotImplemented;
 	}
 }
 
-export async function putFile(host: string, drive: Drive, filePath: string, file: Buffer) {
+export async function putFile(host: string, drive: Drive, relativePath: string, file: Buffer) {
 	switch (drive.type) {
 		case SourceType.File:
-			let _path = path.join(drive.address, filePath);
+			let _path = path.join(drive.address, relativePath);
 			await fs.mkdir(path.dirname(_path), {recursive: true});
 			await fs.writeFile(_path, file);
-			break;
+			return {path: _path};
 
 		case SourceType.Db:
 			let db = glob.dbs[host];
 			let bucket = new mongodb.GridFSBucket(db);
-			let stream = bucket.openUploadStream(filePath);
-			await delFile(host, filePath);
+			let stream = bucket.openUploadStream(relativePath);
+			await delFile(host, relativePath);
 			stream.on("error", function (err) {
 				error(err);
 				// done(err ? StatusCode.ServerError : StatusCode.Ok);
 			}).end(file);
-			break;
+			return {};
 
 		case SourceType.S3:
 			if (!glob.sysConfig.amazon || !glob.sysConfig.amazon.accessKeyId) {
@@ -440,8 +439,8 @@ export async function putFile(host: string, drive: Drive, filePath: string, file
 			AWS.config.accessKeyId = glob.sysConfig.amazon.accessKeyId;
 			AWS.config.secretAccessKey = glob.sysConfig.amazon.secretAccessKey;
 			let s3 = new AWS.S3({apiVersion: Constants.amazonS3ApiVersion});
-			let data: any = await s3.upload({Bucket: drive.address, Key: path.basename(filePath), Body: file});
-			return {url: data.Location};
+			let data: any = await s3.upload({Bucket: drive.address, Key: path.basename(relativePath), Body: file});
+			return {uri: data.Location};
 
 		default:
 			throw StatusCode.NotImplemented;
@@ -555,32 +554,16 @@ export function info(...message) {
 	logger.info(message);
 }
 
-export function notice(message) {
-	logger.log('notice', message);
-}
-
 export function warn(...message) {
 	logger.warn(message);
 }
 
-export function error(...message) {
-	logger.error(message);
+export function error(...err) {
+	logger.error(err);
 }
 
-export function todo(message) {
-	logger.log('todo', '#ToDo: ' + message);
-}
-
-export function exception(err) {
-	logger.log("crit", err.stack || err.message || err);
-}
-
-export function emerg(message) {
-	logger.log('emerg', message);
-	logger.error("terminating process ...");
-	setTimeout(() => {
-		process.exit();
-	}, 2000);
+export function fatal(message) {
+	logger.log('fatal', message);
 }
 
 export function getFullname(pack: string, name: string): string {
@@ -603,8 +586,10 @@ async function loadGeneralCollections() {
 		query: {name: Constants.systemPropertiesObjectName},
 		count: 1
 	});
-	if (!result)
-		emerg('systemProperties object not found!');
+	if (!result) {
+		logger.error("loadGeneralCollections failed terminating process ...");
+		process.exit();
+	}
 	glob.systemProperties = result ? result.properties : [];
 }
 
@@ -630,7 +615,7 @@ async function loadSysConfig() {
 				log(`package '${pack.name}' loaded. version: ${p.version}`);
 			}
 		} catch (ex) {
-			exception(ex);
+			error(ex);
 			pack.enabled = false;
 		}
 	}
@@ -703,7 +688,7 @@ async function loadSystemCollections() {
 		try {
 			await loadPackageSystemCollections(packConfig);
 		} catch (err) {
-			exception(err);
+			error(err);
 			packConfig.enabled = false;
 		}
 	}
@@ -715,9 +700,7 @@ export function configureLogger(silent: boolean) {
 	const errorLogFileName = 'error.log';
 	const logLevels = {
 		levels: {
-			emerg: 0,
-			todo: 1,
-			crit: 2,
+			fatal: 0,
 			error: 3,
 			warn: 4,
 			notice: 5,
@@ -726,9 +709,7 @@ export function configureLogger(silent: boolean) {
 			silly: 8
 		},
 		colors: {
-			emerg: 'red',
-			todo: 'red',
-			crit: 'red',
+			fatal: 'red',
 			error: 'red',
 			warn: 'yellow',
 			notice: 'green',
@@ -765,11 +746,6 @@ export function configureLogger(silent: boolean) {
 }
 
 function validateApp(pack: string, app: App): boolean {
-	if (!app.defaultTemplate) {
-		warn(`app.defaultTemplate is required for package '${pack}'`);
-		return false;
-	}
-
 	return true;
 }
 
@@ -983,7 +959,7 @@ function initializeEntities() {
 			func._access[func._package] = func.access;
 			initProperties(func.parameters, func, func.title);
 		} catch (ex) {
-			exception(ex);
+			error(ex);
 			error("Init functions, Module: " + func._package + ", Action: " + func.name);
 		}
 	}
@@ -1030,7 +1006,7 @@ export function initObject(obj: mObject) {
 			}
 		}
 	} catch (ex) {
-		exception(ex);
+		error(ex);
 		error(`initObject, Error in object ${obj._package}.${obj.name}`);
 	}
 }
@@ -1089,7 +1065,7 @@ function compareParentProperties(properties: Property[], parentProperties: Prope
 					compareParentProperties(property.properties, propertyParentObject.properties, entity);
 				}
 			} catch (ex) {
-				exception(ex);
+				error(ex);
 			}
 		} else {
 			if ((parentProperty.properties && parentProperty.properties.length > 0) && !property.group)
@@ -1563,47 +1539,37 @@ export async function mock(cn: Context, func: Function, args: any[]) {
 }
 
 export async function invoke(cn: Context, func: Function, args: any[]) {
-	try {
-		if (func.test && func.test.mock && envMode() == EnvMode.Development && cn.url.pathname != "/functionTest") {
-			return await mock(cn, func, args);
-		}
+	if (func.test && func.test.mock && envMode() == EnvMode.Development && cn.url.pathname != "/functionTest") {
+		return await mock(cn, func, args);
+	}
 
-		let action = require(path.join(process.env.PACKAGES_ROOT, func._package, `src/main`))[func.name];
+	let action = require(path.join(process.env.PACKAGES_ROOT, func._package, `src/main`))[func.name];
+	if (!action) {
+		if (func._package == Constants.sysPackage)
+			action = require(path.join(process.env.PACKAGES_ROOT, `web/src/main`))[func.name];
 		if (!action) {
-			if (func._package == Constants.sysPackage)
-				action = require(path.join(process.env.PACKAGES_ROOT, `web/src/main`))[func.name];
-			if (!action) {
-				let app = glob.apps.find(app => app._package == cn.pack);
-				for (let pack of app.dependencies) {
-					action = require(path.join(process.env.PACKAGES_ROOT, pack, `src/main`))[func.name];
-					if (action)
-						break;
-				}
+			let app = glob.apps.find(app => app._package == cn.pack);
+			for (let pack of app.dependencies) {
+				action = require(path.join(process.env.PACKAGES_ROOT, pack, `src/main`))[func.name];
+				if (action)
+					break;
 			}
 		}
-
-		if (!action) throw `Function'${func.name}'notfound.`;
-		const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
-		const ARGUMENT_NAMES = /([^\s,]+)/g;
-
-		let fnStr = action.toString().replace(STRIP_COMMENTS, '');
-		let argNames = fnStr.slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
-		if (argNames === null)
-			argNames = [];
-
-		if (args.length == 0)
-			return await action(cn);
-		else
-			return await action(cn, ...args);
-	} catch (ex) {
-		if (ex.message == `${func.name} is not defined`) {
-			todo(ex.message);
-			throw StatusCode.NotImplemented;
-		} else {
-			exception(ex);
-			throw ex.message;
-		}
 	}
+	if (!action) throw StatusCode.NotImplemented;
+
+	const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
+	const ARGUMENT_NAMES = /([^\s,]+)/g;
+
+	let fnStr = action.toString().replace(STRIP_COMMENTS, '');
+	let argNames = fnStr.slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
+	if (argNames === null)
+		argNames = [];
+
+	if (args.length == 0)
+		return await action(cn);
+	else
+		return await action(cn, ...args);
 }
 
 export async function runFunction(cn: Context, functionId: ObjectId, input: any) {
