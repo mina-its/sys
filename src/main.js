@@ -44,7 +44,7 @@ async function start() {
         return exports.glob;
     }
     catch (ex) {
-        error(ex);
+        error("sys.main error:", ex);
         return null;
     }
 }
@@ -768,6 +768,9 @@ exports.allFunctions = allFunctions;
 function initializeEntities() {
     log(`Initializing '${allObjects().length}' Objects ...`);
     let allObjs = allObjects();
+    for (let obj of allObjs) {
+        obj._inited = false;
+    }
     for (let obj of allObjs) {
         initObject(obj);
     }
