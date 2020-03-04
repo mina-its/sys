@@ -757,6 +757,15 @@ async function initializeEnums() {
     }
 }
 exports.initializeEnums = initializeEnums;
+function getEnumValues(cn, enumName) {
+    let theEnum = exports.glob.enums.find(e => e.name == enumName);
+    if (!theEnum)
+        return null;
+    return theEnum.items.map(item => {
+        return { value: item.value, title: getText(cn, item.title) };
+    });
+}
+exports.getEnumValues = getEnumValues;
 function allObjects() {
     return exports.glob.entities.filter(en => en.entityType == types_1.EntityType.Object);
 }

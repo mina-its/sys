@@ -933,6 +933,14 @@ export async function initializeEnums() {
 	}
 }
 
+export function getEnumValues(cn: Context, enumName: string): { value: number, title: string }[] {
+	let theEnum = glob.enums.find(e => e.name == enumName);
+	if (!theEnum) return null;
+	return theEnum.items.map(item => {
+		return {value: item.value, title: getText(cn, item.title)};
+	});
+}
+
 export function allObjects(): mObject[] {
 	return glob.entities.filter(en => en.entityType == EntityType.Object) as mObject[];
 }
