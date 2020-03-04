@@ -257,7 +257,7 @@ function extractRefPortions(pack, appDependencies, ref, _default) {
         return portions;
     }
     catch (ex) {
-        error(ex);
+        error("extractRefPortions", ex);
     }
 }
 exports.extractRefPortions = extractRefPortions;
@@ -371,7 +371,7 @@ async function putFile(host, drive, relativePath, file) {
             let stream = bucket.openUploadStream(relativePath);
             await delFile(host, relativePath);
             stream.on("error", function (err) {
-                error(err);
+                error("putFile error", err);
             }).end(file);
             return {};
         case types_1.SourceType.S3:
@@ -417,8 +417,8 @@ function warn(...message) {
     logger.warn(message);
 }
 exports.warn = warn;
-function error(...err) {
-    logger.error(err);
+function error(message, err) {
+    logger.error(err ? message + "," + err : message);
 }
 exports.error = error;
 function fatal(message) {
@@ -473,7 +473,7 @@ async function loadSysConfig() {
             }
         }
         catch (ex) {
-            error(ex);
+            error("loadSysConfig", ex);
             pack.enabled = false;
         }
     }
@@ -537,7 +537,7 @@ async function loadSystemCollections() {
             await loadPackageSystemCollections(packConfig);
         }
         catch (err) {
-            error(err);
+            error("loadSystemCollections", err);
             packConfig.enabled = false;
         }
     }
@@ -791,8 +791,7 @@ function initializeEntities() {
             initProperties(func.parameters, func, func.title);
         }
         catch (ex) {
-            error(ex);
-            error("Init functions, Module: " + func._package + ", Action: " + func.name);
+            error("Init functions, Module: " + func._package + ", Action: " + func.name, ex);
         }
     }
 }
@@ -835,8 +834,7 @@ function initObject(obj) {
         }
     }
     catch (ex) {
-        error(ex);
-        error(`initObject, Error in object ${obj._package}.${obj.name}`);
+        error(`initObject, Error in object ${obj._package}.${obj.name}`, ex);
     }
 }
 exports.initObject = initObject;

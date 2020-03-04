@@ -307,7 +307,7 @@ export function extractRefPortions(pack: string, appDependencies: string[], ref:
 
 		return portions;
 	} catch (ex) {
-		error(ex);
+		error("extractRefPortions", ex);
 	}
 }
 
@@ -426,7 +426,7 @@ export async function putFile(host: string, drive: Drive, relativePath: string, 
 			let stream = bucket.openUploadStream(relativePath);
 			await delFile(host, relativePath);
 			stream.on("error", function (err) {
-				error(err);
+				error("putFile error", err);
 				// done(err ? StatusCode.ServerError : StatusCode.Ok);
 			}).end(file);
 			return {};
@@ -558,8 +558,8 @@ export function warn(...message) {
 	logger.warn(message);
 }
 
-export function error(...err) {
-	logger.error(err);
+export function error(message: string, err?: Error | ErrorResult) {
+	logger.error(err ? message + "," + err : message);
 }
 
 export function fatal(message) {
@@ -615,7 +615,7 @@ async function loadSysConfig() {
 				log(`package '${pack.name}' loaded. version: ${p.version}`);
 			}
 		} catch (ex) {
-			error(ex);
+			error("loadSysConfig", ex);
 			pack.enabled = false;
 		}
 	}
@@ -688,7 +688,7 @@ async function loadSystemCollections() {
 		try {
 			await loadPackageSystemCollections(packConfig);
 		} catch (err) {
-			error(err);
+			error("loadSystemCollections", err);
 			packConfig.enabled = false;
 		}
 	}
@@ -967,8 +967,7 @@ function initializeEntities() {
 			func._access[func._package] = func.access;
 			initProperties(func.parameters, func, func.title);
 		} catch (ex) {
-			error(ex);
-			error("Init functions, Module: " + func._package + ", Action: " + func.name);
+			error("Init functions, Module: " + func._package + ", Action: " + func.name, ex);
 		}
 	}
 }
@@ -1014,8 +1013,7 @@ export function initObject(obj: mObject) {
 			}
 		}
 	} catch (ex) {
-		error(ex);
-		error(`initObject, Error in object ${obj._package}.${obj.name}`);
+		error(`initObject, Error in object ${obj._package}.${obj.name}`, ex);
 	}
 }
 

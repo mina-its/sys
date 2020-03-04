@@ -304,11 +304,18 @@ export class Elem {
 	}
 }
 
-export class ErrorResult {
+export class ErrorResult extends Error {
 	constructor(code: StatusCode, message: string) {
+		super();
 		this.code = code;
-		this.message = message;
+		if (message)
+			this.message = message;
 	}
+
+	public toString = (): string => {
+		return `error (${this.code}) ${this.message || ""}`;
+	};
+
 	code: StatusCode;
 	message: string;
 }
@@ -861,5 +868,5 @@ export class UnitTestObject {
 		},
 		location: GeoLocation
 	};
-	"birthday" : Date;
+	"birthday": Date;
 }

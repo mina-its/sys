@@ -129,13 +129,20 @@ var Elem = (function () {
     return Elem;
 }());
 exports.Elem = Elem;
-var ErrorResult = (function () {
+var ErrorResult = (function (_super) {
+    __extends(ErrorResult, _super);
     function ErrorResult(code, message) {
-        this.code = code;
-        this.message = message;
+        var _this = _super.call(this) || this;
+        _this.toString = function () {
+            return "error (" + _this.code + ") " + (_this.message || "");
+        };
+        _this.code = code;
+        if (message)
+            _this.message = message;
+        return _this;
     }
     return ErrorResult;
-}());
+}(Error));
 exports.ErrorResult = ErrorResult;
 var ChartSeries = (function () {
     function ChartSeries() {
