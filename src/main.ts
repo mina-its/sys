@@ -93,7 +93,7 @@ export async function start() {
 		await reload();
 		return glob;
 	} catch (ex) {
-		error(ex);
+		error("sys.main error:", ex);
 		return null;
 	}
 }
