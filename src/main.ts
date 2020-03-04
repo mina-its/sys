@@ -621,11 +621,11 @@ async function loadSysConfig() {
 	glob.sysConfig = await get(Constants.sysPackage, SysCollection.systemConfig, {count: 1});
 	for (let pack of getEnabledPackages()) {
 		try {
-			glob.packages[pack.name] = require(`../../${pack.name}/src/main`);
+			glob.packages[pack.name] = require(path.join(process.env.PACKAGES_ROOT, pack.name, `src/main`));
 			if (glob.packages[pack.name] == null)
 				error(`Error loading package ${pack.name}!`);
 			else {
-				let p = require(`../../${pack.name}/package.json`);
+				let p = require(path.join(process.env.PACKAGES_ROOT, pack.name, `package.json`));
 				glob.packages[pack.name]._version = p.version;
 				log(`package '${pack.name}' loaded. version: ${p.version}`);
 			}
@@ -1568,14 +1568,14 @@ export async function invoke(cn: Context, func: Function, args: any[]) {
 			return await mock(cn, func, args);
 		}
 
-		let action = require(`../../${func._package}/src/main`)[func.name];
+		let action = require(path.join(process.env.PACKAGES_ROOT, func._package, `src/main`))[func.name];
 		if (!action) {
 			if (func._package == Constants.sysPackage)
-				action = require(`../../web/src/main`)[func.name];
+				action = require(path.join(process.env.PACKAGES_ROOT, `web/src/main`))[func.name];
 			if (!action) {
 				let app = glob.apps.find(app => app._package == cn.pack);
 				for (let pack of app.dependencies) {
-					action = require(`../../${pack}/src/main`)[func.name];
+					action = require(path.join(process.env.PACKAGES_ROOT, pack, `src/main`))[func.name];
 					if (action)
 						break;
 				}
