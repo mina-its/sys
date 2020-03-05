@@ -364,7 +364,7 @@ async function putFile(host, drive, relativePath, file) {
             let _path = path.join(drive.address, relativePath);
             await fs.mkdir(path.dirname(_path), { recursive: true });
             await fs.writeFile(_path, file);
-            return { path: _path };
+            break;
         case types_1.SourceType.Db:
             let db = exports.glob.dbs[host];
             let bucket = new mongodb.GridFSBucket(db);
@@ -373,7 +373,7 @@ async function putFile(host, drive, relativePath, file) {
             stream.on("error", function (err) {
                 error("putFile error", err);
             }).end(file);
-            return {};
+            break;
         case types_1.SourceType.S3:
             if (!exports.glob.sysConfig.amazon || !exports.glob.sysConfig.amazon.accessKeyId) {
                 error('s3 accessKeyId, secretAccessKey is required in sysConfig!');
@@ -383,7 +383,7 @@ async function putFile(host, drive, relativePath, file) {
             AWS.config.secretAccessKey = exports.glob.sysConfig.amazon.secretAccessKey;
             let s3 = new AWS.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion });
             let data = await s3.upload({ Bucket: drive.address, Key: path.basename(relativePath), Body: file });
-            return { uri: data.Location };
+            break;
         default:
             throw types_1.StatusCode.NotImplemented;
     }
@@ -795,6 +795,16 @@ function initializeEntities() {
         }
     }
 }
+function checkFileProperty(prop, entity) {
+    if (prop._gtype == types_1.GlobalType.file) {
+        if (prop.file && prop.file.drive) {
+            prop.file._drive = exports.glob.drives.find(d => d._id.equals(prop.file.drive));
+            error(`drive for property file '${entity._package}.${entity.name}.${prop.name}' not found.`);
+        }
+        else
+            error(`drive for property file '${entity._package}.${entity.name}.${prop.name}' must be set.`);
+    }
+}
 function initProperties(properties, entity, parentTitle) {
     if (!properties)
         return;
@@ -804,6 +814,7 @@ function initProperties(properties, entity, parentTitle) {
             _.defaultsDeep(prop, sysProperty);
         prop.group = prop.group || parentTitle;
         checkPropertyGtype(prop, entity);
+        checkFileProperty(prop, entity);
         initProperties(prop.properties, entity, prop.title);
     }
 }

@@ -13,8 +13,6 @@ import {
 	App,
 	AuditArgs,
 	AuditType,
-	SystemConfig,
-	SystemConfigPackage,
 	Constants,
 	Context,
 	DelOptions,
@@ -24,13 +22,14 @@ import {
 	Enum,
 	EnumItem,
 	EnvMode,
+	ErrorResult,
 	Function,
 	FunctionTestSample,
 	GetOptions,
+	Global,
 	GlobalType,
 	Locale,
 	LogLevel,
-	Global,
 	Menu,
 	mObject,
 	ObjectModifyState,
@@ -48,9 +47,10 @@ import {
 	StatusCode,
 	SysAuditTypes,
 	SysCollection,
+	SystemConfigPackage,
 	SystemProperty,
 	Text,
-	View, ErrorResult,
+	View,
 } from './types';
 
 const {EJSON} = require('bson');
@@ -418,7 +418,7 @@ export async function putFile(host: string, drive: Drive, relativePath: string, 
 			let _path = path.join(drive.address, relativePath);
 			await fs.mkdir(path.dirname(_path), {recursive: true});
 			await fs.writeFile(_path, file);
-			return {path: _path};
+			break;
 
 		case SourceType.Db:
 			let db = glob.dbs[host];
@@ -429,7 +429,7 @@ export async function putFile(host: string, drive: Drive, relativePath: string, 
 				error("putFile error", err);
 				// done(err ? StatusCode.ServerError : StatusCode.Ok);
 			}).end(file);
-			return {};
+			break;
 
 		case SourceType.S3:
 			if (!glob.sysConfig.amazon || !glob.sysConfig.amazon.accessKeyId) {
@@ -440,7 +440,7 @@ export async function putFile(host: string, drive: Drive, relativePath: string, 
 			AWS.config.secretAccessKey = glob.sysConfig.amazon.secretAccessKey;
 			let s3 = new AWS.S3({apiVersion: Constants.amazonS3ApiVersion});
 			let data: any = await s3.upload({Bucket: drive.address, Key: path.basename(relativePath), Body: file});
-			return {uri: data.Location};
+			break;
 
 		default:
 			throw StatusCode.NotImplemented;
@@ -972,6 +972,16 @@ function initializeEntities() {
 	}
 }
 
+function checkFileProperty(prop: Property, entity: Entity) {
+	if (prop._gtype == GlobalType.file) {
+		if (prop.file && prop.file.drive) {
+			prop.file._drive = glob.drives.find(d => d._id.equals(prop.file.drive));
+			error(`drive for property file '${entity._package}.${entity.name}.${prop.name}' not found.`);
+		} else
+			error(`drive for property file '${entity._package}.${entity.name}.${prop.name}' must be set.`);
+	}
+}
+
 export function initProperties(properties: Property[], entity: Entity, parentTitle?) {
 	if (!properties) return;
 	for (let prop of properties) {
@@ -981,6 +991,7 @@ export function initProperties(properties: Property[], entity: Entity, parentTit
 
 		prop.group = prop.group || parentTitle;
 		checkPropertyGtype(prop, entity);
+		checkFileProperty(prop, entity);
 		initProperties(prop.properties, entity, prop.title);
 	}
 }

@@ -157,6 +157,7 @@ export class Property {
 	};
 	file: {
 		drive: Reference;
+		_drive: Drive;
 		path: string;
 		preview: boolean;
 		sizeLimit: number;
@@ -192,6 +193,7 @@ export class Drive {
 	type: SourceType;
 	comment: string | MultilangText;
 	address: string;
+	uri: string;
 	_package: string;
 }
 
@@ -474,8 +476,7 @@ export class FileInfo {
 	_id: ObjectId;
 	size: number;
 	name: string;
-	path: string;
-	uri: string;
+	_uri: string;
 	created: Date;
 }
 
