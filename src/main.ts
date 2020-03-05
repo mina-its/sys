@@ -976,7 +976,8 @@ function checkFileProperty(prop: Property, entity: Entity) {
 	if (prop._gtype == GlobalType.file) {
 		if (prop.file && prop.file.drive) {
 			prop.file._drive = glob.drives.find(d => d._id.equals(prop.file.drive));
-			error(`drive for property file '${entity._package}.${entity.name}.${prop.name}' not found.`);
+			if (!prop.file._drive)
+				error(`drive for property file '${entity._package}.${entity.name}.${prop.name}' not found.`);
 		} else
 			error(`drive for property file '${entity._package}.${entity.name}.${prop.name}' must be set.`);
 	}
