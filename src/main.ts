@@ -50,7 +50,7 @@ import {
 	SystemConfigPackage,
 	SystemProperty,
 	Text,
-	View,
+	Form,
 } from './types';
 
 const {EJSON} = require('bson');
@@ -646,11 +646,11 @@ async function loadPackageSystemCollections(packConfig: SystemConfigPackage) {
 		glob.entities.push(func);
 	}
 
-	let views: View[] = await get(pack, SysCollection.views);
-	for (let view of views) {
-		view._package = pack;
-		view.entityType = EntityType.View;
-		glob.entities.push(view);
+	let forms: Form[] = await get(pack, SysCollection.forms);
+	for (let form of forms) {
+		form._package = pack;
+		form.entityType = EntityType.Form;
+		glob.entities.push(form);
 	}
 
 	let texts: Text[] = await get(pack, SysCollection.dictionary);

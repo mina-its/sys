@@ -57,13 +57,13 @@ exports.FunctionTestSample = FunctionTestSample;
 class EntityLink {
 }
 exports.EntityLink = EntityLink;
-class View extends Entity {
+class Form extends Entity {
     constructor() {
         super(...arguments);
         this.elems = [];
     }
 }
-exports.View = View;
+exports.Form = Form;
 var ObjectViewType;
 (function (ObjectViewType) {
     ObjectViewType[ObjectViewType["GridView"] = 1] = "GridView";
@@ -239,7 +239,7 @@ var EntityType;
 (function (EntityType) {
     EntityType[EntityType["Object"] = 1] = "Object";
     EntityType[EntityType["Function"] = 2] = "Function";
-    EntityType[EntityType["View"] = 3] = "View";
+    EntityType[EntityType["Form"] = 3] = "Form";
     EntityType[EntityType["File"] = 4] = "File";
 })(EntityType = exports.EntityType || (exports.EntityType = {}));
 var AccessPermission;
@@ -409,7 +409,7 @@ var SysCollection;
     SysCollection["systemConfig"] = "systemConfig";
     SysCollection["menus"] = "menus";
     SysCollection["drives"] = "drives";
-    SysCollection["views"] = "views";
+    SysCollection["forms"] = "forms";
     SysCollection["auditTypes"] = "auditTypes";
     SysCollection["enums"] = "enums";
 })(SysCollection = exports.SysCollection || (exports.SysCollection = {}));

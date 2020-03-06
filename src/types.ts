@@ -227,7 +227,7 @@ export class EntityLink {
 	type: LinkType;
 }
 
-export class View extends Entity {
+export class Form extends Entity {
 	template: string;
 	keywords: string;
 	changeFrequecy: ChangeFrequecy;
@@ -612,7 +612,7 @@ export enum ElemType {
 export enum EntityType {
 	Object = 1,
 	Function = 2,
-	View = 3,
+	Form = 3,
 	File = 4,
 }
 
@@ -751,7 +751,7 @@ export enum SysCollection {
 	systemConfig = "systemConfig",
 	menus = "menus",
 	drives = "drives",
-	views = "views",
+	forms = "forms",
 	auditTypes = "auditTypes",
 	enums = "enums",
 }
@@ -827,7 +827,7 @@ export enum RequestMode {
 export class WebResponse implements IError {
 	data: any = {};
 	meta: any = {};
-	view: any;
+	form: any;
 	redirect: string;
 	menu: any[] = [];
 	navmenu: any[] = [];

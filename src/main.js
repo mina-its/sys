@@ -500,11 +500,11 @@ async function loadPackageSystemCollections(packConfig) {
         func.entityType = types_1.EntityType.Function;
         exports.glob.entities.push(func);
     }
-    let views = await get(pack, types_1.SysCollection.views);
-    for (let view of views) {
-        view._package = pack;
-        view.entityType = types_1.EntityType.View;
-        exports.glob.entities.push(view);
+    let forms = await get(pack, types_1.SysCollection.forms);
+    for (let form of forms) {
+        form._package = pack;
+        form.entityType = types_1.EntityType.Form;
+        exports.glob.entities.push(form);
     }
     let texts = await get(pack, types_1.SysCollection.dictionary);
     for (let item of texts) {
