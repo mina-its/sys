@@ -110,8 +110,8 @@ export class mObject extends Entity {
 
 export class ObjectModifyState {
 	type: ObjectModifyType;
-	itemId: ObjectId;
-	item: any;
+	itemId?: ObjectId;
+	item?: any;
 }
 
 export enum ObjectModifyType {
@@ -295,7 +295,8 @@ export class Elem {
 	component?: {
 		name: string;
 		props: any;
-		ref?: any;
+		data?: Reference;
+		_ref: string;
 	};
 	text?: {
 		content: string;
@@ -497,11 +498,10 @@ export class TimeZone {
 export class RefPortion {
 	type: RefPortionType;
 	value: string;
-	pre: RefPortion;
-
-	entity: Entity;
-	property: Property;
-	itemId: ObjectId;
+	pre?: RefPortion;
+	entity?: Entity;
+	property?: Property;
+	itemId?: ObjectId;
 }
 
 export class GeoLocation {
@@ -827,7 +827,7 @@ export enum RequestMode {
 export class WebResponse implements IError {
 	data: any = {};
 	meta: any = {};
-	form: any;
+	form: Form;
 	redirect: string;
 	menu: any[] = [];
 	navmenu: any[] = [];

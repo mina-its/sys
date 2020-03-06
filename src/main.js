@@ -298,8 +298,14 @@ async function patch(pack, objectName, patchData, options) {
 exports.patch = patch;
 async function del(pack, objectName, options) {
     let collection = exports.glob.dbs[pack].collection(objectName);
-    if (!collection || !options)
+    if (!collection)
         throw types_1.StatusCode.BadRequest;
+    if (!options) {
+        await collection.deleteMany();
+        return {
+            type: types_1.ObjectModifyType.Delete
+        };
+    }
     if (options.itemId) {
         let result = await collection.deleteOne({ _id: options.itemId });
         return {
@@ -1155,6 +1161,15 @@ async function getAllEntities(cn) {
     return entities;
 }
 exports.getAllEntities = getAllEntities;
+async function getDataEntities(cn) {
+    let entities = exports.glob.entities.filter(e => e.entityType == types_1.EntityType.Function || e.entityType == types_1.EntityType.Object).map(ent => {
+        let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
+        return { ref: ent._id, title };
+    });
+    entities = _.orderBy(entities, ['title']);
+    return entities;
+}
+exports.getDataEntities = getDataEntities;
 function json2bson(doc) {
     return EJSON.deserialize(doc);
 }

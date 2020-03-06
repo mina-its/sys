@@ -23,6 +23,7 @@ import {
 	EnumItem,
 	EnvMode,
 	ErrorResult,
+	Form,
 	Function,
 	FunctionTestSample,
 	GetOptions,
@@ -50,7 +51,6 @@ import {
 	SystemConfigPackage,
 	SystemProperty,
 	Text,
-	Form,
 } from './types';
 
 const {EJSON} = require('bson');
@@ -347,7 +347,14 @@ export async function patch(pack: string, objectName: string, patchData: any, op
 
 export async function del(pack: string, objectName: string, options?: DelOptions) {
 	let collection = glob.dbs[pack].collection(objectName);
-	if (!collection || !options) throw StatusCode.BadRequest;
+	if (!collection) throw StatusCode.BadRequest;
+	if (!options){
+		await collection.deleteMany();
+		return {
+			type: ObjectModifyType.Delete
+		};
+	}
+
 	if (options.itemId) {
 		let result = await collection.deleteOne({_id: options.itemId});
 		return {
@@ -1348,6 +1355,15 @@ export async function getTypes(cn: Context) {
 
 export async function getAllEntities(cn: Context) {
 	let entities = glob.entities.map(ent => {
+		let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
+		return {ref: ent._id, title} as Pair
+	});
+	entities = _.orderBy(entities, ['title']);
+	return entities;
+}
+
+export async function getDataEntities(cn: Context) {
+	let entities = glob.entities.filter(e => e.entityType == EntityType.Function || e.entityType == EntityType.Object).map(ent => {
 		let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
 		return {ref: ent._id, title} as Pair
 	});
