@@ -48,6 +48,10 @@ export class User {
 	time: Date;
 	_package: string;
 	_isOnline: boolean;
+	_: {
+		pack: string;
+		isOnline: boolean;
+	}
 }
 
 export class AuditType {
@@ -99,11 +103,7 @@ export class mObject extends Entity {
 	source: SourceType;
 	rowHeaderStyle: GridRowHeaderStyle;
 	reorderable: boolean;
-
-	// hooks
 	modified: Reference;
-	// initializing: Reference;
-
 	_autoSetInsertTime: boolean;
 	_inited: boolean;
 }
@@ -158,7 +158,6 @@ export class Property {
 	file: {
 		drive: Reference;
 		_drive: Drive;
-		path: string;
 		preview: boolean;
 		sizeLimit: number;
 	};
@@ -185,6 +184,9 @@ export class Property {
 	_items: Pair[];
 	_z: number;
 	_parentPropertiesCompared: boolean;
+	_: {
+		drive: Drive
+	};
 }
 
 export class Drive {
@@ -193,6 +195,7 @@ export class Drive {
 	type: SourceType;
 	comment: string | MultilangText;
 	address: string;
+	mode: DriveMode;
 	uri: string;
 	_package: string;
 }
@@ -380,8 +383,8 @@ export class App {
 	defaultLocale: Locale;
 	redirect: RedirectType;
 	menu: ObjectId;
-	_menu: Menu;
 	navmenu: ObjectId;
+	_menu: Menu;
 	_navmenu: Menu;
 	title: string;
 	gridPageSize: number;
@@ -394,6 +397,11 @@ export class App {
 	dependencies: string[];
 	favicon: string;
 	brandingLogo: string;
+	_: {
+		pack: string;
+		menu: Menu;
+		navmenu: Menu;
+	}
 }
 
 export class SystemConfigPackage {
@@ -415,7 +423,10 @@ export class SystemConfig {
 	};
 	google: {
 		apiKey: string;
-	}
+	};
+	_: {
+		app: App
+	};
 }
 
 export class Enum {
@@ -477,8 +488,10 @@ export class FileInfo {
 	_id: ObjectId;
 	size: number;
 	name: string;
-	_uri: string;
 	created: Date;
+	_: {
+		uri: string
+	};
 }
 
 export class Text {
@@ -870,4 +883,9 @@ export class UnitTestObject {
 		location: GeoLocation
 	};
 	"birthday": Date;
+}
+
+export enum DriveMode {
+	Gallery = 1,
+	Nonselectable = 2,
 }
