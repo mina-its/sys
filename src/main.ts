@@ -16,6 +16,8 @@ import {
 	Constants,
 	Context,
 	DelOptions,
+	DirFile,
+	DirFileType,
 	Drive,
 	Entity,
 	EntityType,
@@ -56,6 +58,7 @@ import {
 const {EJSON} = require('bson');
 
 export let glob = new Global();
+const fsPromises = fs.promises;
 
 export async function reload(cn?: Context) {
 	let startTime = moment();
@@ -348,7 +351,7 @@ export async function patch(pack: string, objectName: string, patchData: any, op
 export async function del(pack: string, objectName: string, options?: DelOptions) {
 	let collection = glob.dbs[pack].collection(objectName);
 	if (!collection) throw StatusCode.BadRequest;
-	if (!options){
+	if (!options) {
 		await collection.deleteMany();
 		return {
 			type: ObjectModifyType.Delete
@@ -439,18 +442,41 @@ export async function putFile(host: string, drive: Drive, relativePath: string, 
 			break;
 
 		case SourceType.S3:
-			if (!glob.sysConfig.amazon || !glob.sysConfig.amazon.accessKeyId) {
-				error('s3 accessKeyId, secretAccessKey is required in sysConfig!');
-				throw StatusCode.SystemConfigurationProblem;
-			}
-			AWS.config.accessKeyId = glob.sysConfig.amazon.accessKeyId;
-			AWS.config.secretAccessKey = glob.sysConfig.amazon.secretAccessKey;
 			let s3 = new AWS.S3({apiVersion: Constants.amazonS3ApiVersion});
 			let data: any = await s3.upload({Bucket: drive.address, Key: path.basename(relativePath), Body: file});
 			break;
 
 		default:
 			throw StatusCode.NotImplemented;
+	}
+}
+
+export async function listDir(drive: Drive, dir: string): Promise<DirFile[]> {
+	switch (drive.type) {
+		case SourceType.File:
+			let list = await fsPromises.readdir(dir, {withFileTypes: true});
+			return list.map(item => {
+				return {name: item.name, type: item.isDirectory() ? DirFileType.Folder: DirFileType.File} as DirFile
+			});
+
+		default:
+			throw StatusCode.NotImplemented;
+
+		case SourceType.S3:
+			let s3 = new AWS.S3({apiVersion: Constants.amazonS3ApiVersion});
+			const s3params = {
+				Bucket: 'bucket-name',
+				MaxKeys: 20,
+				Delimiter: '/',
+			};
+			return new Promise((resolve, reject) => {
+				s3.listObjectsV2(s3params, (err, data) => {
+					if (err)
+						reject(err);
+					else
+						resolve(null);
+				});
+			});
 	}
 }
 
@@ -625,6 +651,18 @@ async function loadSysConfig() {
 			error("loadSysConfig", ex);
 			pack.enabled = false;
 		}
+	}
+
+	if (glob.sysConfig.amazon) {
+		if (!glob.sysConfig.amazon.accessKeyId)
+			warn('s3 accessKeyId, secretAccessKey is required in sysConfig!');
+		else
+			AWS.config.accessKeyId = glob.sysConfig.amazon.accessKeyId;
+
+		if (!glob.sysConfig.amazon.secretAccessKey)
+			warn('s3 secretAccessKe, secretAccessKey is required in sysConfig!');
+		else
+			AWS.config.secretAccessKey = glob.sysConfig.amazon.secretAccessKey;
 	}
 }
 

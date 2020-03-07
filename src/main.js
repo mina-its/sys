@@ -14,6 +14,7 @@ const mongodb_1 = require("mongodb");
 const types_1 = require("./types");
 const { EJSON } = require('bson');
 exports.glob = new types_1.Global();
+const fsPromises = fs.promises;
 async function reload(cn) {
     let startTime = moment();
     log(`reload ...`);
@@ -381,12 +382,6 @@ async function putFile(host, drive, relativePath, file) {
             }).end(file);
             break;
         case types_1.SourceType.S3:
-            if (!exports.glob.sysConfig.amazon || !exports.glob.sysConfig.amazon.accessKeyId) {
-                error('s3 accessKeyId, secretAccessKey is required in sysConfig!');
-                throw types_1.StatusCode.SystemConfigurationProblem;
-            }
-            AWS.config.accessKeyId = exports.glob.sysConfig.amazon.accessKeyId;
-            AWS.config.secretAccessKey = exports.glob.sysConfig.amazon.secretAccessKey;
             let s3 = new AWS.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion });
             let data = await s3.upload({ Bucket: drive.address, Key: path.basename(relativePath), Body: file });
             break;
@@ -395,6 +390,33 @@ async function putFile(host, drive, relativePath, file) {
     }
 }
 exports.putFile = putFile;
+async function listDir(drive, dir) {
+    switch (drive.type) {
+        case types_1.SourceType.File:
+            let list = await fsPromises.readdir(dir, { withFileTypes: true });
+            return list.map(item => {
+                return { name: item.name, type: item.isDirectory() ? types_1.DirFileType.Folder : types_1.DirFileType.File };
+            });
+        default:
+            throw types_1.StatusCode.NotImplemented;
+        case types_1.SourceType.S3:
+            let s3 = new AWS.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion });
+            const s3params = {
+                Bucket: 'bucket-name',
+                MaxKeys: 20,
+                Delimiter: '/',
+            };
+            return new Promise((resolve, reject) => {
+                s3.listObjectsV2(s3params, (err, data) => {
+                    if (err)
+                        reject(err);
+                    else
+                        resolve(null);
+                });
+            });
+    }
+}
+exports.listDir = listDir;
 async function getFileInfo(host, filePath) {
 }
 exports.getFileInfo = getFileInfo;
@@ -482,6 +504,16 @@ async function loadSysConfig() {
             error("loadSysConfig", ex);
             pack.enabled = false;
         }
+    }
+    if (exports.glob.sysConfig.amazon) {
+        if (!exports.glob.sysConfig.amazon.accessKeyId)
+            warn('s3 accessKeyId, secretAccessKey is required in sysConfig!');
+        else
+            AWS.config.accessKeyId = exports.glob.sysConfig.amazon.accessKeyId;
+        if (!exports.glob.sysConfig.amazon.secretAccessKey)
+            warn('s3 secretAccessKe, secretAccessKey is required in sysConfig!');
+        else
+            AWS.config.secretAccessKey = exports.glob.sysConfig.amazon.secretAccessKey;
     }
 }
 async function loadPackageSystemCollections(packConfig) {

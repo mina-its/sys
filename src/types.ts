@@ -488,6 +488,7 @@ export class FileInfo {
 	_id: ObjectId;
 	size: number;
 	name: string;
+	path: string;
 	created: Date;
 	_: {
 		uri: string
@@ -888,4 +889,14 @@ export class UnitTestObject {
 export enum DriveMode {
 	Gallery = 1,
 	Nonselectable = 2,
+}
+
+export enum DirFileType {
+	File = 1,
+	Folder = 2,
+}
+
+export class DirFile {
+	name: string;
+	type: DirFileType;
 }
