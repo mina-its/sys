@@ -434,7 +434,7 @@ export async function putFile(host: string, drive: Drive, relativePath: string, 
 			let db = glob.dbs[host];
 			let bucket = new mongodb.GridFSBucket(db);
 			let stream = bucket.openUploadStream(relativePath);
-			await delFile(host, relativePath);
+			await delFile(host, drive, relativePath);
 			stream.on("error", function (err) {
 				error("putFile error", err);
 				// done(err ? StatusCode.ServerError : StatusCode.Ok);
@@ -517,7 +517,22 @@ export async function getFileInfo(host: string, filePath: string) {
 	// }
 }
 
-export async function delFile(host: string, filePath: string) {
+export async function delFile(host: string, drive: Drive, relativePath: string) {
+	switch (drive.type) {
+		case SourceType.File:
+			let _path = path.join(drive.address, relativePath);
+			await fs.unlink(_path);
+			break;
+
+		case SourceType.S3:
+			let s3 = new AWS.S3({apiVersion: Constants.amazonS3ApiVersion});
+			let data: any = await s3.deleteObject({Bucket: drive.address, Key: path.basename(relativePath)});
+			break;
+
+		default:
+			throw StatusCode.NotImplemented;
+	}
+
 	// let rep: repository = mem.sources[host];
 	// if (!rep) return done(statusCode.notFound);
 	//
