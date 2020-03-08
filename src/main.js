@@ -807,15 +807,6 @@ async function initializeEnums() {
     }
 }
 exports.initializeEnums = initializeEnums;
-function getEnumValues(cn, enumName) {
-    let theEnum = exports.glob.enums.find(e => e.name == enumName);
-    if (!theEnum)
-        return null;
-    return theEnum.items.map(item => {
-        return { value: item.value, title: getText(cn, item.title) };
-    });
-}
-exports.getEnumValues = getEnumValues;
 function allObjects() {
     return exports.glob.entities.filter(en => en.entityType == types_1.EntityType.Object);
 }
@@ -988,9 +979,18 @@ function getEnumText(thePackage, dependencies, enumType, value, locale) {
     if (!theEnum)
         return value;
     let text = theEnum[value];
-    return getMultilLangugeText(text, locale);
+    return getText({ locale }, text);
 }
 exports.getEnumText = getEnumText;
+function getEnumValues(cn, enumName) {
+    let theEnum = exports.glob.enums.find(e => e.name == enumName);
+    if (!theEnum)
+        return null;
+    return theEnum.items.map(item => {
+        return { value: item.value, title: getText(cn, item.title) };
+    });
+}
+exports.getEnumValues = getEnumValues;
 function getEnumByName(thePackage, dependencies, enumType) {
     let theEnum = exports.glob.enumTexts[thePackage + "." + enumType];
     for (let i = 0; !theEnum && i < dependencies.length; i++) {
@@ -999,49 +999,10 @@ function getEnumByName(thePackage, dependencies, enumType) {
     return theEnum;
 }
 exports.getEnumByName = getEnumByName;
-function createEnumDataSource(thePackage, dependencies, enumType, nullable, locale) {
-    let theEnum = getEnumByName(thePackage, dependencies, enumType);
-    let result = {};
-    if (nullable)
-        result[0] = " ";
-    for (let key in theEnum) {
-        result[key] = getMultilLangugeText(theEnum[key], locale);
-    }
-    return result;
-}
-exports.createEnumDataSource = createEnumDataSource;
-function getEnumsTexts(thePackage, enumType, values, locale) {
-    if (values == null)
-        return null;
-    let theEnum = exports.glob.enumTexts[thePackage + "." + enumType];
-    if (!theEnum)
-        return null;
-    let texts = [];
-    values.forEach(function (value) {
-        let text = theEnum[value];
-        texts.push(getMultilLangugeText(text, locale));
-    });
-    return texts;
-}
-exports.getEnumsTexts = getEnumsTexts;
 function isRightToLeftLanguage(loc) {
     return loc == types_1.Locale.ar || loc == types_1.Locale.fa;
 }
 exports.isRightToLeftLanguage = isRightToLeftLanguage;
-function getMultilLangugeText(text, loc) {
-    if (!text)
-        return "";
-    if (typeof (text) == "object") {
-        if (text.en && loc == types_1.Locale.en)
-            return text.en;
-        else if (text.fa && loc == types_1.Locale.fa)
-            return text.fa;
-        else
-            return text.en || text.fa;
-    }
-    return text.toString();
-}
-exports.getMultilLangugeText = getMultilLangugeText;
 function encodeXml(text) {
     return (text || "").toString().replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')

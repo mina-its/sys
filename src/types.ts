@@ -7,9 +7,9 @@ export interface IPackage {
 
 export interface Context {
 	locale: Locale;
-	pack: string;
-	req: any;
-	url: URL;
+	pack?: string;
+	req?: any;
+	url?: URL;
 }
 
 export interface Reference extends ObjectId {

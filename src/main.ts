@@ -456,7 +456,7 @@ export async function listDir(drive: Drive, dir: string): Promise<DirFile[]> {
 		case SourceType.File:
 			let list = await fsPromises.readdir(dir, {withFileTypes: true});
 			return list.map(item => {
-				return {name: item.name, type: item.isDirectory() ? DirFileType.Folder: DirFileType.File} as DirFile
+				return {name: item.name, type: item.isDirectory() ? DirFileType.Folder : DirFileType.File} as DirFile
 			});
 
 		default:
@@ -993,14 +993,6 @@ export async function initializeEnums() {
 	}
 }
 
-export function getEnumValues(cn: Context, enumName: string): { value: number, title: string }[] {
-	let theEnum = glob.enums.find(e => e.name == enumName);
-	if (!theEnum) return null;
-	return theEnum.items.map(item => {
-		return {value: item.value, title: getText(cn, item.title)};
-	});
-}
-
 export function allObjects(): mObject[] {
 	return glob.entities.filter(en => en.entityType == EntityType.Object) as mObject[];
 }
@@ -1188,7 +1180,15 @@ export function getEnumText(thePackage: string, dependencies: string[], enumType
 		return value;
 
 	let text = theEnum[value];
-	return getMultilLangugeText(text, locale);
+	return getText({locale}, text);
+}
+
+export function getEnumValues(cn: Context, enumName: string): { value: number, title: string }[] {
+	let theEnum = glob.enums.find(e => e.name == enumName);
+	if (!theEnum) return null;
+	return theEnum.items.map(item => {
+		return {value: item.value, title: getText(cn, item.title)};
+	});
 }
 
 export function getEnumByName(thePackage: string, dependencies: string[], enumType: string) {
@@ -1201,51 +1201,8 @@ export function getEnumByName(thePackage: string, dependencies: string[], enumTy
 	return theEnum;
 }
 
-export function createEnumDataSource(thePackage: string, dependencies: string[], enumType: string, nullable: boolean, locale: Locale): any {
-	let theEnum = getEnumByName(thePackage, dependencies, enumType);
-	let result = {};
-	if (nullable)
-		result[0] = " ";
-
-	for (let key in theEnum) {
-		result[key] = getMultilLangugeText(theEnum[key], locale);
-	}
-	return result;
-}
-
-export function getEnumsTexts(thePackage: string, enumType: string, values: number[], locale?: Locale): string[] {
-	if (values == null) return null;
-
-	let theEnum = glob.enumTexts[thePackage + "." + enumType];
-	if (!theEnum) return null;
-
-	let texts: string[] = [];
-	values.forEach(function (value) {
-		let text = theEnum[value];
-		texts.push(getMultilLangugeText(text, locale));
-	});
-
-	return texts;
-}
-
 export function isRightToLeftLanguage(loc: Locale) {
 	return loc == Locale.ar || loc == Locale.fa;
-}
-
-export function getMultilLangugeText(text, loc: Locale) {
-	if (!text)
-		return "";
-
-	if (typeof (text) == "object") {
-		if (text.en && loc == Locale.en)
-			return text.en;
-		else if (text.fa && loc == Locale.fa)
-			return text.fa;
-		else
-			return text.en || text.fa;
-	}
-
-	return text.toString();
 }
 
 export function encodeXml(text) {
