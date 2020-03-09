@@ -191,12 +191,17 @@ export class Property {
 
 export class Drive {
 	_id: ObjectId;
-	name: string;
+	title: string | MultilangText;
 	type: SourceType;
 	comment: string | MultilangText;
 	address: string;
 	mode: DriveMode;
 	uri: string;
+	s3: {
+		accessKeyId: string;
+		secretAccessKey: string;
+		_sdk: any;
+	};
 	_package: string;
 }
 
@@ -576,7 +581,7 @@ export enum StatusCode {
 	NetworkAuthenticationRequired = 511,
 
 	UnknownError = 1001,
-	SystemConfigurationProblem = 1002,
+	ConfigurationProblem = 1002,
 }
 
 export enum LogLevel {
@@ -898,5 +903,6 @@ export enum DirFileType {
 
 export class DirFile {
 	name: string;
+	size: number;
 	type: DirFileType;
 }

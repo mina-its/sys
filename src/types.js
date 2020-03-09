@@ -1,72 +1,39 @@
 "use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
-var AuditArgs = (function () {
-    function AuditArgs() {
-    }
-    return AuditArgs;
-}());
+class AuditArgs {
+}
 exports.AuditArgs = AuditArgs;
-var Role = (function () {
-    function Role() {
-    }
-    return Role;
-}());
+class Role {
+}
 exports.Role = Role;
-var User = (function () {
-    function User() {
+class User {
+    constructor() {
         this.roles = [];
         this.disabled = false;
     }
-    return User;
-}());
+}
 exports.User = User;
-var AuditType = (function () {
-    function AuditType() {
-    }
-    return AuditType;
-}());
+class AuditType {
+}
 exports.AuditType = AuditType;
-var Global = (function () {
-    function Global() {
+class Global {
+    constructor() {
         this.dbs = [];
         this.packages = {};
     }
-    return Global;
-}());
+}
 exports.Global = Global;
-var Entity = (function () {
-    function Entity() {
+class Entity {
+    constructor() {
         this._access = { "sys": {} };
     }
-    return Entity;
-}());
+}
 exports.Entity = Entity;
-var mObject = (function (_super) {
-    __extends(mObject, _super);
-    function mObject() {
-        return _super !== null && _super.apply(this, arguments) || this;
-    }
-    return mObject;
-}(Entity));
+class mObject extends Entity {
+}
 exports.mObject = mObject;
-var ObjectModifyState = (function () {
-    function ObjectModifyState() {
-    }
-    return ObjectModifyState;
-}());
+class ObjectModifyState {
+}
 exports.ObjectModifyState = ObjectModifyState;
 var ObjectModifyType;
 (function (ObjectModifyType) {
@@ -75,47 +42,27 @@ var ObjectModifyType;
     ObjectModifyType[ObjectModifyType["Patch"] = 3] = "Patch";
     ObjectModifyType[ObjectModifyType["Delete"] = 4] = "Delete";
 })(ObjectModifyType = exports.ObjectModifyType || (exports.ObjectModifyType = {}));
-var Property = (function () {
-    function Property() {
-    }
-    return Property;
-}());
+class Property {
+}
 exports.Property = Property;
-var Drive = (function () {
-    function Drive() {
-    }
-    return Drive;
-}());
+class Drive {
+}
 exports.Drive = Drive;
-var Function = (function (_super) {
-    __extends(Function, _super);
-    function Function() {
-        return _super !== null && _super.apply(this, arguments) || this;
-    }
-    return Function;
-}(Entity));
+class Function extends Entity {
+}
 exports.Function = Function;
-var FunctionTestSample = (function () {
-    function FunctionTestSample() {
-    }
-    return FunctionTestSample;
-}());
+class FunctionTestSample {
+}
 exports.FunctionTestSample = FunctionTestSample;
-var EntityLink = (function () {
-    function EntityLink() {
-    }
-    return EntityLink;
-}());
+class EntityLink {
+}
 exports.EntityLink = EntityLink;
-var Form = (function (_super) {
-    __extends(Form, _super);
-    function Form() {
-        var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this.elems = [];
-        return _this;
+class Form extends Entity {
+    constructor() {
+        super(...arguments);
+        this.elems = [];
     }
-    return Form;
-}(Entity));
+}
 exports.Form = Form;
 var ObjectViewType;
 (function (ObjectViewType) {
@@ -123,182 +70,98 @@ var ObjectViewType;
     ObjectViewType[ObjectViewType["DetailsView"] = 2] = "DetailsView";
     ObjectViewType[ObjectViewType["TreeView"] = 3] = "TreeView";
 })(ObjectViewType = exports.ObjectViewType || (exports.ObjectViewType = {}));
-var Elem = (function () {
-    function Elem() {
-    }
-    return Elem;
-}());
+class Elem {
+}
 exports.Elem = Elem;
-var ErrorResult = (function (_super) {
-    __extends(ErrorResult, _super);
-    function ErrorResult(code, message) {
-        var _this = _super.call(this) || this;
-        _this.toString = function () {
-            return "error (" + _this.code + ") " + (_this.message || "");
+class ErrorResult extends Error {
+    constructor(code, message) {
+        super();
+        this.toString = () => {
+            return `error (${this.code}) ${this.message || ""}`;
         };
-        _this.code = code;
+        this.code = code;
         if (message)
-            _this.message = message;
-        return _this;
+            this.message = message;
     }
-    return ErrorResult;
-}(Error));
+}
 exports.ErrorResult = ErrorResult;
-var ChartSeries = (function () {
-    function ChartSeries() {
-    }
-    return ChartSeries;
-}());
+class ChartSeries {
+}
 exports.ChartSeries = ChartSeries;
-var PackageMeta = (function () {
-    function PackageMeta() {
-    }
-    return PackageMeta;
-}());
+class PackageMeta {
+}
 exports.PackageMeta = PackageMeta;
-var Access = (function () {
-    function Access() {
-    }
-    return Access;
-}());
+class Access {
+}
 exports.Access = Access;
-var AccessItem = (function () {
-    function AccessItem() {
-    }
-    return AccessItem;
-}());
+class AccessItem {
+}
 exports.AccessItem = AccessItem;
-var Menu = (function () {
-    function Menu() {
-    }
-    return Menu;
-}());
+class Menu {
+}
 exports.Menu = Menu;
-var MenuItem = (function () {
-    function MenuItem() {
-    }
-    return MenuItem;
-}());
+class MenuItem {
+}
 exports.MenuItem = MenuItem;
-var Pair = (function () {
-    function Pair() {
-    }
-    return Pair;
-}());
+class Pair {
+}
 exports.Pair = Pair;
-var App = (function () {
-    function App() {
-    }
-    return App;
-}());
+class App {
+}
 exports.App = App;
-var SystemConfigPackage = (function () {
-    function SystemConfigPackage() {
-    }
-    return SystemConfigPackage;
-}());
+class SystemConfigPackage {
+}
 exports.SystemConfigPackage = SystemConfigPackage;
-var SystemConfig = (function () {
-    function SystemConfig() {
-    }
-    return SystemConfig;
-}());
+class SystemConfig {
+}
 exports.SystemConfig = SystemConfig;
-var Enum = (function () {
-    function Enum() {
-    }
-    return Enum;
-}());
+class Enum {
+}
 exports.Enum = Enum;
-var EnumItem = (function () {
-    function EnumItem() {
-    }
-    return EnumItem;
-}());
+class EnumItem {
+}
 exports.EnumItem = EnumItem;
-var MultilangText = (function () {
-    function MultilangText() {
-    }
-    return MultilangText;
-}());
+class MultilangText {
+}
 exports.MultilangText = MultilangText;
-var SmsAccount = (function () {
-    function SmsAccount() {
-    }
-    return SmsAccount;
-}());
+class SmsAccount {
+}
 exports.SmsAccount = SmsAccount;
-var EmailAccount = (function () {
-    function EmailAccount() {
-    }
-    return EmailAccount;
-}());
+class EmailAccount {
+}
 exports.EmailAccount = EmailAccount;
-var PackageConfig = (function () {
-    function PackageConfig() {
-    }
-    return PackageConfig;
-}());
+class PackageConfig {
+}
 exports.PackageConfig = PackageConfig;
-var PackageAddressRule = (function () {
-    function PackageAddressRule() {
-    }
-    return PackageAddressRule;
-}());
+class PackageAddressRule {
+}
 exports.PackageAddressRule = PackageAddressRule;
-var FileInfo = (function () {
-    function FileInfo() {
-    }
-    return FileInfo;
-}());
+class FileInfo {
+}
 exports.FileInfo = FileInfo;
-var Text = (function () {
-    function Text() {
-    }
-    return Text;
-}());
+class Text {
+}
 exports.Text = Text;
-var TimeZone = (function () {
-    function TimeZone() {
-    }
-    return TimeZone;
-}());
+class TimeZone {
+}
 exports.TimeZone = TimeZone;
-var RefPortion = (function () {
-    function RefPortion() {
-    }
-    return RefPortion;
-}());
+class RefPortion {
+}
 exports.RefPortion = RefPortion;
-var GeoLocation = (function () {
-    function GeoLocation() {
-    }
-    return GeoLocation;
-}());
+class GeoLocation {
+}
 exports.GeoLocation = GeoLocation;
-var PutOptions = (function () {
-    function PutOptions() {
-    }
-    return PutOptions;
-}());
+class PutOptions {
+}
 exports.PutOptions = PutOptions;
-var PatchOptions = (function () {
-    function PatchOptions() {
-    }
-    return PatchOptions;
-}());
+class PatchOptions {
+}
 exports.PatchOptions = PatchOptions;
-var DelOptions = (function () {
-    function DelOptions() {
-    }
-    return DelOptions;
-}());
+class DelOptions {
+}
 exports.DelOptions = DelOptions;
-var GetOptions = (function () {
-    function GetOptions() {
-    }
-    return GetOptions;
-}());
+class GetOptions {
+}
 exports.GetOptions = GetOptions;
 var StatusCode;
 (function (StatusCode) {
@@ -327,7 +190,7 @@ var StatusCode;
     StatusCode[StatusCode["ServiceUnavailable"] = 503] = "ServiceUnavailable";
     StatusCode[StatusCode["NetworkAuthenticationRequired"] = 511] = "NetworkAuthenticationRequired";
     StatusCode[StatusCode["UnknownError"] = 1001] = "UnknownError";
-    StatusCode[StatusCode["SystemConfigurationProblem"] = 1002] = "SystemConfigurationProblem";
+    StatusCode[StatusCode["ConfigurationProblem"] = 1002] = "ConfigurationProblem";
 })(StatusCode = exports.StatusCode || (exports.StatusCode = {}));
 var LogLevel;
 (function (LogLevel) {
@@ -617,15 +480,14 @@ var RequestMode;
     RequestMode[RequestMode["download"] = 2] = "download";
     RequestMode[RequestMode["api"] = 3] = "api";
 })(RequestMode = exports.RequestMode || (exports.RequestMode = {}));
-var WebResponse = (function () {
-    function WebResponse() {
+class WebResponse {
+    constructor() {
         this.data = {};
         this.meta = {};
         this.menu = [];
         this.navmenu = [];
     }
-    return WebResponse;
-}());
+}
 exports.WebResponse = WebResponse;
 var WebMethod;
 (function (WebMethod) {
@@ -635,11 +497,8 @@ var WebMethod;
     WebMethod["patch"] = "PATCH";
     WebMethod["del"] = "DELETE";
 })(WebMethod = exports.WebMethod || (exports.WebMethod = {}));
-var UnitTestObject = (function () {
-    function UnitTestObject() {
-    }
-    return UnitTestObject;
-}());
+class UnitTestObject {
+}
 exports.UnitTestObject = UnitTestObject;
 var DriveMode;
 (function (DriveMode) {
@@ -651,10 +510,7 @@ var DirFileType;
     DirFileType[DirFileType["File"] = 1] = "File";
     DirFileType[DirFileType["Folder"] = 2] = "Folder";
 })(DirFileType = exports.DirFileType || (exports.DirFileType = {}));
-var DirFile = (function () {
-    function DirFile() {
-    }
-    return DirFile;
-}());
+class DirFile {
+}
 exports.DirFile = DirFile;
 //# sourceMappingURL=types.js.map

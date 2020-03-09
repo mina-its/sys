@@ -42,6 +42,12 @@ function toFriendlyFileSizeString(size) {
         return (size / 1024 / 1024).toFixed(1) + " MB";
 }
 exports.toFriendlyFileSizeString = toFriendlyFileSizeString;
+function joinUri(part1, part2) {
+    part1 = (part1 || "").replace(/^\//, '').replace(/\/$/, '');
+    part2 = (part2 || "").replace(/^\//, '').replace(/\/$/, '');
+    return part1 ? part1 + "/" + part2 : part2;
+}
+exports.joinUri = joinUri;
 function ajax(url, data, config, done, fail) {
     var params = { url: url, data: data };
     if (config && config.method)

@@ -442,19 +442,56 @@ export async function putFile(host: string, drive: Drive, relativePath: string, 
 			break;
 
 		case SourceType.S3:
-			let s3 = new AWS.S3({apiVersion: Constants.amazonS3ApiVersion});
-			let data: any = await s3.upload({Bucket: drive.address, Key: path.basename(relativePath), Body: file});
-			break;
+			return new Promise((resolve, reject) => {
+				let sdk = getS3DriveSdk(drive);
+				let s3 = new sdk.S3({apiVersion: Constants.amazonS3ApiVersion});
+				const config = {
+					Bucket: drive.address,
+					Key: relativePath,
+					Body: file,
+					ACL: "public-read"
+				};
+				s3.upload(config, (err, result) => {
+					log(JSON.stringify(result));
+					if (err)
+						reject(err);
+					else
+						resolve();
+				});
+			});
 
 		default:
 			throw StatusCode.NotImplemented;
 	}
 }
 
+export function joinUri(part1: string, part2: string): string {
+	part1 = (part1 || "").replace(/^\//, '').replace(/\/$/, '');
+	part2 = (part2 || "").replace(/^\//, '').replace(/\/$/, '');
+	return part1 ? part1 + "/" + part2 : part2;
+}
+
+function getS3DriveSdk(drive: Drive) {
+	if (drive.s3._sdk) return drive.s3._sdk;
+
+	const sdk = require('aws-sdk');
+	if (!drive.s3.accessKeyId)
+		throwError(StatusCode.ConfigurationProblem, `s3 accessKeyId for drive package '${drive._package}' must be configured.`);
+	else
+		sdk.config.accessKeyId = drive.s3.accessKeyId;
+
+	if (!drive.s3.secretAccessKey)
+		throwError(StatusCode.ConfigurationProblem, `s3 secretAccessKey for drive package '${drive._package}' must be configured.`);
+	else
+		sdk.config.secretAccessKey = drive.s3.secretAccessKey;
+	drive.s3._sdk = sdk;
+	return sdk;
+}
+
 export async function listDir(drive: Drive, dir: string): Promise<DirFile[]> {
 	switch (drive.type) {
 		case SourceType.File:
-			let list = await fsPromises.readdir(dir, {withFileTypes: true});
+			let list = await fsPromises.readdir(path.join(drive.address, dir), {withFileTypes: true});
 			return list.map(item => {
 				return {name: item.name, type: item.isDirectory() ? DirFileType.Folder : DirFileType.File} as DirFile
 			});
@@ -463,18 +500,34 @@ export async function listDir(drive: Drive, dir: string): Promise<DirFile[]> {
 			throw StatusCode.NotImplemented;
 
 		case SourceType.S3:
-			let s3 = new AWS.S3({apiVersion: Constants.amazonS3ApiVersion});
+			let sdk = getS3DriveSdk(drive);
+			let s3 = new sdk.S3({apiVersion: Constants.amazonS3ApiVersion});
 			const s3params = {
-				Bucket: 'bucket-name',
-				MaxKeys: 20,
-				Delimiter: '/',
+				Bucket: drive.address,
+				Prefix: _.trim(dir, '/') ? _.trim(dir, '/') + "/" : "",
+				Delimiter: "/",
 			};
 			return new Promise((resolve, reject) => {
+				let regex = new RegExp("^" + s3params.Prefix);
 				s3.listObjectsV2(s3params, (err, data) => {
 					if (err)
 						reject(err);
-					else
-						resolve(null);
+					else {
+						let folders: DirFile[] = data.CommonPrefixes.map(item => {
+							return {
+								name: _.trim(item.Prefix.replace(regex, ""), '/'),
+								type: DirFileType.Folder
+							} as DirFile
+						});
+						let files: DirFile[] = data.Contents.map(item => {
+							return {
+								name: _.trim(item.Key.replace(regex, ""), '/'),
+								type: DirFileType.File,
+								size: item.Size
+							} as DirFile
+						});
+						resolve(folders.concat(files).filter(item => item.name));
+					}
 				});
 			});
 	}
@@ -668,6 +721,10 @@ async function loadSysConfig() {
 		}
 	}
 
+	applyAmazonConfig();
+}
+
+function applyAmazonConfig() {
 	if (glob.sysConfig.amazon) {
 		if (!glob.sysConfig.amazon.accessKeyId)
 			warn('s3 accessKeyId, secretAccessKey is required in sysConfig!');
@@ -1227,11 +1284,11 @@ export function getAllFiles(path) {
 	if (fs.statSync(path).isFile())
 		return [path];
 	return _.flatten(fs.readdirSync(path).map(file => {
-		let fileOrDir = fs.statSync([path, file].join('/'));
+		let fileOrDir = fs.statSync(joinUri(path, file));
 		if (fileOrDir.isFile())
 			return (path + '/' + file).replace(/^\.\/\/?/, '');
 		else if (fileOrDir.isDirectory())
-			return getAllFiles([path, file].join('/'));
+			return getAllFiles(joinUri(path, file));
 	}));
 }
 
