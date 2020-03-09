@@ -1,6 +1,6 @@
 {
   "name": "sys",
-  "version": "5.3.3",
+  "version": "5.2.0",
   "description": "mina sys package",
   "main": "src/main.js",
   "scripts": {
