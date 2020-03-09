@@ -41,10 +41,12 @@ export function toFriendlyFileSizeString(size: number): string {
 		return (size / 1024 / 1024).toFixed(1) + " MB";
 }
 
-export function joinUri(part1: string, part2: string): string {
-	part1 = (part1 || "").replace(/^\//, '').replace(/\/$/, '');
-	part2 = (part2 || "").replace(/^\//, '').replace(/\/$/, '');
-	return part1 ? part1 + "/" + part2 : part2;
+export function joinUri(...parts: string[]): string {
+	let uri = "";
+	for (let part of parts) {
+		uri += "/" + (part || "").replace(/^\//, '').replace(/\/$/, '');
+	}
+	return uri.substr(1);
 }
 
 export function ajax(url: string, data: any, config: AjaxConfig, done: (res: WebResponse) => void, fail?: (err: { code: StatusCode, message: string }) => void) {

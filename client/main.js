@@ -42,10 +42,17 @@ function toFriendlyFileSizeString(size) {
         return (size / 1024 / 1024).toFixed(1) + " MB";
 }
 exports.toFriendlyFileSizeString = toFriendlyFileSizeString;
-function joinUri(part1, part2) {
-    part1 = (part1 || "").replace(/^\//, '').replace(/\/$/, '');
-    part2 = (part2 || "").replace(/^\//, '').replace(/\/$/, '');
-    return part1 ? part1 + "/" + part2 : part2;
+function joinUri() {
+    var parts = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+        parts[_i] = arguments[_i];
+    }
+    var uri = "";
+    for (var _a = 0, parts_1 = parts; _a < parts_1.length; _a++) {
+        var part = parts_1[_a];
+        uri += "/" + (part || "").replace(/^\//, '').replace(/\/$/, '');
+    }
+    return uri.substr(1);
 }
 exports.joinUri = joinUri;
 function ajax(url, data, config, done, fail) {

@@ -465,10 +465,12 @@ export async function putFile(host: string, drive: Drive, relativePath: string, 
 	}
 }
 
-export function joinUri(part1: string, part2: string): string {
-	part1 = (part1 || "").replace(/^\//, '').replace(/\/$/, '');
-	part2 = (part2 || "").replace(/^\//, '').replace(/\/$/, '');
-	return part1 ? part1 + "/" + part2 : part2;
+export function joinUri(...parts: string[]): string {
+	let uri = "";
+	for (let part of parts) {
+		uri += "/" + (part || "").replace(/^\//, '').replace(/\/$/, '');
+	}
+	return uri.substr(1);
 }
 
 function getS3DriveSdk(drive: Drive) {
