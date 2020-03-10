@@ -45,7 +45,7 @@ async function start() {
         return exports.glob;
     }
     catch (ex) {
-        error("sys.main error:", ex);
+        error("sys.main error:", ex.stack || ex.message || ex);
         return null;
     }
 }
@@ -734,7 +734,7 @@ function initializePackages() {
             checkAppMenu(app);
             if (validateApp(pack.name, app)) {
                 exports.glob.apps.push(app);
-                let host = exports.glob.sysConfig.hosts.find(host => host.app.equals(app._id));
+                let host = exports.glob.sysConfig.hosts.find(host => host.app && host.app.equals(app._id));
                 if (host)
                     host._app = app;
             }

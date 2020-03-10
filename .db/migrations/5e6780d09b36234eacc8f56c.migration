@@ -1,0 +1,1 @@
+{"_id":{"$oid":"5e6780d09b36234eacc8f56c"},"changes":[{"op":1,"data":"[{\"query\":{\"_id\":{\"$oid\":\"54a51cefd3ca1b12e0e9374d\"}},\"update\":{\"$unset\":{\"access.defaultPermission\":\"\"}}}]","ns":"objects","_id":{"$oid":"5e6780d09b36234eacc8f56d"}}],"filename":"5e6780d09b36234eacc8f56c.migration","node":"Farhad","commitDate":{"$date":"2020-03-10T11:58:08.917Z"},"state":0}

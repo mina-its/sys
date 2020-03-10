@@ -96,7 +96,7 @@ export async function start() {
 		await reload();
 		return glob;
 	} catch (ex) {
-		error("sys.main error:", ex);
+		error("sys.main error:", ex.stack || ex.message || ex);
 		return null;
 	}
 }
@@ -910,7 +910,7 @@ function initializePackages() {
 			checkAppMenu(app);
 			if (validateApp(pack.name, app)) {
 				glob.apps.push(app);
-				let host = glob.sysConfig.hosts.find(host => host.app.equals(app._id));
+				let host = glob.sysConfig.hosts.find(host => host.app && host.app.equals(app._id));
 				if (host) host._app = app;
 			}
 		}

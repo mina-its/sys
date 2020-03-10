@@ -210,6 +210,7 @@ export class Function extends Entity {
 	mode: FunctionMode;
 	clientSide: boolean;
 	returnType: ObjectId;
+	interactive: boolean;
 	test: {
 		mock: boolean;
 		samples?: FunctionTestSample[];
