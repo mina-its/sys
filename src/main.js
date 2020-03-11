@@ -723,7 +723,7 @@ function checkAppMenu(app) {
 }
 exports.checkAppMenu = checkAppMenu;
 function initializePackages() {
-    log(`initializePackages: ${JSON.stringify(exports.glob.sysConfig.packages)}`);
+    log(`initializePackages: ${exports.glob.sysConfig.packages.map(p => p.name).join(' , ')}`);
     exports.glob.apps = [];
     for (let pack of getEnabledPackages()) {
         let config = exports.glob.packages[pack.name]._config;
@@ -903,13 +903,18 @@ function checkFileProperty(prop, entity) {
             error(`drive for property file '${entity._package}.${entity.name}.${prop.name}' must be set.`);
     }
 }
+function checkForSystemProperty(prop) {
+    if (!prop.type && !prop.properties) {
+        let sysProperty = exports.glob.systemProperties.find(p => p.name === prop.name);
+        if (sysProperty)
+            _.defaultsDeep(prop, sysProperty);
+    }
+}
 function initProperties(properties, entity, parentTitle) {
     if (!properties)
         return;
     for (let prop of properties) {
-        let sysProperty = exports.glob.systemProperties.find(p => p.name === prop.name);
-        if (sysProperty)
-            _.defaultsDeep(prop, sysProperty);
+        checkForSystemProperty(prop);
         prop.group = prop.group || parentTitle;
         checkPropertyGtype(prop, entity);
         checkFileProperty(prop, entity);

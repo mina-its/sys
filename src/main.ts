@@ -899,7 +899,7 @@ export function checkAppMenu(app: App) {
 }
 
 function initializePackages() {
-	log(`initializePackages: ${JSON.stringify(glob.sysConfig.packages)}`);
+	log(`initializePackages: ${glob.sysConfig.packages.map(p => p.name).join(' , ')}`);
 	glob.apps = [];
 	for (let pack of getEnabledPackages()) {
 		let config = glob.packages[pack.name]._config;
@@ -1094,13 +1094,18 @@ function checkFileProperty(prop: Property, entity: Entity) {
 	}
 }
 
-export function initProperties(properties: Property[], entity: Entity, parentTitle?) {
-	if (!properties) return;
-	for (let prop of properties) {
+function checkForSystemProperty(prop: Property) {
+	if (!prop.type && !prop.properties) {
 		let sysProperty: Property = glob.systemProperties.find(p => p.name === prop.name);
 		if (sysProperty)
 			_.defaultsDeep(prop, sysProperty);
+	}
+}
 
+export function initProperties(properties: Property[], entity: Entity, parentTitle?) {
+	if (!properties) return;
+	for (let prop of properties) {
+		checkForSystemProperty(prop);
 		prop.group = prop.group || parentTitle;
 		checkPropertyGtype(prop, entity);
 		checkFileProperty(prop, entity);

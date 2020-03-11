@@ -403,6 +403,7 @@ export class App {
 	dependencies: string[];
 	favicon: string;
 	brandingLogo: string;
+	interactive: boolean;
 	_: {
 		pack: string;
 		menu: Menu;
