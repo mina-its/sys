@@ -12,6 +12,7 @@ const Jalali = require("jalali-moment");
 const AWS = require("aws-sdk");
 const mongodb_1 = require("mongodb");
 const types_1 = require("./types");
+const rimraf = require("rimraf");
 const { EJSON } = require('bson');
 const { exec } = require("child_process");
 exports.glob = new types_1.Global();
@@ -1487,6 +1488,17 @@ function clientLog(cn, message, type = types_1.LogType.Debug, ref) {
     exports.postClientCommandCallback(cn, types_1.ClientCommand.Log, message, type, ref);
 }
 exports.clientLog = clientLog;
+async function removeDir(dir) {
+    return new Promise((resolve, reject) => {
+        rimraf(dir, { silent: true }, (ex) => {
+            if (ex)
+                reject(ex);
+            else
+                resolve();
+        });
+    });
+}
+exports.removeDir = removeDir;
 function clientAsk(cn, message, optionsEnum) {
     let items = exports.glob.enumTexts[cn.pack + "." + optionsEnum];
     exports.postClientCommandCallback(cn, types_1.ClientCommand.Ask, message, { items: items });

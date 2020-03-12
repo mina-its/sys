@@ -55,6 +55,7 @@ import {
 	Text,
 	ClientCommand, Reference,
 } from './types';
+import rimraf = require("rimraf");
 
 const {EJSON} = require('bson');
 const {exec} = require("child_process");
@@ -1716,6 +1717,17 @@ export function getReference(id?: string): Reference {
 
 export function clientLog(cn: Context, message: string, type: LogType = LogType.Debug, ref?: string) {
 	postClientCommandCallback(cn, ClientCommand.Log, message, type, ref);
+}
+
+export async function removeDir(dir: string) {
+	return new Promise((resolve, reject) => {
+		rimraf(dir, {silent: true}, (ex) => {
+			if (ex)
+				reject(ex);
+			else
+				resolve();
+		});
+	});
 }
 
 export function clientAsk(cn: Context, message: string, optionsEnum: string) {
