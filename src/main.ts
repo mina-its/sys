@@ -24,7 +24,7 @@ import {
 	Enum,
 	EnumItem,
 	EnvMode,
-	ErrorResult,
+	ErrorObject,
 	Form,
 	Function,
 	FunctionTestSample,
@@ -32,7 +32,7 @@ import {
 	Global,
 	GlobalType,
 	Locale,
-	LogLevel,
+	LogType,
 	Menu,
 	mObject,
 	ObjectModifyState,
@@ -53,10 +53,11 @@ import {
 	SystemConfigPackage,
 	SystemProperty,
 	Text,
+	ClientCommand, Reference,
 } from './types';
 
 const {EJSON} = require('bson');
-
+const {exec} = require("child_process");
 export let glob = new Global();
 const fsPromises = fs.promises;
 
@@ -80,12 +81,12 @@ export async function reload(cn?: Context) {
 export async function start() {
 	try {
 		process.on('uncaughtException', async err =>
-			await audit(SysAuditTypes.uncaughtException, {level: LogLevel.Fatal, comment: err.message + ". " + err.stack})
+			await audit(SysAuditTypes.uncaughtException, {level: LogType.Fatal, comment: err.message + ". " + err.stack})
 		);
 
 		process.on('unhandledRejection', async (err: any) => {
 			await audit(SysAuditTypes.unhandledRejection, {
-				level: LogLevel.Fatal,
+				level: LogType.Fatal,
 				comment: err.message + ". " + err.stack
 			});
 		});
@@ -115,16 +116,16 @@ export async function audit(auditType: string, args: AuditArgs) {
 	let msg = "audit(" + (type ? type.name : args.type) + "): " + comment;
 
 	switch (args.level) {
-		case LogLevel.Fatal:
+		case LogType.Fatal:
 			fatal(msg);
 			break;
-		case LogLevel.Error:
+		case LogType.Error:
 			error(msg);
 			break;
-		case LogLevel.Info:
+		case LogType.Info:
 			info(msg);
 			break;
-		case LogLevel.Warning:
+		case LogType.Warning:
 			warn(msg);
 			break;
 	}
@@ -661,7 +662,7 @@ export function warn(...message) {
 	logger.warn(message);
 }
 
-export function error(message: string, err?: Error | ErrorResult) {
+export function error(message: string, err?: Error | ErrorObject) {
 	logger.error(err ? message + "," + err : message);
 }
 
@@ -712,17 +713,13 @@ async function loadSysConfig() {
 			glob.packages[pack.name] = require(path.join(process.env.PACKAGES_ROOT, pack.name, `src/main`));
 			if (glob.packages[pack.name] == null)
 				error(`Error loading package ${pack.name}!`);
-			else {
-				let p = require(path.join(process.env.PACKAGES_ROOT, pack.name, `package.json`));
-				glob.packages[pack.name]._version = p.version;
-				log(`package '${pack.name}' loaded. version: ${p.version}`);
-			}
 		} catch (ex) {
 			error("loadSysConfig", ex);
 			pack.enabled = false;
 		}
 	}
 
+	glob.packageConfigs["web"] = {_static: require(path.join(process.env.PACKAGES_ROOT, "web", `package.json`))} as any;
 	applyAmazonConfig();
 }
 
@@ -748,8 +745,11 @@ async function loadPackageSystemCollections(packConfig: SystemConfigPackage) {
 	if (!config) {
 		packConfig.enabled = false;
 		error(`Config for package '${pack}' not found!`);
-	} else
-		glob.packages[pack]._config = config;
+	} else {
+		glob.packageConfigs[pack] = config;
+		glob.packageConfigs[pack]._static = require(path.join(process.env.PACKAGES_ROOT, pack, `package.json`));
+		log(`package '${pack}' loaded. version: ${glob.packageConfigs[pack]._static.version}`);
+	}
 
 	let objects: mObject[] = await get(pack, SysCollection.objects);
 	for (let object of objects) {
@@ -902,7 +902,7 @@ function initializePackages() {
 	log(`initializePackages: ${glob.sysConfig.packages.map(p => p.name).join(' , ')}`);
 	glob.apps = [];
 	for (let pack of getEnabledPackages()) {
-		let config = glob.packages[pack.name]._config;
+		let config = glob.packageConfigs[pack.name];
 		for (let app of (config.apps || [])) {
 			app._package = pack.name;
 			app.dependencies = app.dependencies || [];
@@ -1297,6 +1297,13 @@ export function getAllFiles(path) {
 		else if (fileOrDir.isDirectory())
 			return getAllFiles(joinUri(path, file));
 	}));
+}
+
+export function getPackageConfig(pack: string): PackageConfig {
+	if (!glob.packageConfigs[pack])
+		throw `config for package '${pack}' not found.`;
+
+	return glob.packageConfigs[pack];
 }
 
 export function getPathSize(path) {
@@ -1700,5 +1707,44 @@ export function isObjectId(value: any): boolean {
 }
 
 export function throwError(code: StatusCode, message?: string) {
-	throw new ErrorResult(code, message);
+	throw new ErrorObject(code, message);
+}
+
+export function getReference(id?: string): Reference {
+	return new ObjectId(id);
+}
+
+export function clientLog(cn: Context, message: string, type: LogType = LogType.Debug, ref?: string) {
+	postClientCommandCallback(cn, ClientCommand.Log, message, type, ref);
+}
+
+export function clientAsk(cn: Context, message: string, optionsEnum: string) {
+	let items = glob.enumTexts[cn.pack + "." + optionsEnum];
+	postClientCommandCallback(cn, ClientCommand.Ask, message, {items: items});
+}
+
+export function clientNotify(cn: Context, title: string, message: string, url: string, icon?: string) {
+	postClientCommandCallback(cn, ClientCommand.Notification, title, message, url, icon);
+}
+
+export let postClientCommandCallback;
+
+export async function execShellCommand(cmd, std?: (message: string) => void): Promise<string> {
+	return new Promise((resolve: (message: string) => void) => {
+		let process = exec(cmd);
+		let message = "";
+		let logData = data => {
+			if (std)
+				std(data.toString());
+			else {
+				log(data.toString());
+			}
+			message += data.toString();
+		};
+		process.stdout.on('data', logData);
+		process.stderr.on('data', logData);
+		process.on('exit', function (code) {
+			resolve(message);
+		});
+	});
 }

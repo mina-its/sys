@@ -12,12 +12,6 @@ var AjaxConfig = (function () {
     return AjaxConfig;
 }());
 exports.AjaxConfig = AjaxConfig;
-var NotifyType;
-(function (NotifyType) {
-    NotifyType[NotifyType["Information"] = 1] = "Information";
-    NotifyType[NotifyType["Warning"] = 2] = "Warning";
-    NotifyType[NotifyType["Error"] = 3] = "Error";
-})(NotifyType = exports.NotifyType || (exports.NotifyType = {}));
 var NotificationInfo = (function () {
     function NotificationInfo() {
     }

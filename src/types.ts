@@ -1,10 +1,5 @@
 import {ObjectId} from 'mongodb';
 
-export interface IPackage {
-	_config: PackageConfig;
-	_version: string;
-}
-
 export interface Context {
 	locale: Locale;
 	pack?: string;
@@ -19,7 +14,7 @@ export interface Reference extends ObjectId {
 export class AuditArgs {
 	detail?: any;
 	comment?: string;
-	level: LogLevel;
+	level: LogType;
 	pack?: string;
 	type?: ObjectId;
 	user?: ObjectId;
@@ -64,7 +59,8 @@ export class AuditType {
 export class Global {
 	sysConfig: SystemConfig;
 	dbs: any[] = []; // mongodb.Db
-	packages: { [id: string]: IPackage; } = {};
+	packages: { [id: string]: any } = {};
+	packageConfigs: { [id: string]: PackageConfig; } = {};
 	entities: Entity[];
 	drives: Drive[];
 	auditTypes: AuditType[];
@@ -316,7 +312,7 @@ export class Elem {
 	}
 }
 
-export class ErrorResult extends Error {
+export class ErrorObject extends Error {
 	constructor(code: StatusCode, message: string) {
 		super();
 		this.code = code;
@@ -483,6 +479,13 @@ export class PackageConfig {
 	_id: ObjectId;
 	apps: App[];
 	addressRules: PackageAddressRule[];
+	_static: {
+		version: string;
+		repository: string;
+		mina: {
+			dependencies: any;
+		}
+	};
 }
 
 export class PackageAddressRule {
@@ -555,6 +558,7 @@ export class GetOptions {
 
 export enum StatusCode {
 	Ok = 200,
+	Accepted = 202,
 	ResetContent = 205,
 
 	MovedPermanently = 301,
@@ -586,7 +590,7 @@ export enum StatusCode {
 	ConfigurationProblem = 1002,
 }
 
-export enum LogLevel {
+export enum LogType {
 	Fatal = 0,
 	Error = 3,
 	Warning = 4,
@@ -855,6 +859,7 @@ export class WebResponse implements IError {
 	message: string;
 	code: StatusCode;
 	config: {
+		interactive: boolean;
 		locale?: string;
 		appLocales?: Pair[];
 		brandingLogo: string;
@@ -895,7 +900,7 @@ export class UnitTestObject {
 
 export enum DriveMode {
 	Gallery = 1,
-	Nonselectable = 2,
+	NonSelectable = 2,
 }
 
 export enum DirFileType {
@@ -907,4 +912,13 @@ export class DirFile {
 	name: string;
 	size: number;
 	type: DirFileType;
+}
+
+export enum ClientCommand {
+	Notification = 1,
+	Log = 2,
+	Ask = 3,
+	Answer = 4,
+	FunctionDone = 5,
+	FunctionFailed = 6,
 }

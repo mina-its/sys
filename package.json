@@ -12,7 +12,7 @@
     ],
     "verbose": true
   },
-  "repository": "private",
+  "repository": "https://github.com/mina-its/sys",
   "author": "Farhad Jalali",
   "license": "Apache License",
   "devDependencies": {

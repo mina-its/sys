@@ -1,5 +1,5 @@
-import {AjaxConfig, ComponentParams, NotificationInfo, NotifyType} from "./types";
-import {GetOptions, IError, StatusCode, WebMethod, WebResponse} from "../src/types";
+import {AjaxConfig, ComponentParams, NotificationInfo} from "./types";
+import {GetOptions, IError, StatusCode, WebMethod, LogType, WebResponse} from "../src/types";
 
 declare let $, Vue, axios, text: any;
 
@@ -85,14 +85,14 @@ export function ajax(url: string, data: any, config: AjaxConfig, done: (res: Web
 	});
 }
 
-export function notify(content: string | IError, type?: NotifyType, params?: NotificationInfo) {
+export function notify(content: string | IError, type?: LogType, params?: NotificationInfo) {
 	if (!content) return;
 	let message = typeof content == "string" ? content : content.message;
 	if (!type) {
 		if (typeof content != "string")
-			type = content.code && content.code != StatusCode.Ok ? NotifyType.Error : NotifyType.Information;
+			type = content.code && content.code != StatusCode.Ok ? LogType.Error : LogType.Info;
 		else
-			type = NotifyType.Information;
+			type = LogType.Info;
 	}
 	let evt = new CustomEvent('notify', {detail: {message, type}});
 	window.dispatchEvent(evt);

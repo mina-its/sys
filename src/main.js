@@ -13,6 +13,7 @@ const AWS = require("aws-sdk");
 const mongodb_1 = require("mongodb");
 const types_1 = require("./types");
 const { EJSON } = require('bson');
+const { exec } = require("child_process");
 exports.glob = new types_1.Global();
 const fsPromises = fs.promises;
 async function reload(cn) {
@@ -32,10 +33,10 @@ async function reload(cn) {
 exports.reload = reload;
 async function start() {
     try {
-        process.on('uncaughtException', async (err) => await audit(types_1.SysAuditTypes.uncaughtException, { level: types_1.LogLevel.Fatal, comment: err.message + ". " + err.stack }));
+        process.on('uncaughtException', async (err) => await audit(types_1.SysAuditTypes.uncaughtException, { level: types_1.LogType.Fatal, comment: err.message + ". " + err.stack }));
         process.on('unhandledRejection', async (err) => {
             await audit(types_1.SysAuditTypes.unhandledRejection, {
-                level: types_1.LogLevel.Fatal,
+                level: types_1.LogType.Fatal,
                 comment: err.message + ". " + err.stack
             });
         });
@@ -62,16 +63,16 @@ async function audit(auditType, args) {
     });
     let msg = "audit(" + (type ? type.name : args.type) + "): " + comment;
     switch (args.level) {
-        case types_1.LogLevel.Fatal:
+        case types_1.LogType.Fatal:
             fatal(msg);
             break;
-        case types_1.LogLevel.Error:
+        case types_1.LogType.Error:
             error(msg);
             break;
-        case types_1.LogLevel.Info:
+        case types_1.LogType.Info:
             info(msg);
             break;
-        case types_1.LogLevel.Warning:
+        case types_1.LogType.Warning:
             warn(msg);
             break;
     }
@@ -559,17 +560,13 @@ async function loadSysConfig() {
             exports.glob.packages[pack.name] = require(path.join(process.env.PACKAGES_ROOT, pack.name, `src/main`));
             if (exports.glob.packages[pack.name] == null)
                 error(`Error loading package ${pack.name}!`);
-            else {
-                let p = require(path.join(process.env.PACKAGES_ROOT, pack.name, `package.json`));
-                exports.glob.packages[pack.name]._version = p.version;
-                log(`package '${pack.name}' loaded. version: ${p.version}`);
-            }
         }
         catch (ex) {
             error("loadSysConfig", ex);
             pack.enabled = false;
         }
     }
+    exports.glob.packageConfigs["web"] = { _static: require(path.join(process.env.PACKAGES_ROOT, "web", `package.json`)) };
     applyAmazonConfig();
 }
 function applyAmazonConfig() {
@@ -592,8 +589,11 @@ async function loadPackageSystemCollections(packConfig) {
         packConfig.enabled = false;
         error(`Config for package '${pack}' not found!`);
     }
-    else
-        exports.glob.packages[pack]._config = config;
+    else {
+        exports.glob.packageConfigs[pack] = config;
+        exports.glob.packageConfigs[pack]._static = require(path.join(process.env.PACKAGES_ROOT, pack, `package.json`));
+        log(`package '${pack}' loaded. version: ${exports.glob.packageConfigs[pack]._static.version}`);
+    }
     let objects = await get(pack, types_1.SysCollection.objects);
     for (let object of objects) {
         object._package = pack;
@@ -726,7 +726,7 @@ function initializePackages() {
     log(`initializePackages: ${exports.glob.sysConfig.packages.map(p => p.name).join(' , ')}`);
     exports.glob.apps = [];
     for (let pack of getEnabledPackages()) {
-        let config = exports.glob.packages[pack.name]._config;
+        let config = exports.glob.packageConfigs[pack.name];
         for (let app of (config.apps || [])) {
             app._package = pack.name;
             app.dependencies = app.dependencies || [];
@@ -1094,6 +1094,12 @@ function getAllFiles(path) {
     }));
 }
 exports.getAllFiles = getAllFiles;
+function getPackageConfig(pack) {
+    if (!exports.glob.packageConfigs[pack])
+        throw `config for package '${pack}' not found.`;
+    return exports.glob.packageConfigs[pack];
+}
+exports.getPackageConfig = getPackageConfig;
 function getPathSize(path) {
     let files = getAllFiles(path);
     let totalSize = 0;
@@ -1470,7 +1476,44 @@ function isObjectId(value) {
 }
 exports.isObjectId = isObjectId;
 function throwError(code, message) {
-    throw new types_1.ErrorResult(code, message);
+    throw new types_1.ErrorObject(code, message);
 }
 exports.throwError = throwError;
+function getReference(id) {
+    return new mongodb_1.ObjectId(id);
+}
+exports.getReference = getReference;
+function clientLog(cn, message, type = types_1.LogType.Debug, ref) {
+    exports.postClientCommandCallback(cn, types_1.ClientCommand.Log, message, type, ref);
+}
+exports.clientLog = clientLog;
+function clientAsk(cn, message, optionsEnum) {
+    let items = exports.glob.enumTexts[cn.pack + "." + optionsEnum];
+    exports.postClientCommandCallback(cn, types_1.ClientCommand.Ask, message, { items: items });
+}
+exports.clientAsk = clientAsk;
+function clientNotify(cn, title, message, url, icon) {
+    exports.postClientCommandCallback(cn, types_1.ClientCommand.Notification, title, message, url, icon);
+}
+exports.clientNotify = clientNotify;
+async function execShellCommand(cmd, std) {
+    return new Promise((resolve) => {
+        let process = exec(cmd);
+        let message = "";
+        let logData = data => {
+            if (std)
+                std(data.toString());
+            else {
+                log(data.toString());
+            }
+            message += data.toString();
+        };
+        process.stdout.on('data', logData);
+        process.stderr.on('data', logData);
+        process.on('exit', function (code) {
+            resolve(message);
+        });
+    });
+}
+exports.execShellCommand = execShellCommand;
 //# sourceMappingURL=main.js.map

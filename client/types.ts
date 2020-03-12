@@ -1,4 +1,4 @@
-import {WebMethod} from "../src/types";
+import {WebMethod, LogType} from "../src/types";
 
 export class Context {
 	data?: any;
@@ -11,22 +11,17 @@ export class AjaxConfig {
 	contentType?: string;
 }
 
-export enum NotifyType {
-	Information = 1,
-	Warning = 2,
-	Error = 3,
-}
-
 export class NotificationInfo {
 	message: string;
 	details?: string;
-	type: NotifyType;
+	type: LogType;
 }
 
 export class ComponentParams {
 	template?: string;
 	computed?: any;
 	methods?: any;
+	bind?: any;
 	watch?: any;
 	beforeCreate?: () => void;
 	created?: () => void;

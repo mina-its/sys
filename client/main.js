@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var types_1 = require("./types");
-var types_2 = require("../src/types");
+var types_1 = require("../src/types");
 function component(name, props, params) {
     params.props = props;
     Vue.component(name, params);
@@ -60,12 +59,12 @@ function ajax(url, data, config, done, fail) {
     if (config && config.method)
         params.method = config.method;
     else
-        params.method = data ? types_2.WebMethod.post : types_2.WebMethod.get;
+        params.method = data ? types_1.WebMethod.post : types_1.WebMethod.get;
     if (config && config.contentType)
         params.headers = { 'Content-Type': config.contentType };
     fail = fail || notify;
     axios(params).then(function (res) {
-        if (res.code && res.code != types_2.StatusCode.Ok)
+        if (res.code && res.code != types_1.StatusCode.Ok)
             fail({ code: res.code, message: res.message });
         else {
             try {
@@ -83,7 +82,7 @@ function ajax(url, data, config, done, fail) {
         else if (err.response && err.response.data)
             fail({ message: err.response.data, code: err.response.status });
         else
-            fail({ message: err.toString(), code: types_2.StatusCode.UnknownError });
+            fail({ message: err.toString(), code: types_1.StatusCode.UnknownError });
     });
 }
 exports.ajax = ajax;
@@ -93,9 +92,9 @@ function notify(content, type, params) {
     var message = typeof content == "string" ? content : content.message;
     if (!type) {
         if (typeof content != "string")
-            type = content.code && content.code != types_2.StatusCode.Ok ? types_1.NotifyType.Error : types_1.NotifyType.Information;
+            type = content.code && content.code != types_1.StatusCode.Ok ? types_1.LogType.Error : types_1.LogType.Info;
         else
-            type = types_1.NotifyType.Information;
+            type = types_1.LogType.Info;
     }
     var evt = new CustomEvent('notify', { detail: { message: message, type: type } });
     window.dispatchEvent(evt);
