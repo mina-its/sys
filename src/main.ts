@@ -444,23 +444,17 @@ export async function putFile(host: string, drive: Drive, relativePath: string, 
 			break;
 
 		case SourceType.S3:
-			return new Promise((resolve, reject) => {
-				let sdk = getS3DriveSdk(drive);
-				let s3 = new sdk.S3({apiVersion: Constants.amazonS3ApiVersion});
-				const config = {
-					Bucket: drive.address,
-					Key: relativePath,
-					Body: file,
-					ACL: "public-read"
-				};
-				s3.upload(config, (err, result) => {
-					log(JSON.stringify(result));
-					if (err)
-						reject(err);
-					else
-						resolve();
-				});
-			});
+			let sdk = getS3DriveSdk(drive);
+			let s3 = new sdk.S3({apiVersion: Constants.amazonS3ApiVersion});
+			const config = {
+				Bucket: drive.address,
+				Key: relativePath,
+				Body: file,
+				ACL: "public-read"
+			};
+			let result = await s3.upload(config).promise();
+			log(JSON.stringify(result));
+			break;
 
 		default:
 			throw StatusCode.NotImplemented;
@@ -1716,6 +1710,7 @@ export function getReference(id?: string): Reference {
 }
 
 export function clientLog(cn: Context, message: string, type: LogType = LogType.Debug, ref?: string) {
+	logger.log(LogType[type].toLowerCase(), message);
 	postClientCommandCallback(cn, ClientCommand.Log, message, type, ref);
 }
 

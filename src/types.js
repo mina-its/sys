@@ -523,5 +523,7 @@ var ClientCommand;
     ClientCommand[ClientCommand["Answer"] = 4] = "Answer";
     ClientCommand[ClientCommand["FunctionDone"] = 5] = "FunctionDone";
     ClientCommand[ClientCommand["FunctionFailed"] = 6] = "FunctionFailed";
+    ClientCommand[ClientCommand["Ping"] = 7] = "Ping";
+    ClientCommand[ClientCommand["PingAck"] = 8] = "PingAck";
 })(ClientCommand = exports.ClientCommand || (exports.ClientCommand = {}));
 //# sourceMappingURL=types.js.map

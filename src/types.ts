@@ -921,4 +921,6 @@ export enum ClientCommand {
 	Answer = 4,
 	FunctionDone = 5,
 	FunctionFailed = 6,
+	Ping = 7,
+	PingAck = 8,
 }
