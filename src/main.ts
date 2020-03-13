@@ -7,6 +7,7 @@ import path = require('path');
 import moment = require('moment');
 import graphlib = require('graphlib');
 import Jalali = require('jalali-moment');
+import sourceMapSupport = require('source-map-support');
 import AWS = require('aws-sdk');
 import {MongoClient, ObjectId} from 'mongodb';
 import {
@@ -92,7 +93,7 @@ export async function start() {
 			});
 		});
 
-		require('source-map-support').install({handleUncaughtExceptions: true});
+		sourceMapSupport.install({handleUncaughtExceptions: true});
 
 		configureLogger(false);
 		await reload();

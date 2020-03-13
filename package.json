@@ -1,6 +1,6 @@
 {
   "name": "@minaits/sys",
-  "version": "5.2.0",
+  "version": "5.2.1",
   "description": "mina sys package",
   "main": "src/main.js",
   "scripts": {
@@ -39,6 +39,7 @@
     "numeral": "^2.0.6",
     "saslprep": "^1.0.3",
     "shelljs": "^0.8.3",
+    "source-map-support": "^0.5.16",
     "ts-jest": "^25.2.0",
     "uuid": "^3.3.2",
     "winston": "^3.2.1",

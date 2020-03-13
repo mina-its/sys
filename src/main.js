@@ -9,6 +9,7 @@ const path = require("path");
 const moment = require("moment");
 const graphlib = require("graphlib");
 const Jalali = require("jalali-moment");
+const sourceMapSupport = require("source-map-support");
 const AWS = require("aws-sdk");
 const mongodb_1 = require("mongodb");
 const types_1 = require("./types");
@@ -41,7 +42,7 @@ async function start() {
                 comment: err.message + ". " + err.stack
             });
         });
-        require('source-map-support').install({ handleUncaughtExceptions: true });
+        sourceMapSupport.install({ handleUncaughtExceptions: true });
         configureLogger(false);
         await reload();
         return exports.glob;
