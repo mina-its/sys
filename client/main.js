@@ -1,5 +1,5 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
+exports.__esModule = true;
 var types_1 = require("../src/types");
 function component(name, props, params) {
     params.props = props;
@@ -75,7 +75,7 @@ function ajax(url, data, config, done, fail) {
                 console.error(res, ex);
             }
         }
-    }).catch(function (err) {
+    })["catch"](function (err) {
         console.error("error on ajax '" + url + "'", err);
         if (err.response && err.response.data && err.response.data.message)
             fail({ message: err.response.data.message, code: err.response.data.code });
