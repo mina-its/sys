@@ -1295,10 +1295,13 @@ export function getAllFiles(path) {
 }
 
 export function getPackageConfig(pack: string): PackageConfig {
-	if (!glob.packageConfigs[pack])
+	let config = glob.packageConfigs[pack];
+	if (!config)
 		throw `config for package '${pack}' not found.`;
 
-	return glob.packageConfigs[pack];
+	// reload package.json
+	config._static = require(path.join(process.env.PACKAGES_ROOT, pack, `package.json`)) as any;
+	return config;
 }
 
 export function getPathSize(path) {

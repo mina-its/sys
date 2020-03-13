@@ -1,5 +1,5 @@
 {
-  "name": "sys",
+  "name": "@minaits/sys",
   "version": "5.2.0",
   "description": "mina sys package",
   "main": "src/main.js",
@@ -14,13 +14,13 @@
   },
   "repository": "https://github.com/mina-its/sys",
   "author": "Farhad Jalali",
-  "license": "Apache License",
+  "license": "MIT",
   "devDependencies": {
     "@types/async": "^2.4.2",
     "@types/jest": "^25.1.1",
     "@types/lodash": "^4.14.136",
     "@types/mongodb": "^3.1.28",
-    "@types/node": "^13.7.0",
+    "@types/node": "^13.9.1",
     "jest": "^25.1.0"
   },
   "dependencies": {

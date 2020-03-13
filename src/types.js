@@ -1,73 +1,40 @@
 "use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
-var AuditArgs = /** @class */ (function () {
-    function AuditArgs() {
-    }
-    return AuditArgs;
-}());
+class AuditArgs {
+}
 exports.AuditArgs = AuditArgs;
-var Role = /** @class */ (function () {
-    function Role() {
-    }
-    return Role;
-}());
+class Role {
+}
 exports.Role = Role;
-var User = /** @class */ (function () {
-    function User() {
+class User {
+    constructor() {
         this.roles = [];
         this.disabled = false;
     }
-    return User;
-}());
+}
 exports.User = User;
-var AuditType = /** @class */ (function () {
-    function AuditType() {
-    }
-    return AuditType;
-}());
+class AuditType {
+}
 exports.AuditType = AuditType;
-var Global = /** @class */ (function () {
-    function Global() {
-        this.dbs = []; // mongodb.Db
+class Global {
+    constructor() {
+        this.dbs = [];
         this.packages = {};
         this.packageConfigs = {};
     }
-    return Global;
-}());
+}
 exports.Global = Global;
-var Entity = /** @class */ (function () {
-    function Entity() {
+class Entity {
+    constructor() {
         this._access = { "sys": {} };
     }
-    return Entity;
-}());
+}
 exports.Entity = Entity;
-var mObject = /** @class */ (function (_super) {
-    __extends(mObject, _super);
-    function mObject() {
-        return _super !== null && _super.apply(this, arguments) || this;
-    }
-    return mObject;
-}(Entity));
+class mObject extends Entity {
+}
 exports.mObject = mObject;
-var ObjectModifyState = /** @class */ (function () {
-    function ObjectModifyState() {
-    }
-    return ObjectModifyState;
-}());
+class ObjectModifyState {
+}
 exports.ObjectModifyState = ObjectModifyState;
 var ObjectModifyType;
 (function (ObjectModifyType) {
@@ -76,47 +43,27 @@ var ObjectModifyType;
     ObjectModifyType[ObjectModifyType["Patch"] = 3] = "Patch";
     ObjectModifyType[ObjectModifyType["Delete"] = 4] = "Delete";
 })(ObjectModifyType = exports.ObjectModifyType || (exports.ObjectModifyType = {}));
-var Property = /** @class */ (function () {
-    function Property() {
-    }
-    return Property;
-}());
+class Property {
+}
 exports.Property = Property;
-var Drive = /** @class */ (function () {
-    function Drive() {
-    }
-    return Drive;
-}());
+class Drive {
+}
 exports.Drive = Drive;
-var Function = /** @class */ (function (_super) {
-    __extends(Function, _super);
-    function Function() {
-        return _super !== null && _super.apply(this, arguments) || this;
-    }
-    return Function;
-}(Entity));
+class Function extends Entity {
+}
 exports.Function = Function;
-var FunctionTestSample = /** @class */ (function () {
-    function FunctionTestSample() {
-    }
-    return FunctionTestSample;
-}());
+class FunctionTestSample {
+}
 exports.FunctionTestSample = FunctionTestSample;
-var EntityLink = /** @class */ (function () {
-    function EntityLink() {
-    }
-    return EntityLink;
-}());
+class EntityLink {
+}
 exports.EntityLink = EntityLink;
-var Form = /** @class */ (function (_super) {
-    __extends(Form, _super);
-    function Form() {
-        var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this.elems = [];
-        return _this;
+class Form extends Entity {
+    constructor() {
+        super(...arguments);
+        this.elems = [];
     }
-    return Form;
-}(Entity));
+}
 exports.Form = Form;
 var ObjectViewType;
 (function (ObjectViewType) {
@@ -124,182 +71,98 @@ var ObjectViewType;
     ObjectViewType[ObjectViewType["DetailsView"] = 2] = "DetailsView";
     ObjectViewType[ObjectViewType["TreeView"] = 3] = "TreeView";
 })(ObjectViewType = exports.ObjectViewType || (exports.ObjectViewType = {}));
-var Elem = /** @class */ (function () {
-    function Elem() {
-    }
-    return Elem;
-}());
+class Elem {
+}
 exports.Elem = Elem;
-var ErrorObject = /** @class */ (function (_super) {
-    __extends(ErrorObject, _super);
-    function ErrorObject(code, message) {
-        var _this = _super.call(this) || this;
-        _this.toString = function () {
-            return "error (" + _this.code + ") " + (_this.message || "");
+class ErrorObject extends Error {
+    constructor(code, message) {
+        super();
+        this.toString = () => {
+            return `error (${this.code}) ${this.message || ""}`;
         };
-        _this.code = code;
+        this.code = code;
         if (message)
-            _this.message = message;
-        return _this;
+            this.message = message;
     }
-    return ErrorObject;
-}(Error));
+}
 exports.ErrorObject = ErrorObject;
-var ChartSeries = /** @class */ (function () {
-    function ChartSeries() {
-    }
-    return ChartSeries;
-}());
+class ChartSeries {
+}
 exports.ChartSeries = ChartSeries;
-var PackageMeta = /** @class */ (function () {
-    function PackageMeta() {
-    }
-    return PackageMeta;
-}());
+class PackageMeta {
+}
 exports.PackageMeta = PackageMeta;
-var Access = /** @class */ (function () {
-    function Access() {
-    }
-    return Access;
-}());
+class Access {
+}
 exports.Access = Access;
-var AccessItem = /** @class */ (function () {
-    function AccessItem() {
-    }
-    return AccessItem;
-}());
+class AccessItem {
+}
 exports.AccessItem = AccessItem;
-var Menu = /** @class */ (function () {
-    function Menu() {
-    }
-    return Menu;
-}());
+class Menu {
+}
 exports.Menu = Menu;
-var MenuItem = /** @class */ (function () {
-    function MenuItem() {
-    }
-    return MenuItem;
-}());
+class MenuItem {
+}
 exports.MenuItem = MenuItem;
-var Pair = /** @class */ (function () {
-    function Pair() {
-    }
-    return Pair;
-}());
+class Pair {
+}
 exports.Pair = Pair;
-var App = /** @class */ (function () {
-    function App() {
-    }
-    return App;
-}());
+class App {
+}
 exports.App = App;
-var SystemConfigPackage = /** @class */ (function () {
-    function SystemConfigPackage() {
-    }
-    return SystemConfigPackage;
-}());
+class SystemConfigPackage {
+}
 exports.SystemConfigPackage = SystemConfigPackage;
-var SystemConfig = /** @class */ (function () {
-    function SystemConfig() {
-    }
-    return SystemConfig;
-}());
+class SystemConfig {
+}
 exports.SystemConfig = SystemConfig;
-var Enum = /** @class */ (function () {
-    function Enum() {
-    }
-    return Enum;
-}());
+class Enum {
+}
 exports.Enum = Enum;
-var EnumItem = /** @class */ (function () {
-    function EnumItem() {
-    }
-    return EnumItem;
-}());
+class EnumItem {
+}
 exports.EnumItem = EnumItem;
-var MultilangText = /** @class */ (function () {
-    function MultilangText() {
-    }
-    return MultilangText;
-}());
+class MultilangText {
+}
 exports.MultilangText = MultilangText;
-var SmsAccount = /** @class */ (function () {
-    function SmsAccount() {
-    }
-    return SmsAccount;
-}());
+class SmsAccount {
+}
 exports.SmsAccount = SmsAccount;
-var EmailAccount = /** @class */ (function () {
-    function EmailAccount() {
-    }
-    return EmailAccount;
-}());
+class EmailAccount {
+}
 exports.EmailAccount = EmailAccount;
-var PackageConfig = /** @class */ (function () {
-    function PackageConfig() {
-    }
-    return PackageConfig;
-}());
+class PackageConfig {
+}
 exports.PackageConfig = PackageConfig;
-var PackageAddressRule = /** @class */ (function () {
-    function PackageAddressRule() {
-    }
-    return PackageAddressRule;
-}());
+class PackageAddressRule {
+}
 exports.PackageAddressRule = PackageAddressRule;
-var FileInfo = /** @class */ (function () {
-    function FileInfo() {
-    }
-    return FileInfo;
-}());
+class FileInfo {
+}
 exports.FileInfo = FileInfo;
-var Text = /** @class */ (function () {
-    function Text() {
-    }
-    return Text;
-}());
+class Text {
+}
 exports.Text = Text;
-var TimeZone = /** @class */ (function () {
-    function TimeZone() {
-    }
-    return TimeZone;
-}());
+class TimeZone {
+}
 exports.TimeZone = TimeZone;
-var RefPortion = /** @class */ (function () {
-    function RefPortion() {
-    }
-    return RefPortion;
-}());
+class RefPortion {
+}
 exports.RefPortion = RefPortion;
-var GeoLocation = /** @class */ (function () {
-    function GeoLocation() {
-    }
-    return GeoLocation;
-}());
+class GeoLocation {
+}
 exports.GeoLocation = GeoLocation;
-var PutOptions = /** @class */ (function () {
-    function PutOptions() {
-    }
-    return PutOptions;
-}());
+class PutOptions {
+}
 exports.PutOptions = PutOptions;
-var PatchOptions = /** @class */ (function () {
-    function PatchOptions() {
-    }
-    return PatchOptions;
-}());
+class PatchOptions {
+}
 exports.PatchOptions = PatchOptions;
-var DelOptions = /** @class */ (function () {
-    function DelOptions() {
-    }
-    return DelOptions;
-}());
+class DelOptions {
+}
 exports.DelOptions = DelOptions;
-var GetOptions = /** @class */ (function () {
-    function GetOptions() {
-    }
-    return GetOptions;
-}());
+class GetOptions {
+}
 exports.GetOptions = GetOptions;
 var StatusCode;
 (function (StatusCode) {
@@ -349,7 +212,6 @@ var PanelType;
 (function (PanelType) {
     PanelType[PanelType["Stack"] = 1] = "Stack";
     PanelType[PanelType["Dock"] = 2] = "Dock";
-    // Grid = 3,
     PanelType[PanelType["Wrap"] = 4] = "Wrap";
     PanelType[PanelType["Flex"] = 5] = "Flex";
     PanelType[PanelType["Modal"] = 6] = "Modal";
@@ -620,15 +482,14 @@ var RequestMode;
     RequestMode[RequestMode["download"] = 2] = "download";
     RequestMode[RequestMode["api"] = 3] = "api";
 })(RequestMode = exports.RequestMode || (exports.RequestMode = {}));
-var WebResponse = /** @class */ (function () {
-    function WebResponse() {
+class WebResponse {
+    constructor() {
         this.data = {};
         this.meta = {};
         this.menu = [];
         this.navmenu = [];
     }
-    return WebResponse;
-}());
+}
 exports.WebResponse = WebResponse;
 var WebMethod;
 (function (WebMethod) {
@@ -638,11 +499,8 @@ var WebMethod;
     WebMethod["patch"] = "PATCH";
     WebMethod["del"] = "DELETE";
 })(WebMethod = exports.WebMethod || (exports.WebMethod = {}));
-var UnitTestObject = /** @class */ (function () {
-    function UnitTestObject() {
-    }
-    return UnitTestObject;
-}());
+class UnitTestObject {
+}
 exports.UnitTestObject = UnitTestObject;
 var DriveMode;
 (function (DriveMode) {
@@ -654,11 +512,8 @@ var DirFileType;
     DirFileType[DirFileType["File"] = 1] = "File";
     DirFileType[DirFileType["Folder"] = 2] = "Folder";
 })(DirFileType = exports.DirFileType || (exports.DirFileType = {}));
-var DirFile = /** @class */ (function () {
-    function DirFile() {
-    }
-    return DirFile;
-}());
+class DirFile {
+}
 exports.DirFile = DirFile;
 var ClientCommand;
 (function (ClientCommand) {
@@ -671,3 +526,4 @@ var ClientCommand;
     ClientCommand[ClientCommand["Ping"] = 7] = "Ping";
     ClientCommand[ClientCommand["PingAck"] = 8] = "PingAck";
 })(ClientCommand = exports.ClientCommand || (exports.ClientCommand = {}));
+//# sourceMappingURL=types.js.map
