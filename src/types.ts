@@ -772,7 +772,7 @@ export enum SysCollection {
 	objects = "objects",
 	functions = "functions",
 	roles = "roles",
-	configs = "configs",
+	packageConfig = "packageConfig",
 	systemConfig = "systemConfig",
 	menus = "menus",
 	drives = "drives",

@@ -737,7 +737,7 @@ async function loadPackageSystemCollections(packConfig: SystemConfigPackage) {
 	let pack = packConfig.name;
 
 	log(`Loading system collections package '${pack}' ...`);
-	let config: PackageConfig = await get(pack, SysCollection.configs, {count: 1});
+	let config: PackageConfig = await getOne(pack, SysCollection.packageConfig);
 	if (!config) {
 		packConfig.enabled = false;
 		error(`Config for package '${pack}' not found!`);

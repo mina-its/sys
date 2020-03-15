@@ -580,7 +580,7 @@ function applyAmazonConfig() {
 async function loadPackageSystemCollections(packConfig) {
     let pack = packConfig.name;
     log(`Loading system collections package '${pack}' ...`);
-    let config = await get(pack, types_1.SysCollection.configs, { count: 1 });
+    let config = await getOne(pack, types_1.SysCollection.packageConfig);
     if (!config) {
         packConfig.enabled = false;
         error(`Config for package '${pack}' not found!`);
