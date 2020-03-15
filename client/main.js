@@ -168,4 +168,12 @@ function del_link(href) {
     }
 }
 exports.del_link = del_link;
+function setPropertyEmbeddedError(doc, propName, error) {
+    if (!doc)
+        throw "setPropertyEmbeddedError doc is empty, prop:" + propName + "!";
+    doc._ = doc._ || {};
+    doc._[propName] = doc._[propName] || {};
+    doc._[propName].err = error;
+}
+exports.setPropertyEmbeddedError = setPropertyEmbeddedError;
 //# sourceMappingURL=main.js.map

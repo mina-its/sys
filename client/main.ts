@@ -1,7 +1,7 @@
 import {AjaxConfig, ComponentParams, NotificationInfo} from "./types";
-import {GetOptions, IError, StatusCode, WebMethod, LogType, WebResponse} from "../src/types";
+import {GetOptions, IError, StatusCode, WebMethod, LogType, WebResponse, EmbeddedInfo} from "../src/types";
 
-declare let $, Vue, axios, text: any;
+declare let $, Vue, axios, text, _: any;
 
 export function component(name: string, props: string[], params: ComponentParams) {
 	(params as any).props = props;
@@ -163,4 +163,11 @@ export function del_link(href) {
 	if (el) {
 		el.remove();
 	}
+}
+
+export function setPropertyEmbeddedError(doc: any, propName: string, error: string) {
+	if (!doc) throw `setPropertyEmbeddedError doc is empty, prop:${propName}!`;
+	doc._ = doc._ || {};
+	doc._[propName] = doc._[propName] || {};
+	(doc._[propName] as EmbeddedInfo).err = error;
 }
