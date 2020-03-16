@@ -100,6 +100,8 @@ export class mObject extends Entity {
 	rowHeaderStyle: GridRowHeaderStyle;
 	reorderable: boolean;
 	modified: Reference;
+	detailsViewType: ObjectDetailsViewType;
+	listsViewType: ObjectListsViewType;
 	_autoSetInsertTime: boolean;
 	_inited: boolean;
 }
@@ -929,4 +931,17 @@ export enum ClientCommand {
 	FunctionFailed = 6,
 	Ping = 7,
 	PingAck = 8,
+}
+
+export enum ObjectDetailsViewType {
+	Grouped = 1,
+	Tabular = 2,
+	Simple = 3,
+	Wizard = 4,
+}
+
+export enum ObjectListsViewType {
+	Grid = 1,
+	Card = 2,
+	Column = 3,
 }
