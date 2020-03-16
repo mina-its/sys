@@ -315,19 +315,13 @@ export class Elem {
 }
 
 export class ErrorObject extends Error {
-	constructor(code: StatusCode, message: string) {
+	constructor(public code: StatusCode, public message: string) {
 		super();
-		this.code = code;
-		if (message)
-			this.message = message;
 	}
 
 	public toString = (): string => {
 		return `error (${this.code}) ${this.message || ""}`;
 	};
-
-	code: StatusCode;
-	message: string;
 }
 
 export class ChartSeries {
