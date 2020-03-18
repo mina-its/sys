@@ -61,6 +61,7 @@ export class Global {
 	dbs: any[] = []; // mongodb.Db
 	packages: { [id: string]: any } = {};
 	packageConfigs: { [id: string]: PackageConfig; } = {};
+	clientQuestionCallbacks: { [sessionId: string]: (answer: number | null) => void; } = {};
 	entities: Entity[];
 	drives: Drive[];
 	auditTypes: AuditType[];
@@ -158,6 +159,7 @@ export class Property {
 		_drive: Drive;
 		preview: boolean;
 		sizeLimit: number;
+		path: string;
 	};
 	time: {
 		format: TimeFormat;
@@ -919,7 +921,7 @@ export class DirFile {
 export enum ClientCommand {
 	Notification = 1,
 	Log = 2,
-	Ask = 3,
+	Question = 3,
 	Answer = 4,
 	FunctionDone = 5,
 	FunctionFailed = 6,
@@ -938,4 +940,9 @@ export enum ObjectListsViewType {
 	Grid = 1,
 	Card = 2,
 	Column = 3,
+}
+
+export enum YesNo {
+	Yes = 1,
+	No = 2,
 }

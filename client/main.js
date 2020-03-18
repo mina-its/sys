@@ -96,10 +96,14 @@ function notify(content, type, params) {
         else
             type = types_1.LogType.Info;
     }
-    var evt = new CustomEvent('notify', { detail: { message: message, type: type } });
-    window.dispatchEvent(evt);
+    window.dispatchEvent(new CustomEvent('notify', { detail: { message: message, type: type } }));
 }
 exports.notify = notify;
+function question(questionId, message, options, select) {
+    window.dispatchEvent(new CustomEvent('question', { detail: { questionId: questionId, message: message, options: options, select: select } }));
+    $("#question-box").modal("show");
+}
+exports.question = question;
 function getBsonId(item) {
     if (!item)
         throw "Item is null";

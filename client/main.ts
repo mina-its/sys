@@ -1,5 +1,5 @@
 import {AjaxConfig, ComponentParams, NotificationInfo} from "./types";
-import {GetOptions, IError, StatusCode, WebMethod, LogType, WebResponse, EmbeddedInfo} from "../src/types";
+import {GetOptions, IError, StatusCode, WebMethod, LogType, WebResponse, EmbeddedInfo, Pair} from "../src/types";
 
 declare let $, Vue, axios, text, _: any;
 
@@ -94,8 +94,12 @@ export function notify(content: string | IError, type?: LogType, params?: Notifi
 		else
 			type = LogType.Info;
 	}
-	let evt = new CustomEvent('notify', {detail: {message, type}});
-	window.dispatchEvent(evt);
+	window.dispatchEvent(new CustomEvent('notify', {detail: {message, type}}));
+}
+
+export function question(questionId: string, message: string, options: Pair[], select: (item: Pair) => void) {
+	window.dispatchEvent(new CustomEvent('question', {detail: {questionId, message, options, select}}));
+	$("#question-box").modal("show");
 }
 
 export function getBsonId(item: any): string {

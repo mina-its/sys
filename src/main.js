@@ -11,9 +11,10 @@ const graphlib = require("graphlib");
 const Jalali = require("jalali-moment");
 const sourceMapSupport = require("source-map-support");
 const AWS = require("aws-sdk");
-const mongodb_1 = require("mongodb");
-const types_1 = require("./types");
 const rimraf = require("rimraf");
+const mongodb_1 = require("mongodb");
+const universalify_1 = require("universalify");
+const types_1 = require("./types");
 const { EJSON } = require('bson');
 const { exec } = require("child_process");
 exports.glob = new types_1.Global();
@@ -344,10 +345,46 @@ async function del(pack, objectName, options) {
     }
 }
 exports.del = del;
+async function getDriveStatus(drive) {
+    switch (drive.type) {
+        case types_1.SourceType.File:
+            try {
+                await fs.access(drive.address);
+            }
+            catch (err) {
+                if (err.code == "ENOENT") {
+                    await createDir(drive, drive.address);
+                }
+                else
+                    throw err;
+            }
+            break;
+        default:
+            throwError(types_1.StatusCode.NotImplemented);
+    }
+}
+exports.getDriveStatus = getDriveStatus;
+function toAsync(fn) {
+    return universalify_1.fromCallback(fn);
+}
+exports.toAsync = toAsync;
+function getAbsolutePath(dir) {
+    return /^\./.test(dir) ? path.join(process.env.PACKAGES_ROOT, dir) : dir;
+}
+async function createDir(drive, dir, recursive = true) {
+    switch (drive.type) {
+        case types_1.SourceType.File:
+            await fs.mkdir(getAbsolutePath(dir), { recursive });
+            break;
+        default:
+            throwError(types_1.StatusCode.NotImplemented);
+    }
+}
+exports.createDir = createDir;
 async function getFile(drive, filePath) {
     switch (drive.type) {
         case types_1.SourceType.File:
-            let _path = path.join(drive.address, filePath);
+            let _path = path.join(getAbsolutePath(drive.address), filePath);
             return await fs.readFile(_path);
         case types_1.SourceType.Db:
             let db = exports.glob.dbs[drive._package];
@@ -371,7 +408,7 @@ exports.getFile = getFile;
 async function putFile(host, drive, relativePath, file) {
     switch (drive.type) {
         case types_1.SourceType.File:
-            let _path = path.join(drive.address, relativePath);
+            let _path = path.join(getAbsolutePath(drive.address), relativePath);
             await fs.mkdir(path.dirname(_path), { recursive: true });
             await fs.writeFile(_path, file);
             break;
@@ -427,7 +464,7 @@ function getS3DriveSdk(drive) {
 async function listDir(drive, dir) {
     switch (drive.type) {
         case types_1.SourceType.File:
-            let list = await fsPromises.readdir(path.join(drive.address, dir), { withFileTypes: true });
+            let list = await fsPromises.readdir(path.join(getAbsolutePath(drive.address), dir), { withFileTypes: true });
             return list.map(item => {
                 return { name: item.name, type: item.isDirectory() ? types_1.DirFileType.Folder : types_1.DirFileType.File };
             });
@@ -473,12 +510,12 @@ exports.getFileInfo = getFileInfo;
 async function delFile(host, drive, relativePath) {
     switch (drive.type) {
         case types_1.SourceType.File:
-            let _path = path.join(drive.address, relativePath);
+            let _path = path.join(getAbsolutePath(drive.address), relativePath);
             await fs.unlink(_path);
             break;
         case types_1.SourceType.S3:
             let s3 = new AWS.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion });
-            let data = await s3.deleteObject({ Bucket: drive.address, Key: path.basename(relativePath) });
+            let data = await s3.deleteObject({ Bucket: drive.address, Key: relativePath });
             break;
         default:
             throw types_1.StatusCode.NotImplemented;
@@ -1039,15 +1076,15 @@ function getEnumText(thePackage, dependencies, enumType, value, locale) {
     return getText({ locale }, text);
 }
 exports.getEnumText = getEnumText;
-function getEnumValues(cn, enumName) {
+function getEnumItems(cn, enumName) {
     let theEnum = exports.glob.enums.find(e => e.name == enumName);
     if (!theEnum)
         return null;
     return theEnum.items.map(item => {
-        return { value: item.value, title: getText(cn, item.title) };
+        return { ref: item.value, title: getText(cn, item.title) };
     });
 }
-exports.getEnumValues = getEnumValues;
+exports.getEnumItems = getEnumItems;
 function getEnumByName(thePackage, dependencies, enumType) {
     let theEnum = exports.glob.enumTexts[thePackage + "." + enumType];
     for (let i = 0; !theEnum && i < dependencies.length; i++) {
@@ -1450,10 +1487,12 @@ async function invoke(cn, func, args) {
     let argNames = fnStr.slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
     if (argNames === null)
         argNames = [];
+    let result;
     if (args.length == 0)
-        return await action(cn);
+        result = await action(cn);
     else
-        return await action(cn, ...args);
+        result = await action(cn, ...args);
+    return result;
 }
 exports.invoke = invoke;
 async function runFunction(cn, functionId, input) {
@@ -1497,11 +1536,26 @@ async function removeDir(dir) {
     });
 }
 exports.removeDir = removeDir;
-function clientAsk(cn, message, optionsEnum) {
-    let items = exports.glob.enumTexts[cn.pack + "." + optionsEnum];
-    exports.postClientCommandCallback(cn, types_1.ClientCommand.Ask, message, { items: items });
+async function clientQuestion(cn, message, optionsEnum) {
+    return new Promise(resolve => {
+        let items = getEnumItems(cn, optionsEnum);
+        let waitFn = (answer) => resolve(answer);
+        let questionID = new mongodb_1.ObjectId().toString();
+        exports.glob.clientQuestionCallbacks[cn["httpReq"].session.id + ":" + questionID] = waitFn;
+        exports.postClientCommandCallback(cn, types_1.ClientCommand.Question, questionID, message, items);
+    });
 }
-exports.clientAsk = clientAsk;
+exports.clientQuestion = clientQuestion;
+function clientAnswerReceived(sessionId, questionID, answer) {
+    let waitFn = exports.glob.clientQuestionCallbacks[sessionId + ":" + questionID];
+    if (waitFn) {
+        waitFn(answer);
+        delete exports.glob.clientQuestionCallbacks[sessionId + ":" + questionID];
+    }
+    else
+        error(`clientQuestionCallbacks not found for session:'${sessionId}', question:'${questionID}'`);
+}
+exports.clientAnswerReceived = clientAnswerReceived;
 function clientNotify(cn, title, message, url, icon) {
     exports.postClientCommandCallback(cn, types_1.ClientCommand.Notification, title, message, url, icon);
 }

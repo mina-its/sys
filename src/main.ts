@@ -9,11 +9,14 @@ import graphlib = require('graphlib');
 import Jalali = require('jalali-moment');
 import sourceMapSupport = require('source-map-support');
 import AWS = require('aws-sdk');
+import rimraf = require("rimraf");
 import {MongoClient, ObjectId} from 'mongodb';
+import {fromCallback} from 'universalify';
 import {
 	App,
 	AuditArgs,
 	AuditType,
+	ClientCommand,
 	Constants,
 	Context,
 	DelOptions,
@@ -44,6 +47,7 @@ import {
 	PropertyReferType,
 	PType,
 	PutOptions,
+	Reference,
 	RefPortion,
 	RefPortionType,
 	Role,
@@ -54,9 +58,7 @@ import {
 	SystemConfigPackage,
 	SystemProperty,
 	Text,
-	ClientCommand, Reference,
 } from './types';
-import rimraf = require("rimraf");
 
 const {EJSON} = require('bson');
 const {exec} = require("child_process");
@@ -399,10 +401,47 @@ export async function del(pack: string, objectName: string, options?: DelOptions
 	}
 }
 
-export async function getFile(drive: Drive, filePath: string) {
+export async function getDriveStatus(drive: Drive) {
 	switch (drive.type) {
 		case SourceType.File:
-			let _path = path.join(drive.address, filePath);
+			try {
+				await fs.access(drive.address);
+			} catch (err) {
+				if (err.code == "ENOENT") {
+					await createDir(drive, drive.address);
+				} else
+					throw err;
+			}
+			break;
+
+		default:
+			throwError(StatusCode.NotImplemented);
+	}
+}
+
+export function toAsync(fn) {
+	return fromCallback(fn);
+}
+
+function getAbsolutePath(dir: string) {
+	return /^\./.test(dir) ? path.join(process.env.PACKAGES_ROOT, dir) : dir;
+}
+
+export async function createDir(drive: Drive, dir: string, recursive: boolean = true) {
+	switch (drive.type) {
+		case SourceType.File:
+			await fs.mkdir(getAbsolutePath(dir), {recursive});
+			break;
+
+		default:
+			throwError(StatusCode.NotImplemented);
+	}
+}
+
+export async function getFile(drive: Drive, filePath: string): Promise<Buffer> {
+	switch (drive.type) {
+		case SourceType.File:
+			let _path = path.join(getAbsolutePath(drive.address), filePath);
 			return await fs.readFile(_path);
 
 		case SourceType.Db:
@@ -428,7 +467,7 @@ export async function getFile(drive: Drive, filePath: string) {
 export async function putFile(host: string, drive: Drive, relativePath: string, file: Buffer) {
 	switch (drive.type) {
 		case SourceType.File:
-			let _path = path.join(drive.address, relativePath);
+			let _path = path.join(getAbsolutePath(drive.address), relativePath);
 			await fs.mkdir(path.dirname(_path), {recursive: true});
 			await fs.writeFile(_path, file);
 			break;
@@ -490,7 +529,7 @@ function getS3DriveSdk(drive: Drive) {
 export async function listDir(drive: Drive, dir: string): Promise<DirFile[]> {
 	switch (drive.type) {
 		case SourceType.File:
-			let list = await fsPromises.readdir(path.join(drive.address, dir), {withFileTypes: true});
+			let list = await fsPromises.readdir(path.join(getAbsolutePath(drive.address), dir), {withFileTypes: true});
 			return list.map(item => {
 				return {name: item.name, type: item.isDirectory() ? DirFileType.Folder : DirFileType.File} as DirFile
 			});
@@ -572,13 +611,13 @@ export async function getFileInfo(host: string, filePath: string) {
 export async function delFile(host: string, drive: Drive, relativePath: string) {
 	switch (drive.type) {
 		case SourceType.File:
-			let _path = path.join(drive.address, relativePath);
+			let _path = path.join(getAbsolutePath(drive.address), relativePath);
 			await fs.unlink(_path);
 			break;
 
 		case SourceType.S3:
 			let s3 = new AWS.S3({apiVersion: Constants.amazonS3ApiVersion});
-			let data: any = await s3.deleteObject({Bucket: drive.address, Key: path.basename(relativePath)});
+			let data: any = await s3.deleteObject({Bucket: drive.address, Key: relativePath});
 			break;
 
 		default:
@@ -1243,11 +1282,11 @@ export function getEnumText(thePackage: string, dependencies: string[], enumType
 	return getText({locale}, text);
 }
 
-export function getEnumValues(cn: Context, enumName: string): { value: number, title: string }[] {
+export function getEnumItems(cn: Context, enumName: string): Pair[] {
 	let theEnum = glob.enums.find(e => e.name == enumName);
 	if (!theEnum) return null;
 	return theEnum.items.map(item => {
-		return {value: item.value, title: getText(cn, item.title)};
+		return {ref: item.value, title: getText(cn, item.title)};
 	});
 }
 
@@ -1680,10 +1719,12 @@ export async function invoke(cn: Context, func: Function, args: any[]) {
 	if (argNames === null)
 		argNames = [];
 
+	let result;
 	if (args.length == 0)
-		return await action(cn);
+		result = await action(cn);
 	else
-		return await action(cn, ...args);
+		result = await action(cn, ...args);
+	return result;
 }
 
 export async function runFunction(cn: Context, functionId: ObjectId, input: any) {
@@ -1729,9 +1770,23 @@ export async function removeDir(dir: string) {
 	});
 }
 
-export function clientAsk(cn: Context, message: string, optionsEnum: string) {
-	let items = glob.enumTexts[cn.pack + "." + optionsEnum];
-	postClientCommandCallback(cn, ClientCommand.Ask, message, {items: items});
+export async function clientQuestion(cn: Context, message: string, optionsEnum: string): Promise<number> {
+	return new Promise(resolve => {
+		let items = getEnumItems(cn, optionsEnum);
+		let waitFn = (answer: number) => resolve(answer);
+		let questionID = new ObjectId().toString();
+		glob.clientQuestionCallbacks[cn["httpReq"].session.id + ":" + questionID] = waitFn;
+		postClientCommandCallback(cn, ClientCommand.Question, questionID, message, items);
+	});
+}
+
+export function clientAnswerReceived(sessionId: string, questionID: string, answer: number | null) {
+	let waitFn = glob.clientQuestionCallbacks[sessionId + ":" + questionID];
+	if (waitFn) {
+		waitFn(answer);
+		delete glob.clientQuestionCallbacks[sessionId + ":" + questionID];
+	} else
+		error(`clientQuestionCallbacks not found for session:'${sessionId}', question:'${questionID}'`);
 }
 
 export function clientNotify(cn: Context, title: string, message: string, url: string, icon?: string) {
@@ -1759,3 +1814,4 @@ export async function execShellCommand(cmd, std?: (message: string) => void): Pr
 		});
 	});
 }
+
