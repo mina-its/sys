@@ -16,11 +16,6 @@ beforeAll(async () => {
 });
 
 describe('reload test', () => {
-	test('load sys config', () => {
-		expect(glob.dbs[Constants.sysPackage]).not.toBeNull();
-		expect(glob.dbs[Constants.sysPackage].collection(SysCollection.systemConfig)).not.toBeNull();
-	});
-
 	test('initObject', () => {
 		let obj = new mObject();
 		//obj.properties=[];

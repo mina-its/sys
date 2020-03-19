@@ -823,6 +823,7 @@ export enum GridRowHeaderStyle {
 }
 
 export const Constants = {
+	urlPortionApi: "api",
 	sysPackage: "sys",
 	amazonS3ApiVersion: "2006-03-01",
 	mainDbSourceName: "db",

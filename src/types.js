@@ -596,6 +596,7 @@ var GridRowHeaderStyle;
     GridRowHeaderStyle[GridRowHeaderStyle["select"] = 2] = "select";
 })(GridRowHeaderStyle = exports.GridRowHeaderStyle || (exports.GridRowHeaderStyle = {}));
 exports.Constants = {
+    urlPortionApi: "api",
     sysPackage: "sys",
     amazonS3ApiVersion: "2006-03-01",
     mainDbSourceName: "db",

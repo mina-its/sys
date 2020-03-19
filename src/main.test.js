@@ -1,6 +1,5 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const main_1 = require("./main");
 const types_1 = require("./types");
 const bson_1 = require("bson");
 const types = require("./types");
@@ -12,10 +11,6 @@ beforeAll(async () => {
     await sys.reload();
 });
 describe('reload test', () => {
-    test('load sys config', () => {
-        expect(main_1.glob.dbs[types_1.Constants.sysPackage]).not.toBeNull();
-        expect(main_1.glob.dbs[types_1.Constants.sysPackage].collection(types_1.SysCollection.systemConfig)).not.toBeNull();
-    });
     test('initObject', () => {
         let obj = new types_1.mObject();
         sys.initObject(obj);

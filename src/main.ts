@@ -49,7 +49,7 @@ import {
 	PutOptions,
 	Reference,
 	RefPortion,
-	RefPortionType,
+	RefPortionType, RequestMode,
 	Role,
 	SourceType,
 	StatusCode,
@@ -225,7 +225,8 @@ export async function portionsToMongoPath(pack: string, rootId: ObjectId, portio
 	if (endIndex == 3) // not need to fetch data
 		return portions[2].property.name;
 
-	let collection = glob.dbs[pack].collection(portions[0].value);
+	let db = await connect(pack);
+	let collection = db.collection(portions[0].value);
 	if (!collection) throw StatusCode.BadRequest;
 
 	let value = await collection.findOne({_id: rootId});
@@ -257,7 +258,7 @@ export async function count(pack: string, objectName: string, options: GetOption
 	return await collection.countDocuments(options);
 }
 
-export function extractRefPortions(pack: string, appDependencies: string[], ref: string, _default?: string): RefPortion[] {
+export function extractRefPortions(cn: Context, ref: string, _default?: string): RefPortion[] {
 	try {
 		ref = _.trim(ref, '/') || _default;
 		if (!ref)
@@ -269,6 +270,13 @@ export function extractRefPortions(pack: string, appDependencies: string[], ref:
 
 		if (portions.length === 0) return null;
 
+		if (portions[0].value === Constants.urlPortionApi) {
+			if (portions.length < 3) return null;
+			portions.shift();
+			cn["apiVersion"] = portions.shift().value;
+			cn["mode"] = RequestMode.api;
+		}
+
 		for (let i = 1; i < portions.length; i++) {
 			portions[i].pre = portions[i - 1];
 		}
@@ -277,10 +285,10 @@ export function extractRefPortions(pack: string, appDependencies: string[], ref:
 			return entity._id.toString() === portions[0].value
 		});
 		if (!entity)
-			entity = _.find(glob.entities, {_package: pack, name: portions[0].value});
+			entity = _.find(glob.entities, {_package: cn.pack, name: portions[0].value});
 		if (!entity)
 			entity = _.find(glob.entities, (entity) => {
-				return entity.name === portions[0].value && appDependencies.indexOf(entity._package) > -1;
+				return entity.name === portions[0].value && cn["app"].dependencies.indexOf(entity._package) > -1;
 			});
 
 		if (entity) {
@@ -320,7 +328,8 @@ export function extractRefPortions(pack: string, appDependencies: string[], ref:
 }
 
 export async function patch(pack: string, objectName: string, patchData: any, options?: PutOptions) {
-	let collection = glob.dbs[pack].collection(objectName);
+	let db = await connect(pack);
+	let collection = db.collection(objectName);
 	if (!collection) throw StatusCode.BadRequest;
 	if (!options) options = {portions: []};
 	let portions = options.portions;
@@ -354,10 +363,11 @@ export async function patch(pack: string, objectName: string, patchData: any, op
 }
 
 export async function del(pack: string, objectName: string, options?: DelOptions) {
-	let collection = glob.dbs[pack].collection(objectName);
+	let db = await connect(pack);
+	let collection = db.collection(objectName);
 	if (!collection) throw StatusCode.BadRequest;
 	if (!options) {
-		await collection.deleteMany();
+		await collection.deleteMany({});
 		return {
 			type: ObjectModifyType.Delete
 		};
@@ -445,7 +455,7 @@ export async function getFile(drive: Drive, filePath: string): Promise<Buffer> {
 			return await fs.readFile(_path);
 
 		case SourceType.Db:
-			let db = glob.dbs[drive._package];
+			let db = await connect(drive._package);
 			let bucket = new mongodb.GridFSBucket(db);
 			let stream = bucket.openDownloadStreamByName(filePath);
 			let data: Buffer;
@@ -473,7 +483,8 @@ export async function putFile(host: string, drive: Drive, relativePath: string, 
 			break;
 
 		case SourceType.Db:
-			let db = glob.dbs[host];
+			let db = await connect(host);
+			;
 			let bucket = new mongodb.GridFSBucket(db);
 			let stream = bucket.openUploadStream(relativePath);
 			await delFile(host, drive, relativePath);
@@ -1050,18 +1061,19 @@ function checkPropertyGtype(prop: Property, entity: Entity) {
 	}
 }
 
-export async function connect(dbName: string) {
-	try {
-		if (glob.dbs[dbName]) return glob.dbs[dbName];
-		if (!process.env.DB_ADDRESS)
-			throw("Environment variable 'DB_ADDRESS' is needed.");
+export async function connect(dbName: string, connectionString?: string): Promise<mongodb.Db> {
+	if (glob.dbs[dbName + ":" + connectionString]) return glob.dbs[dbName + ":" + connectionString];
+	connectionString = connectionString || process.env.DB_ADDRESS;
+	if (!connectionString)
+		throw("Environment variable 'DB_ADDRESS' is needed.");
 
-		let dbc = await MongoClient.connect(process.env.DB_ADDRESS, {useNewUrlParser: true, useUnifiedTopology: true});
+	try {
+		let dbc = await MongoClient.connect(connectionString, {useNewUrlParser: true, useUnifiedTopology: true});
 		if (!dbc)
 			return null;
-		return glob.dbs[dbName] = dbc.db(dbName);
+		return glob.dbs[dbName + ":" + connectionString] = dbc.db(dbName);
 	} catch (e) {
-		throw `db '${dbName}' connection failed [${process.env.DB_ADDRESS}]`;
+		throw `db '${dbName}' connection failed [${connectionString}]`;
 	}
 }
 
