@@ -464,10 +464,18 @@ function getS3DriveSdk(drive) {
 async function listDir(drive, dir) {
     switch (drive.type) {
         case types_1.SourceType.File:
-            let list = await fsPromises.readdir(path.join(getAbsolutePath(drive.address), dir), { withFileTypes: true });
-            return list.map(item => {
+            let addr = path.join(getAbsolutePath(drive.address), dir);
+            let list = await fsPromises.readdir(addr, { withFileTypes: true });
+            let files = list.map(item => {
                 return { name: item.name, type: item.isDirectory() ? types_1.DirFileType.Folder : types_1.DirFileType.File };
             });
+            for (let file of files) {
+                if (file.type == types_1.DirFileType.File) {
+                    let stat = await fsPromises.stat(path.join(addr, file.name));
+                    file.size = stat.size;
+                }
+            }
+            return files;
         default:
             throw types_1.StatusCode.NotImplemented;
         case types_1.SourceType.S3:
