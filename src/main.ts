@@ -271,10 +271,11 @@ export function extractRefPortions(cn: Context, ref: string, _default?: string):
 		if (portions.length === 0) return null;
 
 		if (portions[0].value === Constants.urlPortionApi) {
-			if (portions.length < 3) return null;
 			portions.shift();
-			cn["apiVersion"] = portions.shift().value;
 			cn["mode"] = RequestMode.api;
+			if (portions.length < 1) return null;
+			if ( /^v\d/.test(portions[0].value))
+				cn["apiVersion"] = portions.shift().value;
 		}
 
 		for (let i = 1; i < portions.length; i++) {

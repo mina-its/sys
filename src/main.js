@@ -219,11 +219,12 @@ function extractRefPortions(cn, ref, _default) {
         if (portions.length === 0)
             return null;
         if (portions[0].value === types_1.Constants.urlPortionApi) {
-            if (portions.length < 3)
-                return null;
             portions.shift();
-            cn["apiVersion"] = portions.shift().value;
             cn["mode"] = types_1.RequestMode.api;
+            if (portions.length < 1)
+                return null;
+            if (/^v\d/.test(portions[0].value))
+                cn["apiVersion"] = portions.shift().value;
         }
         for (let i = 1; i < portions.length; i++) {
             portions[i].pre = portions[i - 1];
