@@ -156,8 +156,7 @@ export class Property {
 		// autoComplete: boolean;
 	};
 	file: {
-		drive: Reference;
-		_drive: Drive;
+		drive: Drive;
 		preview: boolean;
 		sizeLimit: number;
 		path: string;
@@ -274,7 +273,7 @@ export class Elem {
 	};
 	property?: {
 		name: string;
-		viewType: ObjectViewType;
+		detailsView: boolean;
 		entityRef: string;
 	};
 	obj?: {
@@ -500,6 +499,7 @@ export class FileInfo {
 	created: Date;
 	_: {
 		uri: string
+		rawData: Buffer;
 	};
 }
 

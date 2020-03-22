@@ -999,11 +999,11 @@ async function initializeEntities() {
 function checkFileProperty(prop, entity) {
     if (prop._gtype == types_1.GlobalType.file) {
         if (prop.file && prop.file.drive) {
-            prop.file._drive = exports.glob.drives.find(d => d._id.equals(prop.file.drive));
-            if (!prop.file._drive)
+            prop.file.drive = exports.glob.drives.find(d => d._id.equals(prop.file.drive));
+            if (!prop.file.drive)
                 error(`drive for property file '${entity._package}.${entity.name}.${prop.name}' not found.`);
         }
-        else
+        else if (entity.entityType == types_1.EntityType.Object)
             error(`drive for property file '${entity._package}.${entity.name}.${prop.name}' must be set.`);
     }
 }

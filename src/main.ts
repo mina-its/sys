@@ -1150,10 +1150,10 @@ async function initializeEntities() {
 function checkFileProperty(prop: Property, entity: Entity) {
 	if (prop._gtype == GlobalType.file) {
 		if (prop.file && prop.file.drive) {
-			prop.file._drive = glob.drives.find(d => d._id.equals(prop.file.drive));
-			if (!prop.file._drive)
+			prop.file.drive = glob.drives.find(d => d._id.equals(prop.file.drive as any));
+			if (!prop.file.drive)
 				error(`drive for property file '${entity._package}.${entity.name}.${prop.name}' not found.`);
-		} else
+		} else if (entity.entityType == EntityType.Object)
 			error(`drive for property file '${entity._package}.${entity.name}.${prop.name}' must be set.`);
 	}
 }
