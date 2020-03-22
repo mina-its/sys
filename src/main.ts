@@ -194,7 +194,11 @@ export async function makeObjectReady(pack: string | Context, properties: Proper
 				if (!refObj)
 					throwError(StatusCode.UnprocessableEntity, `referred object for property '${pack}.${prop.name}' not found!`);
 
-				item[prop.name] = await get(pack, refObj.name, {itemId: val, rawData: true});
+				if (refObj.entityType == EntityType.Object)
+					item[prop.name] = await get(pack, refObj.name, {itemId: val, rawData: true});
+				else if (refObj.entityType == EntityType.Function) {
+					// todo: makeObjectReady for functions
+				}
 			}
 			if (prop.properties)
 				await makeObjectReady(pack, prop.properties, val);
@@ -202,7 +206,7 @@ export async function makeObjectReady(pack: string | Context, properties: Proper
 	}
 }
 
-export async function getOne(pack: string | Context, objectName: string, rawData: boolean) {
+export async function getOne(pack: string | Context, objectName: string, rawData: boolean = false) {
 	return get(pack, objectName, {count: 1, rawData});
 }
 
@@ -510,6 +514,20 @@ export async function getFile(drive: Drive, filePath: string): Promise<Buffer> {
 	}
 }
 
+export async function fileExists(drive: Drive, filePath: string): Promise<boolean> {
+	switch (drive.type) {
+		case SourceType.File:
+			let _path = path.join(getAbsolutePath(drive.address), filePath);
+			return await fs.access(_path);
+
+		case SourceType.Db:
+			throw StatusCode.NotImplemented;
+
+		default:
+			throw StatusCode.NotImplemented;
+	}
+}
+
 export async function putFile(drive: Drive, relativePath: string, file: Buffer) {
 	switch (drive.type) {
 		case SourceType.File:
@@ -546,31 +564,6 @@ export async function putFile(drive: Drive, relativePath: string, file: Buffer) 
 		default:
 			throw StatusCode.NotImplemented;
 	}
-}
-
-export function joinUri(...parts: string[]): string {
-	let uri = "";
-	for (let part of parts) {
-		uri += "/" + (part || "").replace(/^\//, '').replace(/\/$/, '');
-	}
-	return uri.substr(1);
-}
-
-function getS3DriveSdk(drive: Drive) {
-	if (drive.s3._sdk) return drive.s3._sdk;
-
-	const sdk = require('aws-sdk');
-	if (!drive.s3.accessKeyId)
-		throwError(StatusCode.ConfigurationProblem, `s3 accessKeyId for drive package '${drive._package}' must be configured.`);
-	else
-		sdk.config.accessKeyId = drive.s3.accessKeyId;
-
-	if (!drive.s3.secretAccessKey)
-		throwError(StatusCode.ConfigurationProblem, `s3 secretAccessKey for drive package '${drive._package}' must be configured.`);
-	else
-		sdk.config.secretAccessKey = drive.s3.secretAccessKey;
-	drive.s3._sdk = sdk;
-	return sdk;
 }
 
 export async function listDir(drive: Drive, dir: string): Promise<DirFile[]> {
@@ -626,43 +619,6 @@ export async function listDir(drive: Drive, dir: string): Promise<DirFile[]> {
 	}
 }
 
-export async function getFileInfo(pack: string | Context, filePath: string) {
-	// let rep: repository = mem.sources[host];
-	// if (!rep) return done(statusCode.notFound);
-	//
-	// switch (rep.type) {
-	//   case objectSource.fileSystem:
-	//     fs.stat(path.join(rep.sourceAddress, filePath), (err, stats) => {
-	//       if (err) return done(statusCode.notFound);
-	//
-	//       let info = {
-	//         _id: new ObjectId(),
-	//         name: filePath,
-	//         length: stats.size,
-	//       } as file;
-	//       done(null, info);
-	//     });
-	//     break;
-	//
-	//   case objectSource.db:
-	//     const FILES_COLL = 'fs.files';
-	//     let db = mem.dbs[rep._package];
-	//     db.collection(FILES_COLL).findOne({filename: filePath}, (err, info: FileInfo) => {
-	//       if (err || !info) return done(statusCode.notFound);
-	//       let file: file = {
-	//         _id: info._id,
-	//         name: info.filename.replace(/^__?[a-zA-Z\d]+__?/g, ""),
-	//         length: info.length
-	//       };
-	//       done(null, file);
-	//     });
-	//     break;
-	//
-	//   default:
-	//     return done(statusCode.notImplemented);
-	// }
-}
-
 export async function delFile(pack: string | Context, drive: Drive, relativePath: string) {
 	switch (drive.type) {
 		case SourceType.File:
@@ -675,36 +631,21 @@ export async function delFile(pack: string | Context, drive: Drive, relativePath
 			let data: any = await s3.deleteObject({Bucket: drive.address, Key: relativePath});
 			break;
 
+		case SourceType.Db:
+			//     getFileInfo(host, filePath, (err, info: file) => {
+			//       if (err) return done(err);
+			//
+			//       let db = mem.dbs[rep._package];
+			//       let bucket = new mongodb.GridFSBucket(db);
+			//       bucket.delete(info._id, (err) => {
+			//         done(err ? statusCode.notFound : statusCode.Ok);
+			//       });
+			//     });
+			break;
+
 		default:
 			throw StatusCode.NotImplemented;
 	}
-
-	// let rep: repository = mem.sources[host];
-	// if (!rep) return done(statusCode.notFound);
-	//
-	// switch (rep.type) {
-	//   case objectSource.fileSystem:
-	//     fs.unlink(path.join(rep.sourceAddress, filePath), (err) => {
-	//       if (err) error(err);
-	//       done(err ? statusCode.serverError : statusCode.Ok);
-	//     });
-	//     break;
-	//
-	//   case objectSource.db:
-	//     getFileInfo(host, filePath, (err, info: file) => {
-	//       if (err) return done(err);
-	//
-	//       let db = mem.dbs[rep._package];
-	//       let bucket = new mongodb.GridFSBucket(db);
-	//       bucket.delete(info._id, (err) => {
-	//         done(err ? statusCode.notFound : statusCode.Ok);
-	//       });
-	//     });
-	//     break;
-	//
-	//   default:
-	//     return done(statusCode.notImplemented);
-	// }
 }
 
 export async function movFile(pack: string | Context, sourcePath: string, targetPath: string) {
@@ -732,8 +673,29 @@ export async function movFile(pack: string | Context, sourcePath: string, target
 	// }
 }
 
-export function authorizeUser(email: string, password: string, done) {
+export function joinUri(...parts: string[]): string {
+	let uri = "";
+	for (let part of parts) {
+		uri += "/" + (part || "").replace(/^\//, '').replace(/\/$/, '');
+	}
+	return uri.substr(1);
+}
 
+function getS3DriveSdk(drive: Drive) {
+	if (drive.s3._sdk) return drive.s3._sdk;
+
+	const sdk = require('aws-sdk');
+	if (!drive.s3.accessKeyId)
+		throwError(StatusCode.ConfigurationProblem, `s3 accessKeyId for drive package '${drive._package}' must be configured.`);
+	else
+		sdk.config.accessKeyId = drive.s3.accessKeyId;
+
+	if (!drive.s3.secretAccessKey)
+		throwError(StatusCode.ConfigurationProblem, `s3 secretAccessKey for drive package '${drive._package}' must be configured.`);
+	else
+		sdk.config.secretAccessKey = drive.s3.secretAccessKey;
+	drive.s3._sdk = sdk;
+	return sdk;
 }
 
 export function silly(...message) {
@@ -1513,28 +1475,28 @@ export function parseDate(loc: Locale, date: string): Date {
 }
 
 export async function getTypes(cn: Context) {
-	let objects = allObjects().map((ent: mObject) => {
+	let objects: any[] = allObjects().map((ent: mObject) => {
 		let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
-		return {ref: ent._id, title} as Pair
+		return {...ent, title}
 	});
-	let functions = allFunctions().map((ent: Function) => {
+	let functions: any[] = allFunctions().map((ent: Function) => {
 		let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
-		return {ref: ent._id, title} as Pair
+		return {...ent, title}
 	});
-	let enums = glob.enums.map((ent: Enum) => {
+	let enums: any[] = glob.enums.map((ent: Enum) => {
 		let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
-		return {ref: ent._id, title} as Pair
+		return {...ent, title}
 	});
 
 	let types = objects.concat(functions, enums);
 	types = _.orderBy(types, ['title']);
 
-	let ptypes: Pair[] = [];
+	let ptypes: any[] = [];
 	for (let type in PType) {
-		ptypes.push({ref: new ObjectId(PType[type]), title: getText(cn, type, true)});
+		ptypes.push({_id: new ObjectId(PType[type]), title: getText(cn, type, true)});
 	}
 
-	types.unshift({ref: "", title: "-"} as Pair);
+	types.unshift({_id: null, title: "-"});
 	types = ptypes.concat(types);
 	return types;
 }
@@ -1542,7 +1504,7 @@ export async function getTypes(cn: Context) {
 export async function getAllEntities(cn: Context) {
 	let entities = glob.entities.map(ent => {
 		let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
-		return {ref: ent._id, title} as Pair
+		return {...ent, title}
 	});
 	entities = _.orderBy(entities, ['title']);
 	return entities;
@@ -1551,7 +1513,7 @@ export async function getAllEntities(cn: Context) {
 export async function getDataEntities(cn: Context) {
 	let entities = glob.entities.filter(e => e.entityType == EntityType.Function || e.entityType == EntityType.Object).map(ent => {
 		let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
-		return {ref: ent._id, title} as Pair
+		return {...ent, title}
 	});
 	entities = _.orderBy(entities, ['title']);
 	return entities;
@@ -1841,6 +1803,10 @@ export function getReference(id?: string): Reference {
 export function clientLog(cn: Context, message: string, type: LogType = LogType.Debug, ref?: string) {
 	logger.log(LogType[type].toLowerCase(), message);
 	postClientCommandCallback(cn, ClientCommand.Log, message, type, ref);
+}
+
+export function clientCommand(cn: Context, command: ClientCommand, ...args) {
+	postClientCommandCallback(cn, command, ...args);
 }
 
 export async function removeDir(dir: string) {

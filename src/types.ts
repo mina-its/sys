@@ -930,6 +930,7 @@ export enum ClientCommand {
 	FunctionFailed = 6,
 	Ping = 7,
 	PingAck = 8,
+	Download = 9
 }
 
 export enum ObjectDetailsViewType {

@@ -138,7 +138,10 @@ async function makeObjectReady(pack, properties, data) {
                 let refObj = findEntity(prop.type);
                 if (!refObj)
                     throwError(types_1.StatusCode.UnprocessableEntity, `referred object for property '${pack}.${prop.name}' not found!`);
-                item[prop.name] = await get(pack, refObj.name, { itemId: val, rawData: true });
+                if (refObj.entityType == types_1.EntityType.Object)
+                    item[prop.name] = await get(pack, refObj.name, { itemId: val, rawData: true });
+                else if (refObj.entityType == types_1.EntityType.Function) {
+                }
             }
             if (prop.properties)
                 await makeObjectReady(pack, prop.properties, val);
@@ -146,7 +149,7 @@ async function makeObjectReady(pack, properties, data) {
     }
 }
 exports.makeObjectReady = makeObjectReady;
-async function getOne(pack, objectName, rawData) {
+async function getOne(pack, objectName, rawData = false) {
     return get(pack, objectName, { count: 1, rawData });
 }
 exports.getOne = getOne;
@@ -445,6 +448,18 @@ async function getFile(drive, filePath) {
     }
 }
 exports.getFile = getFile;
+async function fileExists(drive, filePath) {
+    switch (drive.type) {
+        case types_1.SourceType.File:
+            let _path = path.join(getAbsolutePath(drive.address), filePath);
+            return await fs.access(_path);
+        case types_1.SourceType.Db:
+            throw types_1.StatusCode.NotImplemented;
+        default:
+            throw types_1.StatusCode.NotImplemented;
+    }
+}
+exports.fileExists = fileExists;
 async function putFile(drive, relativePath, file) {
     switch (drive.type) {
         case types_1.SourceType.File:
@@ -479,29 +494,6 @@ async function putFile(drive, relativePath, file) {
     }
 }
 exports.putFile = putFile;
-function joinUri(...parts) {
-    let uri = "";
-    for (let part of parts) {
-        uri += "/" + (part || "").replace(/^\//, '').replace(/\/$/, '');
-    }
-    return uri.substr(1);
-}
-exports.joinUri = joinUri;
-function getS3DriveSdk(drive) {
-    if (drive.s3._sdk)
-        return drive.s3._sdk;
-    const sdk = require('aws-sdk');
-    if (!drive.s3.accessKeyId)
-        throwError(types_1.StatusCode.ConfigurationProblem, `s3 accessKeyId for drive package '${drive._package}' must be configured.`);
-    else
-        sdk.config.accessKeyId = drive.s3.accessKeyId;
-    if (!drive.s3.secretAccessKey)
-        throwError(types_1.StatusCode.ConfigurationProblem, `s3 secretAccessKey for drive package '${drive._package}' must be configured.`);
-    else
-        sdk.config.secretAccessKey = drive.s3.secretAccessKey;
-    drive.s3._sdk = sdk;
-    return sdk;
-}
 async function listDir(drive, dir) {
     switch (drive.type) {
         case types_1.SourceType.File:
@@ -553,9 +545,6 @@ async function listDir(drive, dir) {
     }
 }
 exports.listDir = listDir;
-async function getFileInfo(pack, filePath) {
-}
-exports.getFileInfo = getFileInfo;
 async function delFile(pack, drive, relativePath) {
     switch (drive.type) {
         case types_1.SourceType.File:
@@ -566,6 +555,8 @@ async function delFile(pack, drive, relativePath) {
             let s3 = new AWS.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion });
             let data = await s3.deleteObject({ Bucket: drive.address, Key: relativePath });
             break;
+        case types_1.SourceType.Db:
+            break;
         default:
             throw types_1.StatusCode.NotImplemented;
     }
@@ -574,9 +565,29 @@ exports.delFile = delFile;
 async function movFile(pack, sourcePath, targetPath) {
 }
 exports.movFile = movFile;
-function authorizeUser(email, password, done) {
+function joinUri(...parts) {
+    let uri = "";
+    for (let part of parts) {
+        uri += "/" + (part || "").replace(/^\//, '').replace(/\/$/, '');
+    }
+    return uri.substr(1);
 }
-exports.authorizeUser = authorizeUser;
+exports.joinUri = joinUri;
+function getS3DriveSdk(drive) {
+    if (drive.s3._sdk)
+        return drive.s3._sdk;
+    const sdk = require('aws-sdk');
+    if (!drive.s3.accessKeyId)
+        throwError(types_1.StatusCode.ConfigurationProblem, `s3 accessKeyId for drive package '${drive._package}' must be configured.`);
+    else
+        sdk.config.accessKeyId = drive.s3.accessKeyId;
+    if (!drive.s3.secretAccessKey)
+        throwError(types_1.StatusCode.ConfigurationProblem, `s3 secretAccessKey for drive package '${drive._package}' must be configured.`);
+    else
+        sdk.config.secretAccessKey = drive.s3.secretAccessKey;
+    drive.s3._sdk = sdk;
+    return sdk;
+}
 function silly(...message) {
     logger.silly(message);
 }
@@ -1298,23 +1309,23 @@ exports.parseDate = parseDate;
 async function getTypes(cn) {
     let objects = allObjects().map((ent) => {
         let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
-        return { ref: ent._id, title };
+        return Object.assign(Object.assign({}, ent), { title });
     });
     let functions = allFunctions().map((ent) => {
         let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
-        return { ref: ent._id, title };
+        return Object.assign(Object.assign({}, ent), { title });
     });
     let enums = exports.glob.enums.map((ent) => {
         let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
-        return { ref: ent._id, title };
+        return Object.assign(Object.assign({}, ent), { title });
     });
     let types = objects.concat(functions, enums);
     types = _.orderBy(types, ['title']);
     let ptypes = [];
     for (let type in types_1.PType) {
-        ptypes.push({ ref: new mongodb_1.ObjectId(types_1.PType[type]), title: getText(cn, type, true) });
+        ptypes.push({ _id: new mongodb_1.ObjectId(types_1.PType[type]), title: getText(cn, type, true) });
     }
-    types.unshift({ ref: "", title: "-" });
+    types.unshift({ _id: null, title: "-" });
     types = ptypes.concat(types);
     return types;
 }
@@ -1322,7 +1333,7 @@ exports.getTypes = getTypes;
 async function getAllEntities(cn) {
     let entities = exports.glob.entities.map(ent => {
         let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
-        return { ref: ent._id, title };
+        return Object.assign(Object.assign({}, ent), { title });
     });
     entities = _.orderBy(entities, ['title']);
     return entities;
@@ -1331,7 +1342,7 @@ exports.getAllEntities = getAllEntities;
 async function getDataEntities(cn) {
     let entities = exports.glob.entities.filter(e => e.entityType == types_1.EntityType.Function || e.entityType == types_1.EntityType.Object).map(ent => {
         let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
-        return { ref: ent._id, title };
+        return Object.assign(Object.assign({}, ent), { title });
     });
     entities = _.orderBy(entities, ['title']);
     return entities;
@@ -1601,6 +1612,10 @@ function clientLog(cn, message, type = types_1.LogType.Debug, ref) {
     exports.postClientCommandCallback(cn, types_1.ClientCommand.Log, message, type, ref);
 }
 exports.clientLog = clientLog;
+function clientCommand(cn, command, ...args) {
+    exports.postClientCommandCallback(cn, command, ...args);
+}
+exports.clientCommand = clientCommand;
 async function removeDir(dir) {
     return new Promise((resolve, reject) => {
         rimraf(dir, { silent: true }, (ex) => {
