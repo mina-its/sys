@@ -45,11 +45,13 @@ import {
 	Pair,
 	Property,
 	PropertyReferType,
+	PropertyViewMode,
 	PType,
 	PutOptions,
 	Reference,
 	RefPortion,
-	RefPortionType, RequestMode,
+	RefPortionType,
+	RequestMode,
 	Role,
 	SourceType,
 	StatusCode,
@@ -147,36 +149,69 @@ export function run(cn, func: string, ...args) {
 	}
 }
 
-export async function get(pack: string, objectName: string, options?: GetOptions) {
+export async function get(pack: string | Context, objectName: string, options?: GetOptions) {
 	let collection = await getCollection(pack, objectName);
 	options = options || {} as GetOptions;
 
+	let result;
 	if (options.itemId)
-		return collection.findOne(options.itemId);
+		result = collection.findOne(options.itemId);
 	else {
 		let find = collection.find(options.query);
 		if (options.sort) find = find.sort(options.sort);
 		if (options.last) find = find.sort({$natural: -1});
 		if (options.count) find = find.limit(options.count);
 		if (options.skip) find = await find.skip(options.skip);
-		let result = await find.toArray();
+		result = await find.toArray();
 		if (options.count === 1 && result)
-			return result[0];
-		else
-			return result;
+			result = result[0];
+	}
+
+	if (options && options.rawData)
+		return result;
+
+	let obj = findObject(pack, objectName);
+	if (!obj)
+		throw `object '${pack}.${objectName}' not found!`;
+
+	if (!obj.isList && Array.isArray(result))
+		result = result[0];
+
+	await makeObjectReady(pack, obj.properties, result);
+	return result;
+}
+
+export async function makeObjectReady(pack: string | Context, properties: Property[], data: any) {
+	if (!data) return;
+
+	data = Array.isArray(data) ? data : [data];
+	for (let item of data) {
+		for (let prop of properties) {
+			let val = item[prop.name];
+			if (!val) continue;
+			if (prop._isRef && !prop._enum && prop.viewMode != PropertyViewMode.Hidden && isObjectId(val)) {
+				let refObj = findEntity(prop.type);
+				if (!refObj)
+					throwError(StatusCode.UnprocessableEntity, `referred object for property '${pack}.${prop.name}' not found!`);
+
+				item[prop.name] = await get(pack, refObj.name, {itemId: val, rawData: true});
+			}
+			if (prop.properties)
+				await makeObjectReady(pack, prop.properties, val);
+		}
 	}
 }
 
-export async function getOne(pack: string, objectName: string) {
-	return get(pack, objectName, {count: 1});
+export async function getOne(pack: string | Context, objectName: string, rawData: boolean) {
+	return get(pack, objectName, {count: 1, rawData});
 }
 
-async function getCollection(pack: string, objectName: string) {
+async function getCollection(pack: string | Context, objectName: string) {
 	let db = await connect(pack);
 	return db.collection(objectName);
 }
 
-export async function put(pack: string, objectName: string, item: any, options?: PutOptions) {
+export async function put(pack: string | Context, objectName: string, item: any, options?: PutOptions) {
 	let collection = await getCollection(pack, objectName);
 	item = item || {};
 	if (!options || !options.portions || options.portions.length == 1) {
@@ -221,7 +256,7 @@ export async function put(pack: string, objectName: string, item: any, options?:
 	}
 }
 
-export async function portionsToMongoPath(pack: string, rootId: ObjectId, portions: RefPortion[], endIndex: number) {
+export async function portionsToMongoPath(pack: string | Context, rootId: ObjectId, portions: RefPortion[], endIndex: number) {
 	if (endIndex == 3) // not need to fetch data
 		return portions[2].property.name;
 
@@ -252,7 +287,7 @@ export async function portionsToMongoPath(pack: string, rootId: ObjectId, portio
 	return _.trim(path, '.');
 }
 
-export async function count(pack: string, objectName: string, options: GetOptions) {
+export async function count(pack: string | Context, objectName: string, options: GetOptions) {
 	let collection = await getCollection(pack, objectName);
 	options = options || {} as GetOptions;
 	return await collection.countDocuments(options);
@@ -274,7 +309,7 @@ export function extractRefPortions(cn: Context, ref: string, _default?: string):
 			portions.shift();
 			cn["mode"] = RequestMode.api;
 			if (portions.length < 1) return null;
-			if ( /^v\d/.test(portions[0].value))
+			if (/^v\d/.test(portions[0].value))
 				cn["apiVersion"] = portions.shift().value;
 		}
 
@@ -328,7 +363,7 @@ export function extractRefPortions(cn: Context, ref: string, _default?: string):
 	}
 }
 
-export async function patch(pack: string, objectName: string, patchData: any, options?: PutOptions) {
+export async function patch(pack: string | Context, objectName: string, patchData: any, options?: PutOptions) {
 	let db = await connect(pack);
 	let collection = db.collection(objectName);
 	if (!collection) throw StatusCode.BadRequest;
@@ -363,7 +398,7 @@ export async function patch(pack: string, objectName: string, patchData: any, op
 	} as ObjectModifyState;
 }
 
-export async function del(pack: string, objectName: string, options?: DelOptions) {
+export async function del(pack: string | Context, objectName: string, options?: DelOptions) {
 	let db = await connect(pack);
 	let collection = db.collection(objectName);
 	if (!collection) throw StatusCode.BadRequest;
@@ -475,7 +510,7 @@ export async function getFile(drive: Drive, filePath: string): Promise<Buffer> {
 	}
 }
 
-export async function putFile(host: string, drive: Drive, relativePath: string, file: Buffer) {
+export async function putFile(drive: Drive, relativePath: string, file: Buffer) {
 	switch (drive.type) {
 		case SourceType.File:
 			let _path = path.join(getAbsolutePath(drive.address), relativePath);
@@ -484,11 +519,11 @@ export async function putFile(host: string, drive: Drive, relativePath: string, 
 			break;
 
 		case SourceType.Db:
-			let db = await connect(host);
+			let db = await connect(drive._package);
 			;
 			let bucket = new mongodb.GridFSBucket(db);
 			let stream = bucket.openUploadStream(relativePath);
-			await delFile(host, drive, relativePath);
+			await delFile(drive._package, drive, relativePath);
 			stream.on("error", function (err) {
 				error("putFile error", err);
 				// done(err ? StatusCode.ServerError : StatusCode.Ok);
@@ -591,7 +626,7 @@ export async function listDir(drive: Drive, dir: string): Promise<DirFile[]> {
 	}
 }
 
-export async function getFileInfo(host: string, filePath: string) {
+export async function getFileInfo(pack: string | Context, filePath: string) {
 	// let rep: repository = mem.sources[host];
 	// if (!rep) return done(statusCode.notFound);
 	//
@@ -628,7 +663,7 @@ export async function getFileInfo(host: string, filePath: string) {
 	// }
 }
 
-export async function delFile(host: string, drive: Drive, relativePath: string) {
+export async function delFile(pack: string | Context, drive: Drive, relativePath: string) {
 	switch (drive.type) {
 		case SourceType.File:
 			let _path = path.join(getAbsolutePath(drive.address), relativePath);
@@ -672,7 +707,7 @@ export async function delFile(host: string, drive: Drive, relativePath: string) 
 	// }
 }
 
-export async function movFile(host: string, sourcePath: string, targetPath: string) {
+export async function movFile(pack: string | Context, sourcePath: string, targetPath: string) {
 	// let rep: repository = mem.sources[host];
 	// if (!rep) return done(statusCode.notFound);
 	//
@@ -743,7 +778,7 @@ async function loadGeneralCollections() {
 	glob.timeZones = await get(Constants.sysPackage, Constants.timeZonesCollection);
 	let result: mObject = await get(Constants.sysPackage, SysCollection.objects, {
 		query: {name: Constants.systemPropertiesObjectName},
-		count: 1
+		count: 1, rawData: true
 	});
 	if (!result) {
 		logger.error("loadGeneralCollections failed terminating process ...");
@@ -754,7 +789,7 @@ async function loadGeneralCollections() {
 
 async function loadAuditTypes() {
 	log('loadAuditTypes ...');
-	glob.auditTypes = await get(Constants.sysPackage, SysCollection.auditTypes);
+	glob.auditTypes = await get(Constants.sysPackage, SysCollection.auditTypes, {rawData: true});
 }
 
 function getEnabledPackages(): SystemConfigPackage[] {
@@ -762,7 +797,8 @@ function getEnabledPackages(): SystemConfigPackage[] {
 }
 
 async function loadSysConfig() {
-	glob.sysConfig = await get(Constants.sysPackage, SysCollection.systemConfig, {count: 1});
+	let collection = await getCollection(Constants.sysPackage, SysCollection.systemConfig);
+	glob.sysConfig = await collection.findOne({});
 	for (let pack of getEnabledPackages()) {
 		try {
 			glob.packages[pack.name] = require(path.join(process.env.PACKAGES_ROOT, pack.name, `src/main`));
@@ -796,7 +832,22 @@ async function loadPackageSystemCollections(packConfig: SystemConfigPackage) {
 	let pack = packConfig.name;
 
 	log(`Loading system collections package '${pack}' ...`);
-	let config: PackageConfig = await getOne(pack, SysCollection.packageConfig);
+
+	let objects: mObject[] = await get(pack, SysCollection.objects, {rawData: true});
+	for (let object of objects) {
+		object._package = pack;
+		object.entityType = EntityType.Object;
+		glob.entities.push(object);
+	}
+
+	let functions: Function[] = await get(pack, SysCollection.functions, {rawData: true});
+	for (let func of functions) {
+		func._package = pack;
+		func.entityType = EntityType.Function;
+		glob.entities.push(func);
+	}
+
+	let config: PackageConfig = await getOne(pack, SysCollection.packageConfig, true);
 	if (!config) {
 		packConfig.enabled = false;
 		error(`Config for package '${pack}' not found!`);
@@ -806,45 +857,31 @@ async function loadPackageSystemCollections(packConfig: SystemConfigPackage) {
 		log(`package '${pack}' loaded. version: ${glob.packageConfigs[pack]._static.version}`);
 	}
 
-	let objects: mObject[] = await get(pack, SysCollection.objects);
-	for (let object of objects) {
-		object._package = pack;
-		object.entityType = EntityType.Object;
-		glob.entities.push(object);
-	}
-
-	let functions: Function[] = await get(pack, SysCollection.functions);
-	for (let func of functions) {
-		func._package = pack;
-		func.entityType = EntityType.Function;
-		glob.entities.push(func);
-	}
-
-	let forms: Form[] = await get(pack, SysCollection.forms);
+	let forms: Form[] = await get(pack, SysCollection.forms, {rawData: true});
 	for (let form of forms) {
 		form._package = pack;
 		form.entityType = EntityType.Form;
 		glob.entities.push(form);
 	}
 
-	let texts: Text[] = await get(pack, SysCollection.dictionary);
+	let texts: Text[] = await get(pack, SysCollection.dictionary, {rawData: true});
 	for (let item of texts) {
 		glob.dictionary[pack + "." + item.name] = item.text;
 	}
 
-	let menus: Menu[] = await get(pack, SysCollection.menus);
+	let menus: Menu[] = await get(pack, SysCollection.menus, {rawData: true});
 	for (let menu of menus) {
 		menu._package = pack;
 		glob.menus.push(menu);
 	}
 
-	let roles: Role[] = await get(pack, SysCollection.roles);
+	let roles: Role[] = await get(pack, SysCollection.roles, {rawData: true});
 	for (let role of roles) {
 		role._package = pack;
 		glob.roles.push(role);
 	}
 
-	let drives: Drive[] = await get(pack, SysCollection.drives);
+	let drives: Drive[] = await get(pack, SysCollection.drives, {rawData: true});
 	for (let drive of drives) {
 		drive._package = pack;
 		glob.drives.push(drive);
@@ -941,15 +978,10 @@ export function initializeRoles() {
 }
 
 export function checkAppMenu(app: App) {
-	if (app.menu)
-		app._menu = glob.menus.find(menu => menu._id.equals(app.menu));
-	else  // return the first found menu in the app
-		app._menu = glob.menus.find(menu => menu._package == app._package);
+	if (!app.menu)
+		app.menu = glob.menus.find(menu => menu._package == app._package);
 
-	if (app.navmenu)
-		app._navmenu = glob.menus.find(menu => menu._id.equals(app.navmenu));
-
-	if (!app._menu)
+	if (!app.menu)
 		warn(`Menu for app '${app.title}' not found!`);
 }
 
@@ -1062,8 +1094,10 @@ function checkPropertyGtype(prop: Property, entity: Entity) {
 	}
 }
 
-export async function connect(dbName: string, connectionString?: string): Promise<mongodb.Db> {
-	if (glob.dbs[dbName + ":" + connectionString]) return glob.dbs[dbName + ":" + connectionString];
+export async function connect(pack: string | Context, connectionString?: string): Promise<mongodb.Db> {
+	if (typeof pack != "string")
+		pack = pack.pack;
+	if (glob.dbs[pack + ":" + connectionString]) return glob.dbs[pack + ":" + connectionString];
 	connectionString = connectionString || process.env.DB_ADDRESS;
 	if (!connectionString)
 		throw("Environment variable 'DB_ADDRESS' is needed.");
@@ -1072,9 +1106,9 @@ export async function connect(dbName: string, connectionString?: string): Promis
 		let dbc = await MongoClient.connect(connectionString, {useNewUrlParser: true, useUnifiedTopology: true});
 		if (!dbc)
 			return null;
-		return glob.dbs[dbName + ":" + connectionString] = dbc.db(dbName);
+		return glob.dbs[pack + ":" + connectionString] = dbc.db(pack);
 	} catch (e) {
-		throw `db '${dbName}' connection failed [${connectionString}]`;
+		throw `db '${pack}' connection failed [${connectionString}]`;
 	}
 }
 
@@ -1088,13 +1122,19 @@ export function findEntity(id: ObjectId): Entity {
 	return glob.entities.find(a => a._id.equals(id));
 }
 
+export function findObject(pack: string | Context, objectName: string): mObject {
+	if (typeof pack != "string")
+		pack = pack.pack;
+	return glob.entities.find(a => a._package == pack && a.name == objectName && a.entityType == EntityType.Object) as mObject;
+}
+
 export async function initializeEnums() {
 	log('initializeEnums ...');
 	glob.enums = [];
 	glob.enumTexts = {};
 
 	for (let pack of getEnabledPackages()) {
-		let enums = await get(pack.name, SysCollection.enums);
+		let enums = await get(pack.name, SysCollection.enums, {rawData: true});
 		enums.forEach((theEnum) => {
 			theEnum._package = pack.name;
 			glob.enums.push(theEnum);
@@ -1116,7 +1156,7 @@ export function allFunctions(): Function[] {
 	return glob.entities.filter(en => en.entityType == EntityType.Function) as Function[];
 }
 
-function initializeEntities() {
+async function initializeEntities() {
 	log(`Initializing '${allObjects().length}' Objects ...`);
 	let allObjs = allObjects();
 	for (let obj of allObjs) {
@@ -1125,6 +1165,12 @@ function initializeEntities() {
 
 	for (let obj of allObjs) {
 		initObject(obj);
+	}
+
+	for (let pack of getEnabledPackages()) {
+		let config = glob.packageConfigs[pack.name];
+		let obj = findObject(pack.name, SysCollection.packageConfig);
+		await makeObjectReady(pack.name, obj.properties, config);
 	}
 
 	log(`Initializing '${allFunctions().length}' functions ...`);
@@ -1633,7 +1679,7 @@ export async function getPropertyReferenceValues(cn: Context, prop: Property, in
 	}
 
 	if (entity.entityType == EntityType.Object) {
-		let result = await get(cn.pack, entity.name, {count: 10});
+		let result = await get(cn.pack, entity.name, {count: 10, rawData: true});
 		if (result) {
 			return _.map(result, (item) => {
 				return {ref: item._id, title: getText(cn, item.title)} as Pair;
@@ -1712,6 +1758,29 @@ export async function mock(cn: Context, func: Function, args: any[]) {
 	return {code: StatusCode.Ok, message: "No default sample data!"};
 }
 
+async function invokeFuncMakeArgsReady(cn: Context, func: Function, action, args: any[]) {
+	if (func.parameters) {
+		const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
+		const ARGUMENT_NAMES = /([^\s,]+)/g;
+
+		let fnStr = action.toString().replace(STRIP_COMMENTS, '');
+		let argNames = fnStr.slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
+		if (argNames === null)
+			argNames = [];
+		if (argNames[0] == "cn")
+			argNames.shift();
+
+		let argData = {};
+		argNames.forEach((argName, i) => {
+			argData[argName] = args[i];
+		});
+
+		await makeObjectReady(cn, func.parameters, argData);
+		args = Object.values(argData);
+	}
+	return args;
+}
+
 export async function invoke(cn: Context, func: Function, args: any[]) {
 	if (func.test && func.test.mock && envMode() == EnvMode.Development && cn.url.pathname != "/functionTest") {
 		return await mock(cn, func, args);
@@ -1731,14 +1800,7 @@ export async function invoke(cn: Context, func: Function, args: any[]) {
 		}
 	}
 	if (!action) throw StatusCode.NotImplemented;
-
-	const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
-	const ARGUMENT_NAMES = /([^\s,]+)/g;
-
-	let fnStr = action.toString().replace(STRIP_COMMENTS, '');
-	let argNames = fnStr.slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
-	if (argNames === null)
-		argNames = [];
+	args = await invokeFuncMakeArgsReady(cn, func, action, args);
 
 	let result;
 	if (args.length == 0)
@@ -1764,6 +1826,7 @@ export async function runFunction(cn: Context, functionId: ObjectId, input: any)
 }
 
 export function isObjectId(value: any): boolean {
+	if (!value) return false;
 	return value._bsontype == "ObjectID";
 }
 

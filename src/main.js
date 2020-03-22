@@ -97,8 +97,9 @@ exports.run = run;
 async function get(pack, objectName, options) {
     let collection = await getCollection(pack, objectName);
     options = options || {};
+    let result;
     if (options.itemId)
-        return collection.findOne(options.itemId);
+        result = collection.findOne(options.itemId);
     else {
         let find = collection.find(options.query);
         if (options.sort)
@@ -109,16 +110,44 @@ async function get(pack, objectName, options) {
             find = find.limit(options.count);
         if (options.skip)
             find = await find.skip(options.skip);
-        let result = await find.toArray();
+        result = await find.toArray();
         if (options.count === 1 && result)
-            return result[0];
-        else
-            return result;
+            result = result[0];
     }
+    if (options && options.rawData)
+        return result;
+    let obj = findObject(pack, objectName);
+    if (!obj)
+        throw `object '${pack}.${objectName}' not found!`;
+    if (!obj.isList && Array.isArray(result))
+        result = result[0];
+    await makeObjectReady(pack, obj.properties, result);
+    return result;
 }
 exports.get = get;
-async function getOne(pack, objectName) {
-    return get(pack, objectName, { count: 1 });
+async function makeObjectReady(pack, properties, data) {
+    if (!data)
+        return;
+    data = Array.isArray(data) ? data : [data];
+    for (let item of data) {
+        for (let prop of properties) {
+            let val = item[prop.name];
+            if (!val)
+                continue;
+            if (prop._isRef && !prop._enum && prop.viewMode != types_1.PropertyViewMode.Hidden && isObjectId(val)) {
+                let refObj = findEntity(prop.type);
+                if (!refObj)
+                    throwError(types_1.StatusCode.UnprocessableEntity, `referred object for property '${pack}.${prop.name}' not found!`);
+                item[prop.name] = await get(pack, refObj.name, { itemId: val, rawData: true });
+            }
+            if (prop.properties)
+                await makeObjectReady(pack, prop.properties, val);
+        }
+    }
+}
+exports.makeObjectReady = makeObjectReady;
+async function getOne(pack, objectName, rawData) {
+    return get(pack, objectName, { count: 1, rawData });
 }
 exports.getOne = getOne;
 async function getCollection(pack, objectName) {
@@ -416,7 +445,7 @@ async function getFile(drive, filePath) {
     }
 }
 exports.getFile = getFile;
-async function putFile(host, drive, relativePath, file) {
+async function putFile(drive, relativePath, file) {
     switch (drive.type) {
         case types_1.SourceType.File:
             let _path = path.join(getAbsolutePath(drive.address), relativePath);
@@ -424,11 +453,11 @@ async function putFile(host, drive, relativePath, file) {
             await fs.writeFile(_path, file);
             break;
         case types_1.SourceType.Db:
-            let db = await connect(host);
+            let db = await connect(drive._package);
             ;
             let bucket = new mongodb.GridFSBucket(db);
             let stream = bucket.openUploadStream(relativePath);
-            await delFile(host, drive, relativePath);
+            await delFile(drive._package, drive, relativePath);
             stream.on("error", function (err) {
                 error("putFile error", err);
             }).end(file);
@@ -524,10 +553,10 @@ async function listDir(drive, dir) {
     }
 }
 exports.listDir = listDir;
-async function getFileInfo(host, filePath) {
+async function getFileInfo(pack, filePath) {
 }
 exports.getFileInfo = getFileInfo;
-async function delFile(host, drive, relativePath) {
+async function delFile(pack, drive, relativePath) {
     switch (drive.type) {
         case types_1.SourceType.File:
             let _path = path.join(getAbsolutePath(drive.address), relativePath);
@@ -542,7 +571,7 @@ async function delFile(host, drive, relativePath) {
     }
 }
 exports.delFile = delFile;
-async function movFile(host, sourcePath, targetPath) {
+async function movFile(pack, sourcePath, targetPath) {
 }
 exports.movFile = movFile;
 function authorizeUser(email, password, done) {
@@ -591,7 +620,7 @@ async function loadGeneralCollections() {
     exports.glob.timeZones = await get(types_1.Constants.sysPackage, types_1.Constants.timeZonesCollection);
     let result = await get(types_1.Constants.sysPackage, types_1.SysCollection.objects, {
         query: { name: types_1.Constants.systemPropertiesObjectName },
-        count: 1
+        count: 1, rawData: true
     });
     if (!result) {
         logger.error("loadGeneralCollections failed terminating process ...");
@@ -601,13 +630,14 @@ async function loadGeneralCollections() {
 }
 async function loadAuditTypes() {
     log('loadAuditTypes ...');
-    exports.glob.auditTypes = await get(types_1.Constants.sysPackage, types_1.SysCollection.auditTypes);
+    exports.glob.auditTypes = await get(types_1.Constants.sysPackage, types_1.SysCollection.auditTypes, { rawData: true });
 }
 function getEnabledPackages() {
     return exports.glob.sysConfig.packages.filter(pack => pack.enabled);
 }
 async function loadSysConfig() {
-    exports.glob.sysConfig = await get(types_1.Constants.sysPackage, types_1.SysCollection.systemConfig, { count: 1 });
+    let collection = await getCollection(types_1.Constants.sysPackage, types_1.SysCollection.systemConfig);
+    exports.glob.sysConfig = await collection.findOne({});
     for (let pack of getEnabledPackages()) {
         try {
             exports.glob.packages[pack.name] = require(path.join(process.env.PACKAGES_ROOT, pack.name, `src/main`));
@@ -637,7 +667,19 @@ function applyAmazonConfig() {
 async function loadPackageSystemCollections(packConfig) {
     let pack = packConfig.name;
     log(`Loading system collections package '${pack}' ...`);
-    let config = await getOne(pack, types_1.SysCollection.packageConfig);
+    let objects = await get(pack, types_1.SysCollection.objects, { rawData: true });
+    for (let object of objects) {
+        object._package = pack;
+        object.entityType = types_1.EntityType.Object;
+        exports.glob.entities.push(object);
+    }
+    let functions = await get(pack, types_1.SysCollection.functions, { rawData: true });
+    for (let func of functions) {
+        func._package = pack;
+        func.entityType = types_1.EntityType.Function;
+        exports.glob.entities.push(func);
+    }
+    let config = await getOne(pack, types_1.SysCollection.packageConfig, true);
     if (!config) {
         packConfig.enabled = false;
         error(`Config for package '${pack}' not found!`);
@@ -647,39 +689,27 @@ async function loadPackageSystemCollections(packConfig) {
         exports.glob.packageConfigs[pack]._static = require(path.join(process.env.PACKAGES_ROOT, pack, `package.json`));
         log(`package '${pack}' loaded. version: ${exports.glob.packageConfigs[pack]._static.version}`);
     }
-    let objects = await get(pack, types_1.SysCollection.objects);
-    for (let object of objects) {
-        object._package = pack;
-        object.entityType = types_1.EntityType.Object;
-        exports.glob.entities.push(object);
-    }
-    let functions = await get(pack, types_1.SysCollection.functions);
-    for (let func of functions) {
-        func._package = pack;
-        func.entityType = types_1.EntityType.Function;
-        exports.glob.entities.push(func);
-    }
-    let forms = await get(pack, types_1.SysCollection.forms);
+    let forms = await get(pack, types_1.SysCollection.forms, { rawData: true });
     for (let form of forms) {
         form._package = pack;
         form.entityType = types_1.EntityType.Form;
         exports.glob.entities.push(form);
     }
-    let texts = await get(pack, types_1.SysCollection.dictionary);
+    let texts = await get(pack, types_1.SysCollection.dictionary, { rawData: true });
     for (let item of texts) {
         exports.glob.dictionary[pack + "." + item.name] = item.text;
     }
-    let menus = await get(pack, types_1.SysCollection.menus);
+    let menus = await get(pack, types_1.SysCollection.menus, { rawData: true });
     for (let menu of menus) {
         menu._package = pack;
         exports.glob.menus.push(menu);
     }
-    let roles = await get(pack, types_1.SysCollection.roles);
+    let roles = await get(pack, types_1.SysCollection.roles, { rawData: true });
     for (let role of roles) {
         role._package = pack;
         exports.glob.roles.push(role);
     }
-    let drives = await get(pack, types_1.SysCollection.drives);
+    let drives = await get(pack, types_1.SysCollection.drives, { rawData: true });
     for (let drive of drives) {
         drive._package = pack;
         exports.glob.drives.push(drive);
@@ -765,13 +795,9 @@ function initializeRoles() {
 }
 exports.initializeRoles = initializeRoles;
 function checkAppMenu(app) {
-    if (app.menu)
-        app._menu = exports.glob.menus.find(menu => menu._id.equals(app.menu));
-    else
-        app._menu = exports.glob.menus.find(menu => menu._package == app._package);
-    if (app.navmenu)
-        app._navmenu = exports.glob.menus.find(menu => menu._id.equals(app.navmenu));
-    if (!app._menu)
+    if (!app.menu)
+        app.menu = exports.glob.menus.find(menu => menu._package == app._package);
+    if (!app.menu)
         warn(`Menu for app '${app.title}' not found!`);
 }
 exports.checkAppMenu = checkAppMenu;
@@ -870,9 +896,11 @@ function checkPropertyGtype(prop, entity) {
         }
     }
 }
-async function connect(dbName, connectionString) {
-    if (exports.glob.dbs[dbName + ":" + connectionString])
-        return exports.glob.dbs[dbName + ":" + connectionString];
+async function connect(pack, connectionString) {
+    if (typeof pack != "string")
+        pack = pack.pack;
+    if (exports.glob.dbs[pack + ":" + connectionString])
+        return exports.glob.dbs[pack + ":" + connectionString];
     connectionString = connectionString || process.env.DB_ADDRESS;
     if (!connectionString)
         throw ("Environment variable 'DB_ADDRESS' is needed.");
@@ -880,10 +908,10 @@ async function connect(dbName, connectionString) {
         let dbc = await mongodb_1.MongoClient.connect(connectionString, { useNewUrlParser: true, useUnifiedTopology: true });
         if (!dbc)
             return null;
-        return exports.glob.dbs[dbName + ":" + connectionString] = dbc.db(dbName);
+        return exports.glob.dbs[pack + ":" + connectionString] = dbc.db(pack);
     }
     catch (e) {
-        throw `db '${dbName}' connection failed [${connectionString}]`;
+        throw `db '${pack}' connection failed [${connectionString}]`;
     }
 }
 exports.connect = connect;
@@ -899,12 +927,18 @@ function findEntity(id) {
     return exports.glob.entities.find(a => a._id.equals(id));
 }
 exports.findEntity = findEntity;
+function findObject(pack, objectName) {
+    if (typeof pack != "string")
+        pack = pack.pack;
+    return exports.glob.entities.find(a => a._package == pack && a.name == objectName && a.entityType == types_1.EntityType.Object);
+}
+exports.findObject = findObject;
 async function initializeEnums() {
     log('initializeEnums ...');
     exports.glob.enums = [];
     exports.glob.enumTexts = {};
     for (let pack of getEnabledPackages()) {
-        let enums = await get(pack.name, types_1.SysCollection.enums);
+        let enums = await get(pack.name, types_1.SysCollection.enums, { rawData: true });
         enums.forEach((theEnum) => {
             theEnum._package = pack.name;
             exports.glob.enums.push(theEnum);
@@ -925,7 +959,7 @@ function allFunctions() {
     return exports.glob.entities.filter(en => en.entityType == types_1.EntityType.Function);
 }
 exports.allFunctions = allFunctions;
-function initializeEntities() {
+async function initializeEntities() {
     log(`Initializing '${allObjects().length}' Objects ...`);
     let allObjs = allObjects();
     for (let obj of allObjs) {
@@ -933,6 +967,11 @@ function initializeEntities() {
     }
     for (let obj of allObjs) {
         initObject(obj);
+    }
+    for (let pack of getEnabledPackages()) {
+        let config = exports.glob.packageConfigs[pack.name];
+        let obj = findObject(pack.name, types_1.SysCollection.packageConfig);
+        await makeObjectReady(pack.name, obj.properties, config);
     }
     log(`Initializing '${allFunctions().length}' functions ...`);
     for (let func of allFunctions()) {
@@ -1411,7 +1450,7 @@ async function getPropertyReferenceValues(cn, prop, instance) {
         throw types_1.StatusCode.NotFound;
     }
     if (entity.entityType == types_1.EntityType.Object) {
-        let result = await get(cn.pack, entity.name, { count: 10 });
+        let result = await get(cn.pack, entity.name, { count: 10, rawData: true });
         if (result) {
             return _.map(result, (item) => {
                 return { ref: item._id, title: getText(cn, item.title) };
@@ -1483,6 +1522,25 @@ async function mock(cn, func, args) {
     return { code: types_1.StatusCode.Ok, message: "No default sample data!" };
 }
 exports.mock = mock;
+async function invokeFuncMakeArgsReady(cn, func, action, args) {
+    if (func.parameters) {
+        const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
+        const ARGUMENT_NAMES = /([^\s,]+)/g;
+        let fnStr = action.toString().replace(STRIP_COMMENTS, '');
+        let argNames = fnStr.slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
+        if (argNames === null)
+            argNames = [];
+        if (argNames[0] == "cn")
+            argNames.shift();
+        let argData = {};
+        argNames.forEach((argName, i) => {
+            argData[argName] = args[i];
+        });
+        await makeObjectReady(cn, func.parameters, argData);
+        args = Object.values(argData);
+    }
+    return args;
+}
 async function invoke(cn, func, args) {
     if (func.test && func.test.mock && envMode() == types_1.EnvMode.Development && cn.url.pathname != "/functionTest") {
         return await mock(cn, func, args);
@@ -1502,12 +1560,7 @@ async function invoke(cn, func, args) {
     }
     if (!action)
         throw types_1.StatusCode.NotImplemented;
-    const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
-    const ARGUMENT_NAMES = /([^\s,]+)/g;
-    let fnStr = action.toString().replace(STRIP_COMMENTS, '');
-    let argNames = fnStr.slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
-    if (argNames === null)
-        argNames = [];
+    args = await invokeFuncMakeArgsReady(cn, func, action, args);
     let result;
     if (args.length == 0)
         result = await action(cn);
@@ -1530,6 +1583,8 @@ async function runFunction(cn, functionId, input) {
 }
 exports.runFunction = runFunction;
 function isObjectId(value) {
+    if (!value)
+        return false;
     return value._bsontype == "ObjectID";
 }
 exports.isObjectId = isObjectId;

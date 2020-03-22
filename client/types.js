@@ -1,15 +1,27 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-class Context {
-}
+var Context = (function () {
+    function Context() {
+    }
+    return Context;
+}());
 exports.Context = Context;
-class AjaxConfig {
-}
+var AjaxConfig = (function () {
+    function AjaxConfig() {
+    }
+    return AjaxConfig;
+}());
 exports.AjaxConfig = AjaxConfig;
-class NotificationInfo {
-}
+var NotificationInfo = (function () {
+    function NotificationInfo() {
+    }
+    return NotificationInfo;
+}());
 exports.NotificationInfo = NotificationInfo;
-class ComponentParams {
-}
+var ComponentParams = (function () {
+    function ComponentParams() {
+    }
+    return ComponentParams;
+}());
 exports.ComponentParams = ComponentParams;
 //# sourceMappingURL=types.js.map

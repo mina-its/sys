@@ -23,7 +23,8 @@ export class AuditArgs {
 
 export class Role {
 	_id: ObjectId;
-	title: string;
+	title: string | MultilangText;
+	name: string;
 	roles: ObjectId[];
 	comment: string | MultilangText;
 	_package: string;
@@ -60,7 +61,7 @@ export class Global {
 	sysConfig: SystemConfig;
 	dbs: any[] = []; // mongodb.Db
 	packages: { [id: string]: any } = {};
-	packageConfigs: { [id: string]: PackageConfig; } = {};
+	packageConfigs: { [pack: string]: PackageConfig; } = {};
 	clientQuestionCallbacks: { [sessionId: string]: (answer: number | null) => void; } = {};
 	entities: Entity[];
 	drives: Drive[];
@@ -195,6 +196,7 @@ export class Drive {
 	type: SourceType;
 	comment: string | MultilangText;
 	address: string;
+	access: Access;
 	mode: DriveMode;
 	uri: string;
 	s3: {
@@ -342,6 +344,7 @@ export class PackageMeta {
 export class Access {
 	defaultPermission: DefaultPermission;
 	items: AccessItem[];
+	expose: boolean;
 }
 
 export class AccessItem {
@@ -382,26 +385,23 @@ export class App {
 	style: string;
 	defaultLocale: Locale;
 	redirect: RedirectType;
-	menu: ObjectId;
-	navmenu: ObjectId;
-	_menu: Menu;
-	_navmenu: Menu;
+	menu: Menu;
+	navmenu: Menu;
 	title: string;
 	gridPageSize: number;
 	addressRules: PackageAddressRule[];
 	printingAccess: Access;
 	userSingleSession: boolean;
-	timeZone: ObjectId;
+	timeZone: TimeZone;
 	timeOffset: number;
 	https: boolean;
 	dependencies: string[];
 	favicon: string;
 	brandingLogo: string;
 	interactive: boolean;
+	loginForm: Form;
 	_: {
 		pack: string;
-		menu: Menu;
-		navmenu: Menu;
 	}
 }
 
@@ -552,6 +552,7 @@ export class GetOptions {
 	skip?: number;
 	sort?: any;
 	last?: boolean;
+	rawData?: boolean;
 }
 
 export enum StatusCode {
@@ -574,6 +575,7 @@ export enum StatusCode {
 	RequestEntityTooLarge = 413,
 	RequestedRangeNotSatisfiable = 416,
 	ExpectationFailed = 417,
+	UnprocessableEntity = 422,
 	UpgradeRequired = 426,
 	PreconditionRequired = 428,
 	TooManyRequests = 429,
@@ -915,7 +917,7 @@ export enum DirFileType {
 
 export class DirFile {
 	name: string;
-	size: number;
+	size?: number;
 	type: DirFileType;
 }
 
