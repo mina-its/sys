@@ -398,9 +398,10 @@ export class App {
 	favicon: string;
 	brandingLogo: string;
 	interactive: boolean;
-	loginForm: Form;
+	loginForm: Reference;
 	_: {
-		pack: string;
+		pack?: string;
+		loginForm: string;
 	}
 }
 

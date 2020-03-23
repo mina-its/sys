@@ -1136,6 +1136,13 @@ async function initializeEntities() {
 		let config = glob.packageConfigs[pack.name];
 		let obj = findObject(pack.name, SysCollection.packageConfig);
 		await makeObjectReady(pack.name, obj.properties, config);
+		for (let app of config.apps) {
+			app._ = app._ || {loginForm: 'login'};
+			if (app.loginForm) {
+				let entity = findEntity(app.loginForm);
+				if (entity) app._.loginForm = entity.name;
+			}
+		}
 	}
 
 	log(`Initializing '${allFunctions().length}' functions ...`);
