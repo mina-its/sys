@@ -8,7 +8,6 @@ export class Context {
 
 export class AjaxConfig {
 	method?: WebMethod;
-	contentType?: string;
 }
 
 export class NotificationInfo {

@@ -57,11 +57,16 @@ export function ajax(url: string, data: any, config: AjaxConfig, done: (res: Web
 	else
 		params.method = data ? WebMethod.post : WebMethod.get;
 
-	if (config && config.contentType)
-		params.headers = {'Content-Type': config.contentType};
+	if (data && data._files) {
+		params.data = new FormData();
+		for (let file of data._files) {
+			params.data.append('files[]', file, file['name']);
+		}
+		params.data.append('data', JSON.stringify(data));
+		params.headers = {'Content-Type': 'multipart/form-data'};
+	}
 
 	fail = fail || notify;
-
 	axios(params).then((res) => {
 		if (res.code && res.code != StatusCode.Ok)
 			fail({code: res.code, message: res.message});

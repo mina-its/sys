@@ -137,9 +137,9 @@ exports.PackageConfig = PackageConfig;
 class PackageAddressRule {
 }
 exports.PackageAddressRule = PackageAddressRule;
-class FileInfo {
+class File {
 }
-exports.FileInfo = FileInfo;
+exports.File = File;
 class Text {
 }
 exports.Text = Text;
@@ -195,6 +195,9 @@ var StatusCode;
     StatusCode[StatusCode["UnknownError"] = 1001] = "UnknownError";
     StatusCode[StatusCode["ConfigurationProblem"] = 1002] = "ConfigurationProblem";
 })(StatusCode = exports.StatusCode || (exports.StatusCode = {}));
+class UploadedFile {
+}
+exports.UploadedFile = UploadedFile;
 var LogType;
 (function (LogType) {
     LogType[LogType["Fatal"] = 0] = "Fatal";

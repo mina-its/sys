@@ -491,15 +491,15 @@ export class PackageAddressRule {
 	target: string;
 }
 
-export class FileInfo {
+export class File {
 	_id: ObjectId;
 	size: number;
 	name: string;
 	path: string;
 	created: Date;
 	_: {
-		uri: string
-		rawData: Buffer;
+		uri?: string;
+		rawData?: Buffer;
 	};
 }
 
@@ -588,6 +588,12 @@ export enum StatusCode {
 
 	UnknownError = 1001,
 	ConfigurationProblem = 1002,
+}
+
+export class UploadedFile {
+	name: string;
+	path: string;
+	rawData: Buffer;
 }
 
 export enum LogType {
@@ -894,7 +900,7 @@ export class UnitTestObject {
 	"name": string;
 	"age": number;
 	"codes": StatusCode[];
-	"picture"?: FileInfo[];
+	"picture"?: File[];
 	"address": {
 		detail: {
 			"city": string

@@ -1,6 +1,6 @@
 {
   "name": "@minaits/sys",
-  "version": "5.2.2",
+  "version": "5.2.5",
   "description": "mina sys package",
   "main": "src/main.js",
   "scripts": {

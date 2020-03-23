@@ -29,6 +29,7 @@ import {
 	EnumItem,
 	EnvMode,
 	ErrorObject,
+	File,
 	Form,
 	Function,
 	FunctionTestSample,
@@ -60,8 +61,10 @@ import {
 	SystemConfigPackage,
 	SystemProperty,
 	Text,
+	UploadedFile,
 } from './types';
 
+const assert = require('assert').strict;
 const {EJSON} = require('bson');
 const {exec} = require("child_process");
 export let glob = new Global();
@@ -1721,26 +1724,62 @@ export async function mock(cn: Context, func: Function, args: any[]) {
 }
 
 async function invokeFuncMakeArgsReady(cn: Context, func: Function, action, args: any[]) {
-	if (func.parameters) {
-		const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
-		const ARGUMENT_NAMES = /([^\s,]+)/g;
+	if (!func.parameters)
+		return args;
 
-		let fnStr = action.toString().replace(STRIP_COMMENTS, '');
-		let argNames = fnStr.slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
-		if (argNames === null)
-			argNames = [];
-		if (argNames[0] == "cn")
-			argNames.shift();
+	const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
+	const ARGUMENT_NAMES = /([^\s,]+)/g;
 
-		let argData = {};
-		argNames.forEach((argName, i) => {
-			argData[argName] = args[i];
-		});
+	let fnStr = action.toString().replace(STRIP_COMMENTS, '');
+	let argNames = fnStr.slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
+	if (argNames === null)
+		argNames = [];
+	if (argNames[0] == "cn")
+		argNames.shift();
 
-		await makeObjectReady(cn, func.parameters, argData);
-		args = Object.values(argData);
+	let argData = {};
+	argNames.forEach((argName, i) => {
+		argData[argName] = args[i];
+	});
+
+	let fileParams = func.parameters.filter(p => p._gtype == GlobalType.file);
+	if (fileParams.length) {
+		let uploadedFiles = await getUploadedFiles(cn, true);
+
+		for (let param of fileParams) {
+			if (param.isList)
+				throwError(StatusCode.NotImplemented, `no support for multiple files params!`);
+
+			let val: File = argData[param.name];
+			if (val) {
+				let file = uploadedFiles.find(f => f.name == val.name);
+				if (!file)
+					throwError(StatusCode.BadRequest, `parameter '${param.name}' is mandatory!`);
+				val._ = val._ || {};
+				val._.rawData = file.rawData;
+			}
+		}
 	}
-	return args;
+
+	for (let prop of func.parameters) {
+		let val = argData[prop.name];
+		if (val == null && prop.required)
+			throwError(StatusCode.BadRequest, `parameter '${prop.name}' is mandatory!`);
+
+		if (prop._isRef && !prop._enum && prop.viewMode != PropertyViewMode.Hidden && isObjectId(val)) {
+			let refObj = findEntity(prop.type);
+			if (!refObj)
+				throwError(StatusCode.UnprocessableEntity, `referred object for property '${cn.pack}.${prop.name}' not found!`);
+
+			if (refObj.entityType == EntityType.Object)
+				argData[prop.name] = await get(cn.pack, refObj.name, {itemId: val, rawData: true});
+			else if (refObj.entityType == EntityType.Function) {
+				// todo: makeObjectReady for functions
+			}
+		}
+	}
+
+	return Object.values(argData);
 }
 
 export async function invoke(cn: Context, func: Function, args: any[]) {
@@ -1770,6 +1809,21 @@ export async function invoke(cn: Context, func: Function, args: any[]) {
 	else
 		result = await action(cn, ...args);
 	return result;
+}
+
+export async function getUploadedFiles(cn: Context, readBuffer: boolean): Promise<UploadedFile[]> {
+	let files: UploadedFile[] = [];
+	assert(cn["httpReq"].files, "files is not ready in the request");
+	for (let file of cn["httpReq"].files) {
+		let buffer;
+		if (readBuffer) {
+			buffer = await fs.readFile(file.path);
+			await fs.remove(file.path);
+		}
+		let fileInfo: UploadedFile = {name: file.originalname, rawData: buffer, path: file.path};
+		files.push(fileInfo);
+	}
+	return files;
 }
 
 export async function runFunction(cn: Context, functionId: ObjectId, input: any) {

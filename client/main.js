@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var types_1 = require("../src/types");
+const types_1 = require("../src/types");
 function component(name, props, params) {
     params.props = props;
     Vue.component(name, params);
@@ -9,11 +9,7 @@ exports.component = component;
 function get(pack, objectName, options, done) {
 }
 exports.get = get;
-function log() {
-    var message = [];
-    for (var _i = 0; _i < arguments.length; _i++) {
-        message[_i] = arguments[_i];
-    }
+function log(...message) {
     console.log(message);
 }
 exports.log = log;
@@ -28,7 +24,7 @@ exports.invoke = invoke;
 function getText(pack, key) {
     if (text[pack + "." + key])
         return text[pack + "." + key];
-    console.warn("Warning: text '" + pack + "." + key + "' not found");
+    console.warn(`Warning: text '${pack}.${key}' not found`);
     return key.replace(/-/g, " ");
 }
 exports.getText = getText;
@@ -41,29 +37,30 @@ function toFriendlyFileSizeString(size) {
         return (size / 1024 / 1024).toFixed(1) + " MB";
 }
 exports.toFriendlyFileSizeString = toFriendlyFileSizeString;
-function joinUri() {
-    var parts = [];
-    for (var _i = 0; _i < arguments.length; _i++) {
-        parts[_i] = arguments[_i];
-    }
-    var uri = "";
-    for (var _a = 0, parts_1 = parts; _a < parts_1.length; _a++) {
-        var part = parts_1[_a];
+function joinUri(...parts) {
+    let uri = "";
+    for (let part of parts) {
         uri += "/" + (part || "").replace(/^\//, '').replace(/\/$/, '');
     }
     return uri.substr(1);
 }
 exports.joinUri = joinUri;
 function ajax(url, data, config, done, fail) {
-    var params = { url: url, data: data };
+    let params = { url, data };
     if (config && config.method)
         params.method = config.method;
     else
         params.method = data ? types_1.WebMethod.post : types_1.WebMethod.get;
-    if (config && config.contentType)
-        params.headers = { 'Content-Type': config.contentType };
+    if (data && data._files) {
+        params.data = new FormData();
+        for (let file of data._files) {
+            params.data.append('files[]', file, file['name']);
+        }
+        params.data.append('data', JSON.stringify(data));
+        params.headers = { 'Content-Type': 'multipart/form-data' };
+    }
     fail = fail || notify;
-    axios(params).then(function (res) {
+    axios(params).then((res) => {
         if (res.code && res.code != types_1.StatusCode.Ok)
             fail({ code: res.code, message: res.message });
         else {
@@ -71,12 +68,12 @@ function ajax(url, data, config, done, fail) {
                 done(res.data);
             }
             catch (ex) {
-                notify("error on handling ajax response: " + ex.message);
+                notify(`error on handling ajax response: ${ex.message}`);
                 console.error(res, ex);
             }
         }
-    }).catch(function (err) {
-        console.error("error on ajax '" + url + "'", err);
+    }).catch((err) => {
+        console.error(`error on ajax '${url}'`, err);
         if (err.response && err.response.data && err.response.data.message)
             fail({ message: err.response.data.message, code: err.response.data.code });
         else if (err.response && err.response.data)
@@ -89,18 +86,18 @@ exports.ajax = ajax;
 function notify(content, type, params) {
     if (!content)
         return;
-    var message = typeof content == "string" ? content : content.message;
+    let message = typeof content == "string" ? content : content.message;
     if (!type) {
         if (typeof content != "string")
             type = content.code && content.code != types_1.StatusCode.Ok ? types_1.LogType.Error : types_1.LogType.Info;
         else
             type = types_1.LogType.Info;
     }
-    window.dispatchEvent(new CustomEvent('notify', { detail: { message: message, type: type } }));
+    window.dispatchEvent(new CustomEvent('notify', { detail: { message, type } }));
 }
 exports.notify = notify;
 function question(questionId, message, options, select) {
-    window.dispatchEvent(new CustomEvent('question', { detail: { questionId: questionId, message: message, options: options, select: select } }));
+    window.dispatchEvent(new CustomEvent('question', { detail: { questionId, message, options, select } }));
     $("#question-box").modal("show");
 }
 exports.question = question;
@@ -120,7 +117,7 @@ function head_script(src) {
     if (document.querySelector("script[src='" + src + "']")) {
         return;
     }
-    var script = document.createElement('script');
+    let script = document.createElement('script');
     script.setAttribute('src', src);
     script.setAttribute('type', 'text/javascript');
     document.head.appendChild(script);
@@ -130,14 +127,14 @@ function body_script(src) {
     if (document.querySelector("script[src='" + src + "']")) {
         return;
     }
-    var script = document.createElement('script');
+    let script = document.createElement('script');
     script.setAttribute('src', src);
     script.setAttribute('type', 'text/javascript');
     document.body.appendChild(script);
 }
 exports.body_script = body_script;
 function del_script(src) {
-    var el = document.querySelector("script[src='" + src + "']");
+    let el = document.querySelector("script[src='" + src + "']");
     if (el) {
         el.remove();
     }
@@ -147,7 +144,7 @@ function head_link(href) {
     if (document.querySelector("link[href='" + href + "']")) {
         return;
     }
-    var link = document.createElement('link');
+    let link = document.createElement('link');
     link.setAttribute('href', href);
     link.setAttribute('rel', "stylesheet");
     link.setAttribute('type', "text/css");
@@ -158,7 +155,7 @@ function body_link(href) {
     if (document.querySelector("link[href='" + href + "']")) {
         return;
     }
-    var link = document.createElement('link');
+    let link = document.createElement('link');
     link.setAttribute('href', href);
     link.setAttribute('rel', "stylesheet");
     link.setAttribute('type', "text/css");
@@ -166,7 +163,7 @@ function body_link(href) {
 }
 exports.body_link = body_link;
 function del_link(href) {
-    var el = document.querySelector("link[href='" + href + "']");
+    let el = document.querySelector("link[href='" + href + "']");
     if (el) {
         el.remove();
     }
@@ -174,7 +171,7 @@ function del_link(href) {
 exports.del_link = del_link;
 function setPropertyEmbeddedError(doc, propName, error) {
     if (!doc)
-        throw "setPropertyEmbeddedError doc is empty, prop:" + propName + "!";
+        throw `setPropertyEmbeddedError doc is empty, prop:${propName}!`;
     doc._ = doc._ || {};
     doc._[propName] = doc._[propName] || {};
     doc._[propName].err = error;

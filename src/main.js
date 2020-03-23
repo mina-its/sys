@@ -15,6 +15,7 @@ const rimraf = require("rimraf");
 const mongodb_1 = require("mongodb");
 const universalify_1 = require("universalify");
 const types_1 = require("./types");
+const assert = require('assert').strict;
 const { EJSON } = require('bson');
 const { exec } = require("child_process");
 exports.glob = new types_1.Global();
@@ -1534,23 +1535,51 @@ async function mock(cn, func, args) {
 }
 exports.mock = mock;
 async function invokeFuncMakeArgsReady(cn, func, action, args) {
-    if (func.parameters) {
-        const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
-        const ARGUMENT_NAMES = /([^\s,]+)/g;
-        let fnStr = action.toString().replace(STRIP_COMMENTS, '');
-        let argNames = fnStr.slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
-        if (argNames === null)
-            argNames = [];
-        if (argNames[0] == "cn")
-            argNames.shift();
-        let argData = {};
-        argNames.forEach((argName, i) => {
-            argData[argName] = args[i];
-        });
-        await makeObjectReady(cn, func.parameters, argData);
-        args = Object.values(argData);
+    if (!func.parameters)
+        return args;
+    const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
+    const ARGUMENT_NAMES = /([^\s,]+)/g;
+    let fnStr = action.toString().replace(STRIP_COMMENTS, '');
+    let argNames = fnStr.slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
+    if (argNames === null)
+        argNames = [];
+    if (argNames[0] == "cn")
+        argNames.shift();
+    let argData = {};
+    argNames.forEach((argName, i) => {
+        argData[argName] = args[i];
+    });
+    let fileParams = func.parameters.filter(p => p._gtype == types_1.GlobalType.file);
+    if (fileParams.length) {
+        let uploadedFiles = await getUploadedFiles(cn, true);
+        for (let param of fileParams) {
+            if (param.isList)
+                throwError(types_1.StatusCode.NotImplemented, `no support for multiple files params!`);
+            let val = argData[param.name];
+            if (val) {
+                let file = uploadedFiles.find(f => f.name == val.name);
+                if (!file)
+                    throwError(types_1.StatusCode.BadRequest, `parameter '${param.name}' is mandatory!`);
+                val._ = val._ || {};
+                val._.rawData = file.rawData;
+            }
+        }
     }
-    return args;
+    for (let prop of func.parameters) {
+        let val = argData[prop.name];
+        if (val == null && prop.required)
+            throwError(types_1.StatusCode.BadRequest, `parameter '${prop.name}' is mandatory!`);
+        if (prop._isRef && !prop._enum && prop.viewMode != types_1.PropertyViewMode.Hidden && isObjectId(val)) {
+            let refObj = findEntity(prop.type);
+            if (!refObj)
+                throwError(types_1.StatusCode.UnprocessableEntity, `referred object for property '${cn.pack}.${prop.name}' not found!`);
+            if (refObj.entityType == types_1.EntityType.Object)
+                argData[prop.name] = await get(cn.pack, refObj.name, { itemId: val, rawData: true });
+            else if (refObj.entityType == types_1.EntityType.Function) {
+            }
+        }
+    }
+    return Object.values(argData);
 }
 async function invoke(cn, func, args) {
     if (func.test && func.test.mock && envMode() == types_1.EnvMode.Development && cn.url.pathname != "/functionTest") {
@@ -1580,6 +1609,21 @@ async function invoke(cn, func, args) {
     return result;
 }
 exports.invoke = invoke;
+async function getUploadedFiles(cn, readBuffer) {
+    let files = [];
+    assert(cn["httpReq"].files, "files is not ready in the request");
+    for (let file of cn["httpReq"].files) {
+        let buffer;
+        if (readBuffer) {
+            buffer = await fs.readFile(file.path);
+            await fs.remove(file.path);
+        }
+        let fileInfo = { name: file.originalname, rawData: buffer, path: file.path };
+        files.push(fileInfo);
+    }
+    return files;
+}
+exports.getUploadedFiles = getUploadedFiles;
 async function runFunction(cn, functionId, input) {
     let func = findEntity(functionId);
     if (!func)
