@@ -21,7 +21,7 @@ describe('reload test', () => {
 		//obj.properties=[];
 		sys.initObject(obj);
 		//expect(typeof (obj.properties)).toBe('Array');
-		//expect(obj._access[obj._package] = obj.access).toBeTruthy();
+		//expect(obj._access[obj._.pack] = obj.access).toBeTruthy();
 
 	});
 

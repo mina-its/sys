@@ -27,26 +27,27 @@ export class Role {
 	name: string;
 	roles: ObjectId[];
 	comment: string | MultilangText;
-	_package: string;
+	_: {
+		pack: string;
+	};
 }
 
 export class User {
 	_id: ObjectId;
 	roles: ObjectId[] = [];
+	disabled = false;
+
 	email: string;
 	password: string;
 	title: string;
 	passwordExpireTime: Date;
 	mobile: string;
-	disabled = false;
 	lastOnline: Date;
 	lastOffline: Date;
 	time: Date;
-	_package: string;
-	_isOnline: boolean;
 	_: {
 		pack: string;
-		isOnline: boolean;
+		isOnline?: boolean;
 	}
 }
 
@@ -63,6 +64,7 @@ export class Global {
 	packages: { [id: string]: any } = {};
 	packageConfigs: { [pack: string]: PackageConfig; } = {};
 	clientQuestionCallbacks: { [sessionId: string]: (answer: number | null) => void; } = {};
+	rootDir: string;
 	entities: Entity[];
 	drives: Drive[];
 	auditTypes: AuditType[];
@@ -77,7 +79,6 @@ export class Global {
 }
 
 export class Entity {
-	_package: string;
 	_id: ObjectId;
 	title: string | MultilangText;
 	name: string;
@@ -85,10 +86,14 @@ export class Entity {
 	entityType: EntityType;
 	access: Access;
 	links: EntityLink[];
-	_access: { [id: string]: Access; } = {"sys": {} as Access};
+	_: IEntity;
+	// 	{
+	// 	access: { [id: string]: Access; } // = {"sys": {} as Access};
+	// 	pack: string;
+	// };
 }
 
-export class mObject extends Entity {
+export class mObject extends Entity implements IProperties {
 	properties: Property[];
 	auditModify: boolean;
 	isList: boolean;
@@ -104,8 +109,37 @@ export class mObject extends Entity {
 	modified: Reference;
 	detailsViewType: ObjectDetailsViewType;
 	listsViewType: ObjectListsViewType;
-	_autoSetInsertTime: boolean;
-	_inited: boolean;
+	_: {
+		access?: { [id: string]: Access; };
+		pack: string;
+		autoSetInsertTime?: boolean;
+		inited?: boolean;
+	}
+}
+
+export class Function extends Entity implements IProperties {
+	properties: Property[];
+	mode: FunctionMode;
+	clientSide: boolean;
+	returnType: ObjectId;
+	interactive: boolean;
+	test: {
+		mock: boolean;
+		samples?: FunctionTestSample[];
+	};
+	_: IEntity
+}
+
+export class Form extends Entity {
+	template: string;
+	keywords: string;
+	changeFrequecy: ChangeFrequecy;
+	breadcrumb: Pair[];
+	isPublic: boolean;
+	locale: Locale;
+	openGraph;
+	elems: Elem[] = [];
+	_: IEntity;
 }
 
 export class ObjectModifyState {
@@ -121,7 +155,17 @@ export enum ObjectModifyType {
 	Delete = 4,
 }
 
-export class Property {
+export interface IEntity {
+	access?: { [pack: string]: Access; };
+	pack: string;
+}
+
+export interface IProperties {
+	name: string;
+	properties: Property[];
+}
+
+export class Property implements IProperties {
 	_id;
 	name: string;
 	title;
@@ -150,7 +194,6 @@ export class Property {
 		isPhone: boolean;
 		isEmail: boolean;
 		isUrl: boolean;
-		// needsConfirm: boolean;
 		// isAddress: boolean;
 		// autoLocale: boolean;
 		// autoComplete: boolean;
@@ -176,16 +219,16 @@ export class Property {
 		// buttonGroupList: boolean;
 	};
 	documentView: boolean;
-
-	_gtype: GlobalType;
-	_isRef: boolean;
-	_enum: Enum;
-	_ref: string;
-	_items: Pair[];
 	_z: number;
-	_parentPropertiesCompared: boolean;
+
 	_: {
-		drive: Drive
+		drive?: Drive
+		gtype?: GlobalType;
+		isRef?: boolean;
+		enum?: Enum;
+		ref?: string;
+		items?: Pair[];
+		parentPropertiesCompared?: boolean;
 	};
 }
 
@@ -203,18 +246,8 @@ export class Drive {
 		secretAccessKey: string;
 		_sdk: any;
 	};
-	_package: string;
-}
-
-export class Function extends Entity {
-	parameters: Property[];
-	mode: FunctionMode;
-	clientSide: boolean;
-	returnType: ObjectId;
-	interactive: boolean;
-	test: {
-		mock: boolean;
-		samples?: FunctionTestSample[];
+	_: {
+		pack: string;
 	}
 }
 
@@ -235,17 +268,6 @@ export class EntityLink {
 	comment: string | MultilangText;
 	condition: string;
 	type: LinkType;
-}
-
-export class Form extends Entity {
-	template: string;
-	keywords: string;
-	changeFrequecy: ChangeFrequecy;
-	breadcrumb: Pair[];
-	isPublic: boolean;
-	locale: Locale;
-	openGraph;
-	elems: Elem[] = [];
 }
 
 export enum ObjectViewType {
@@ -335,11 +357,6 @@ export class ChartSeries {
 	y: string;
 }
 
-export class PackageMeta {
-	_version: string;
-	_config: PackageConfig;
-}
-
 export class Access {
 	defaultPermission: DefaultPermission;
 	items: AccessItem[];
@@ -358,7 +375,9 @@ export class Menu {
 	name: string;
 	comment: string;
 	items: MenuItem[];
-	_package: string;
+	_: {
+		pack: string;
+	};
 }
 
 export class MenuItem {
@@ -379,7 +398,6 @@ export class App {
 	_id: ObjectId;
 	home: string;
 	defaultTemplate: string;
-	_package: string;
 	locales: Locale[];
 	style: string;
 	defaultLocale: Locale;
@@ -401,7 +419,7 @@ export class App {
 	loginForm: Reference;
 	_: {
 		pack?: string;
-		loginForm: string;
+		loginForm?: string;
 	}
 }
 
@@ -416,7 +434,9 @@ export class SystemConfig {
 		_id: ObjectId;
 		address: string;
 		app: ObjectId;
-		_app: App;
+		_: {
+			app: App
+		};
 	}[];
 	amazon: {
 		accessKeyId: string;
@@ -424,9 +444,6 @@ export class SystemConfig {
 	};
 	google: {
 		apiKey: string;
-	};
-	_: {
-		app: App
 	};
 }
 
@@ -436,7 +453,9 @@ export class Enum {
 	title: string | MultilangText;
 	comment: string | MultilangText;
 	items: EnumItem[];
-	_package: string;
+	_: {
+		pack: string
+	};
 }
 
 export class EnumItem {
@@ -477,7 +496,7 @@ export class PackageConfig {
 	_id: ObjectId;
 	apps: App[];
 	addressRules: PackageAddressRule[];
-	_static: {
+	_: {
 		version: string;
 		repository: string;
 		mina: {
@@ -834,6 +853,8 @@ export enum GridRowHeaderStyle {
 export const Constants = {
 	urlPortionApi: "api",
 	sysPackage: "sys",
+	indexProperty: "_z",
+	defaultLoginUri: 'login',
 	amazonS3ApiVersion: "2006-03-01",
 	mainDbSourceName: "db",
 	systemPropertiesObjectName: "systemProperties",
@@ -897,19 +918,19 @@ export interface IError {
 }
 
 export class UnitTestObject {
-	"_id": ObjectId;
-	"name": string;
-	"age": number;
-	"codes": StatusCode[];
-	"picture"?: File[];
-	"address": {
+	_id: ObjectId;
+	name: string;
+	age: number;
+	codes: StatusCode[];
+	picture?: File[];
+	address: {
 		detail: {
 			"city": string
 			"street": string
 		},
 		location: GeoLocation
 	};
-	"birthday": Date;
+	birthday: Date;
 }
 
 export enum DriveMode {

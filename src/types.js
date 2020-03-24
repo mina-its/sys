@@ -26,14 +26,21 @@ class Global {
 }
 exports.Global = Global;
 class Entity {
-    constructor() {
-        this._access = { "sys": {} };
-    }
 }
 exports.Entity = Entity;
 class mObject extends Entity {
 }
 exports.mObject = mObject;
+class Function extends Entity {
+}
+exports.Function = Function;
+class Form extends Entity {
+    constructor() {
+        super(...arguments);
+        this.elems = [];
+    }
+}
+exports.Form = Form;
 class ObjectModifyState {
 }
 exports.ObjectModifyState = ObjectModifyState;
@@ -50,22 +57,12 @@ exports.Property = Property;
 class Drive {
 }
 exports.Drive = Drive;
-class Function extends Entity {
-}
-exports.Function = Function;
 class FunctionTestSample {
 }
 exports.FunctionTestSample = FunctionTestSample;
 class EntityLink {
 }
 exports.EntityLink = EntityLink;
-class Form extends Entity {
-    constructor() {
-        super(...arguments);
-        this.elems = [];
-    }
-}
-exports.Form = Form;
 var ObjectViewType;
 (function (ObjectViewType) {
     ObjectViewType[ObjectViewType["GridView"] = 1] = "GridView";
@@ -89,9 +86,6 @@ exports.ErrorObject = ErrorObject;
 class ChartSeries {
 }
 exports.ChartSeries = ChartSeries;
-class PackageMeta {
-}
-exports.PackageMeta = PackageMeta;
 class Access {
 }
 exports.Access = Access;
@@ -462,6 +456,8 @@ var GridRowHeaderStyle;
 exports.Constants = {
     urlPortionApi: "api",
     sysPackage: "sys",
+    indexProperty: "_z",
+    defaultLoginUri: 'login',
     amazonS3ApiVersion: "2006-03-01",
     mainDbSourceName: "db",
     systemPropertiesObjectName: "systemProperties",

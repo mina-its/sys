@@ -135,7 +135,7 @@ async function makeObjectReady(pack, properties, data) {
             let val = item[prop.name];
             if (!val)
                 continue;
-            if (prop._isRef && !prop._enum && prop.viewMode != types_1.PropertyViewMode.Hidden && isObjectId(val)) {
+            if (prop._ && prop._.isRef && !prop._.enum && prop.viewMode != types_1.PropertyViewMode.Hidden && isObjectId(val)) {
                 let refObj = findEntity(prop.type);
                 if (!refObj)
                     throwError(types_1.StatusCode.UnprocessableEntity, `referred object for property '${pack}.${prop.name}' not found!`);
@@ -266,11 +266,9 @@ function extractRefPortions(cn, ref, _default) {
             return entity._id.toString() === portions[0].value;
         });
         if (!entity)
-            entity = _.find(exports.glob.entities, { _package: cn.pack, name: portions[0].value });
+            entity = exports.glob.entities.find(en => en._.pack == cn.pack && en.name == portions[0].value);
         if (!entity)
-            entity = _.find(exports.glob.entities, (entity) => {
-                return entity.name === portions[0].value && cn["app"].dependencies.indexOf(entity._package) > -1;
-            });
+            entity = exports.glob.entities.find(en => en.name === portions[0].value && cn["app"].dependencies.indexOf(en._.pack) > -1);
         if (entity) {
             portions[0].entity = entity;
             portions[0].type = types_1.RefPortionType.entity;
@@ -286,7 +284,7 @@ function extractRefPortions(cn, ref, _default) {
                 warn(`Invalid path '${ref}'`);
                 return null;
             }
-            else if (parent._gtype == types_1.GlobalType.file) {
+            else if (parent._.gtype == types_1.GlobalType.file) {
                 pr.type = types_1.RefPortionType.file;
             }
             else if ((parent.entityType || parent.isList) && /[0-9a-f]{24}/.test(pr.value)) {
@@ -323,7 +321,7 @@ async function patch(pack, objectName, patchData, options) {
     let theRootId = portions.length < 2 ? patchData._id : portions[1].itemId;
     let path = await portionsToMongoPath(pack, theRootId, portions, portions.length);
     let command = { $set: {}, $unset: {} };
-    if (portions[portions.length - 1].property && portions[portions.length - 1].property._gtype == types_1.GlobalType.file)
+    if (portions[portions.length - 1].property && portions[portions.length - 1].property._.gtype == types_1.GlobalType.file)
         command["$set"][path] = patchData;
     else
         for (let key in patchData) {
@@ -412,9 +410,12 @@ function toAsync(fn) {
     return universalify_1.fromCallback(fn);
 }
 exports.toAsync = toAsync;
-function getAbsolutePath(dir) {
-    return /^\./.test(dir) ? path.join(process.env.PACKAGES_ROOT, dir) : dir;
+function getAbsolutePath(...paths) {
+    if (!paths || paths.length == 0)
+        return exports.glob.rootDir;
+    return /^\./.test(paths[0]) ? path.join(exports.glob.rootDir, ...paths) : path.join(...paths);
 }
+exports.getAbsolutePath = getAbsolutePath;
 async function createDir(drive, dir, recursive = true) {
     switch (drive.type) {
         case types_1.SourceType.File:
@@ -431,7 +432,7 @@ async function getFile(drive, filePath) {
             let _path = path.join(getAbsolutePath(drive.address), filePath);
             return await fs.readFile(_path);
         case types_1.SourceType.Db:
-            let db = await connect(drive._package);
+            let db = await connect(drive._.pack);
             let bucket = new mongodb.GridFSBucket(db);
             let stream = bucket.openDownloadStreamByName(filePath);
             let data;
@@ -469,11 +470,11 @@ async function putFile(drive, relativePath, file) {
             await fs.writeFile(_path, file);
             break;
         case types_1.SourceType.Db:
-            let db = await connect(drive._package);
+            let db = await connect(drive._.pack);
             ;
             let bucket = new mongodb.GridFSBucket(db);
             let stream = bucket.openUploadStream(relativePath);
-            await delFile(drive._package, drive, relativePath);
+            await delFile(drive._.pack, drive, relativePath);
             stream.on("error", function (err) {
                 error("putFile error", err);
             }).end(file);
@@ -579,11 +580,11 @@ function getS3DriveSdk(drive) {
         return drive.s3._sdk;
     const sdk = require('aws-sdk');
     if (!drive.s3.accessKeyId)
-        throwError(types_1.StatusCode.ConfigurationProblem, `s3 accessKeyId for drive package '${drive._package}' must be configured.`);
+        throwError(types_1.StatusCode.ConfigurationProblem, `s3 accessKeyId for drive package '${drive._.pack}' must be configured.`);
     else
         sdk.config.accessKeyId = drive.s3.accessKeyId;
     if (!drive.s3.secretAccessKey)
-        throwError(types_1.StatusCode.ConfigurationProblem, `s3 secretAccessKey for drive package '${drive._package}' must be configured.`);
+        throwError(types_1.StatusCode.ConfigurationProblem, `s3 secretAccessKey for drive package '${drive._.pack}' must be configured.`);
     else
         sdk.config.secretAccessKey = drive.s3.secretAccessKey;
     drive.s3._sdk = sdk;
@@ -652,7 +653,7 @@ async function loadSysConfig() {
     exports.glob.sysConfig = await collection.findOne({});
     for (let pack of getEnabledPackages()) {
         try {
-            exports.glob.packages[pack.name] = require(path.join(process.env.PACKAGES_ROOT, pack.name, `src/main`));
+            exports.glob.packages[pack.name] = require(getAbsolutePath('./' + pack.name, `src/main`));
             if (exports.glob.packages[pack.name] == null)
                 error(`Error loading package ${pack.name}!`);
         }
@@ -661,7 +662,7 @@ async function loadSysConfig() {
             pack.enabled = false;
         }
     }
-    exports.glob.packageConfigs["web"] = { _static: require(path.join(process.env.PACKAGES_ROOT, "web", `package.json`)) };
+    exports.glob.packageConfigs["web"] = { _: require(getAbsolutePath("./web", `package.json`)) };
     applyAmazonConfig();
 }
 function applyAmazonConfig() {
@@ -681,13 +682,13 @@ async function loadPackageSystemCollections(packConfig) {
     log(`Loading system collections package '${pack}' ...`);
     let objects = await get(pack, types_1.SysCollection.objects, { rawData: true });
     for (let object of objects) {
-        object._package = pack;
+        object._ = { pack };
         object.entityType = types_1.EntityType.Object;
         exports.glob.entities.push(object);
     }
     let functions = await get(pack, types_1.SysCollection.functions, { rawData: true });
     for (let func of functions) {
-        func._package = pack;
+        func._ = { pack };
         func.entityType = types_1.EntityType.Function;
         exports.glob.entities.push(func);
     }
@@ -698,12 +699,12 @@ async function loadPackageSystemCollections(packConfig) {
     }
     else {
         exports.glob.packageConfigs[pack] = config;
-        exports.glob.packageConfigs[pack]._static = require(path.join(process.env.PACKAGES_ROOT, pack, `package.json`));
-        log(`package '${pack}' loaded. version: ${exports.glob.packageConfigs[pack]._static.version}`);
+        exports.glob.packageConfigs[pack]._ = require(getAbsolutePath('./' + pack, `package.json`));
+        log(`package '${pack}' loaded. version: ${exports.glob.packageConfigs[pack]._.version}`);
     }
     let forms = await get(pack, types_1.SysCollection.forms, { rawData: true });
     for (let form of forms) {
-        form._package = pack;
+        form._ = { pack };
         form.entityType = types_1.EntityType.Form;
         exports.glob.entities.push(form);
     }
@@ -713,17 +714,17 @@ async function loadPackageSystemCollections(packConfig) {
     }
     let menus = await get(pack, types_1.SysCollection.menus, { rawData: true });
     for (let menu of menus) {
-        menu._package = pack;
+        menu._ = { pack };
         exports.glob.menus.push(menu);
     }
     let roles = await get(pack, types_1.SysCollection.roles, { rawData: true });
     for (let role of roles) {
-        role._package = pack;
+        role._ = { pack };
         exports.glob.roles.push(role);
     }
     let drives = await get(pack, types_1.SysCollection.drives, { rawData: true });
     for (let drive of drives) {
-        drive._package = pack;
+        drive._ = { pack };
         exports.glob.drives.push(drive);
     }
 }
@@ -744,7 +745,7 @@ async function loadSystemCollections() {
     }
 }
 function configureLogger(silent) {
-    let logDir = path.join(process.env.PACKAGES_ROOT, 'logs');
+    let logDir = getAbsolutePath('./logs');
     const infoLogFileName = 'info.log';
     const errorLogFileName = 'error.log';
     const logLevels = {
@@ -808,7 +809,7 @@ function initializeRoles() {
 exports.initializeRoles = initializeRoles;
 function checkAppMenu(app) {
     if (!app.menu)
-        app.menu = exports.glob.menus.find(menu => menu._package == app._package);
+        app.menu = exports.glob.menus.find(menu => menu._.pack == app._.pack);
     if (!app.menu)
         warn(`Menu for app '${app.title}' not found!`);
 }
@@ -819,7 +820,7 @@ function initializePackages() {
     for (let pack of getEnabledPackages()) {
         let config = exports.glob.packageConfigs[pack.name];
         for (let app of (config.apps || [])) {
-            app._package = pack.name;
+            app._ = { pack: pack.name };
             app.dependencies = app.dependencies || [];
             app.dependencies.push(types_1.Constants.sysPackage);
             checkAppMenu(app);
@@ -827,7 +828,7 @@ function initializePackages() {
                 exports.glob.apps.push(app);
                 let host = exports.glob.sysConfig.hosts.find(host => host.app && host.app.equals(app._id));
                 if (host)
-                    host._app = app;
+                    host._ = { app };
             }
         }
     }
@@ -835,59 +836,59 @@ function initializePackages() {
 function checkPropertyGtype(prop, entity) {
     if (!prop.type) {
         if (prop.properties && prop.properties.length) {
-            prop._gtype = types_1.GlobalType.object;
+            prop._.gtype = types_1.GlobalType.object;
             return;
         }
         else {
-            warn(`property '${entity._package}.${entity.name}.${prop.name}' type is empty!`);
+            warn(`property '${entity._.pack}.${entity.name}.${prop.name}' type is empty!`);
             return;
         }
     }
     switch (prop.type.toString()) {
         case types_1.PType.boolean:
-            prop._gtype = types_1.GlobalType.boolean;
+            prop._.gtype = types_1.GlobalType.boolean;
             return;
         case types_1.PType.text:
-            prop._gtype = types_1.GlobalType.string;
+            prop._.gtype = types_1.GlobalType.string;
             return;
         case types_1.PType.number:
-            prop._gtype = types_1.GlobalType.number;
+            prop._.gtype = types_1.GlobalType.number;
             return;
         case types_1.PType.location:
-            prop._gtype = types_1.GlobalType.location;
+            prop._.gtype = types_1.GlobalType.location;
             return;
         case types_1.PType.time:
-            prop._gtype = types_1.GlobalType.time;
+            prop._.gtype = types_1.GlobalType.time;
             return;
         case types_1.PType.file:
-            prop._gtype = types_1.GlobalType.file;
+            prop._.gtype = types_1.GlobalType.file;
             return;
         case types_1.PType.reference:
-            prop._gtype = types_1.GlobalType.object;
+            prop._.gtype = types_1.GlobalType.object;
             return;
         case types_1.PType.obj:
-            prop._gtype = types_1.GlobalType.object;
+            prop._.gtype = types_1.GlobalType.object;
             prop.documentView = true;
             return;
     }
-    prop._isRef = true;
-    prop._enum = findEnum(prop.type);
-    if (prop._enum) {
-        prop._gtype = types_1.GlobalType.number;
+    prop._.isRef = true;
+    prop._.enum = findEnum(prop.type);
+    if (prop._.enum) {
+        prop._.gtype = types_1.GlobalType.number;
         return;
     }
     let type = findEntity(prop.type);
     if (type == null) {
-        prop._gtype = types_1.GlobalType.unknown;
+        prop._.gtype = types_1.GlobalType.unknown;
         warn(`Property '${prop.name}' invalid type '${prop.type}' not found. entity: ${entity.name}!`);
         return;
     }
     if (type.entityType == types_1.EntityType.Function) {
         let func = type;
         if (func.returnType && func.returnType.toString() == types_1.PType.text)
-            prop._gtype = types_1.GlobalType.string;
+            prop._.gtype = types_1.GlobalType.string;
         else
-            prop._gtype = types_1.GlobalType.id;
+            prop._.gtype = types_1.GlobalType.id;
     }
     else {
         let refType = prop.referType;
@@ -895,15 +896,15 @@ function checkPropertyGtype(prop, entity) {
             refType = prop.type ? types_1.PropertyReferType.select : types_1.PropertyReferType.inlineData;
         switch (refType) {
             case types_1.PropertyReferType.select:
-                prop._gtype = types_1.GlobalType.id;
+                prop._.gtype = types_1.GlobalType.id;
                 break;
             case types_1.PropertyReferType.outbound:
-                prop._isRef = false;
-                prop._gtype = types_1.GlobalType.object;
+                prop._.isRef = false;
+                prop._.gtype = types_1.GlobalType.object;
                 break;
             case types_1.PropertyReferType.inlineData:
-                prop._isRef = false;
-                prop._gtype = types_1.GlobalType.object;
+                prop._.isRef = false;
+                prop._.gtype = types_1.GlobalType.object;
                 break;
         }
     }
@@ -942,7 +943,7 @@ exports.findEntity = findEntity;
 function findObject(pack, objectName) {
     if (typeof pack != "string")
         pack = pack.pack;
-    return exports.glob.entities.find(a => a._package == pack && a.name == objectName && a.entityType == types_1.EntityType.Object);
+    return exports.glob.entities.find(a => a._.pack == pack && a.name == objectName && a.entityType == types_1.EntityType.Object);
 }
 exports.findObject = findObject;
 async function initializeEnums() {
@@ -951,31 +952,32 @@ async function initializeEnums() {
     exports.glob.enumTexts = {};
     for (let pack of getEnabledPackages()) {
         let enums = await get(pack.name, types_1.SysCollection.enums, { rawData: true });
-        enums.forEach((theEnum) => {
-            theEnum._package = pack.name;
+        for (let theEnum of enums) {
+            theEnum._ = { pack: pack.name };
             exports.glob.enums.push(theEnum);
             let texts = {};
-            _.sortBy(theEnum.items, "_z").forEach((item) => {
+            _.sortBy(theEnum.items, types_1.Constants.indexProperty).forEach((item) => {
                 texts[item.value] = item.title || item.name;
             });
             exports.glob.enumTexts[pack.name + "." + theEnum.name] = texts;
-        });
+        }
     }
 }
 exports.initializeEnums = initializeEnums;
-function allObjects() {
-    return exports.glob.entities.filter(en => en.entityType == types_1.EntityType.Object);
+function allObjects(cn) {
+    let ss = exports.glob.entities.filter(en => !en._);
+    return exports.glob.entities.filter(en => en.entityType == types_1.EntityType.Object && (!cn || containsPack(cn, en._.pack)));
 }
 exports.allObjects = allObjects;
-function allFunctions() {
-    return exports.glob.entities.filter(en => en.entityType == types_1.EntityType.Function);
+function allFunctions(cn) {
+    return exports.glob.entities.filter(en => en.entityType == types_1.EntityType.Function && (!cn || containsPack(cn, en._.pack)));
 }
 exports.allFunctions = allFunctions;
 async function initializeEntities() {
-    log(`Initializing '${allObjects().length}' Objects ...`);
-    let allObjs = allObjects();
+    log(`Initializing '${allObjects(null).length}' Objects ...`);
+    let allObjs = allObjects(null);
     for (let obj of allObjs) {
-        obj._inited = false;
+        obj._.inited = false;
     }
     for (let obj of allObjs) {
         initObject(obj);
@@ -985,7 +987,7 @@ async function initializeEntities() {
         let obj = findObject(pack.name, types_1.SysCollection.packageConfig);
         await makeObjectReady(pack.name, obj.properties, config);
         for (let app of config.apps) {
-            app._ = app._ || { loginForm: 'login' };
+            app._.loginForm = types_1.Constants.defaultLoginUri;
             if (app.loginForm) {
                 let entity = findEntity(app.loginForm);
                 if (entity)
@@ -993,27 +995,27 @@ async function initializeEntities() {
             }
         }
     }
-    log(`Initializing '${allFunctions().length}' functions ...`);
-    for (let func of allFunctions()) {
+    log(`Initializing '${allFunctions(null).length}' functions ...`);
+    for (let func of allFunctions(null)) {
         try {
-            func._access = {};
-            func._access[func._package] = func.access;
-            initProperties(func.parameters, func, func.title);
+            func._.access = {};
+            func._.access[func._.pack] = func.access;
+            initProperties(func.properties, func, func.title);
         }
         catch (ex) {
-            error("Init functions, Module: " + func._package + ", Action: " + func.name, ex);
+            error("Init functions, Module: " + func._.pack + ", Action: " + func.name, ex);
         }
     }
 }
 function checkFileProperty(prop, entity) {
-    if (prop._gtype == types_1.GlobalType.file) {
+    if (prop._.gtype == types_1.GlobalType.file) {
         if (prop.file && prop.file.drive) {
             prop.file.drive = exports.glob.drives.find(d => d._id.equals(prop.file.drive));
             if (!prop.file.drive)
-                error(`drive for property file '${entity._package}.${entity.name}.${prop.name}' not found.`);
+                error(`drive for property file '${entity._.pack}.${entity.name}.${prop.name}' not found.`);
         }
         else if (entity.entityType == types_1.EntityType.Object)
-            error(`drive for property file '${entity._package}.${entity.name}.${prop.name}' must be set.`);
+            error(`drive for property file '${entity._.pack}.${entity.name}.${prop.name}' must be set.`);
     }
 }
 function checkForSystemProperty(prop) {
@@ -1027,6 +1029,7 @@ function initProperties(properties, entity, parentTitle) {
     if (!properties)
         return;
     for (let prop of properties) {
+        prop._ = {};
         checkForSystemProperty(prop);
         prop.group = prop.group || parentTitle;
         checkPropertyGtype(prop, entity);
@@ -1037,19 +1040,19 @@ function initProperties(properties, entity, parentTitle) {
 exports.initProperties = initProperties;
 function initObject(obj) {
     try {
-        if (obj._inited)
+        if (obj._.inited)
             return;
         else
-            obj._inited = true;
+            obj._.inited = true;
         obj.properties = obj.properties || [];
-        obj._autoSetInsertTime = _.some(obj.properties, { name: types_1.SystemProperty.time });
-        obj._access = {};
-        obj._access[obj._package] = obj.access;
+        obj._.autoSetInsertTime = _.some(obj.properties, { name: types_1.SystemProperty.time });
+        obj._.access = {};
+        obj._.access[obj._.pack] = obj.access;
         initProperties(obj.properties, obj);
         if (obj.reference) {
             let referenceObj = findEntity(obj.reference);
             if (!referenceObj)
-                return warn(`SimilarObject in service '${obj._package}' not found for object: '${obj.title}', SimilarObjectID:${obj.reference}`);
+                return warn(`SimilarObject in service '${obj._.pack}' not found for object: '${obj.title}', SimilarObjectID:${obj.reference}`);
             initObject(referenceObj);
             _.defaultsDeep(obj, referenceObj);
             compareParentProperties(obj.properties, referenceObj.properties, obj);
@@ -1061,22 +1064,22 @@ function initObject(obj) {
         }
     }
     catch (ex) {
-        error(`initObject, Error in object ${obj._package}.${obj.name}`, ex);
+        error(`initObject, Error in object ${obj._.pack}.${obj.name}`, ex);
     }
 }
 exports.initObject = initObject;
 function checkPropertyReference(property, entity) {
-    if (property._gtype == types_1.GlobalType.object && (!property.properties || !property.properties.length)) {
+    if (property._.gtype == types_1.GlobalType.object && (!property.properties || !property.properties.length)) {
         let propertyParentObject = findEntity(property.type);
         if (!propertyParentObject) {
-            if (property._gtype == types_1.GlobalType.object)
+            if (property._.gtype == types_1.GlobalType.object)
                 return;
-            return error(`Property '${entity._package}.${entity.name}.${property.name}' type '${property.type}' not found.`);
+            return error(`Property '${entity._.pack}.${entity.name}.${property.name}' type '${property.type}' not found.`);
         }
         initObject(propertyParentObject);
         property.properties = property.properties || [];
-        if (!property._parentPropertiesCompared) {
-            property._parentPropertiesCompared = true;
+        if (!property._.parentPropertiesCompared) {
+            property._.parentPropertiesCompared = true;
             compareParentProperties(property.properties, propertyParentObject.properties, entity);
         }
     }
@@ -1104,10 +1107,10 @@ function compareParentProperties(properties, parentProperties, entity) {
                     error(`(HandleSimilarProperty) Object '${property.type}' not found as property ${property.title} reference.`);
                     continue;
                 }
-                if (!propertyParentObject._inited)
+                if (!propertyParentObject._.inited)
                     initObject(propertyParentObject);
-                if (!property._parentPropertiesCompared) {
-                    property._parentPropertiesCompared = true;
+                if (!property._.parentPropertiesCompared) {
+                    property._.parentPropertiesCompared = true;
                     compareParentProperties(property.properties, propertyParentObject.properties, entity);
                 }
             }
@@ -1118,8 +1121,8 @@ function compareParentProperties(properties, parentProperties, entity) {
         else {
             if ((parentProperty.properties && parentProperty.properties.length > 0) && !property.group)
                 property.group = property.title;
-            if (!property._parentPropertiesCompared) {
-                property._parentPropertiesCompared = true;
+            if (!property._.parentPropertiesCompared) {
+                property._.parentPropertiesCompared = true;
                 compareParentProperties(property.properties, parentProperty.properties, entity);
             }
         }
@@ -1211,7 +1214,7 @@ function getPackageConfig(pack) {
     let config = exports.glob.packageConfigs[pack];
     if (!config)
         throw `config for package '${pack}' not found.`;
-    config._static = require(path.join(process.env.PACKAGES_ROOT, pack, `package.json`));
+    config._ = require(getAbsolutePath('./' + pack, `package.json`));
     return config;
 }
 exports.getPackageConfig = getPackageConfig;
@@ -1316,16 +1319,16 @@ function parseDate(loc, date) {
 }
 exports.parseDate = parseDate;
 async function getTypes(cn) {
-    let objects = allObjects().map((ent) => {
-        let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
+    let objects = allObjects(cn).map((ent) => {
+        let title = getText(cn, ent.title) + (cn.pack == ent._.pack ? "" : " (" + ent._.pack + ")");
         return Object.assign(Object.assign({}, ent), { title });
     });
-    let functions = allFunctions().map((ent) => {
-        let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
+    let functions = allFunctions(cn).map((ent) => {
+        let title = getText(cn, ent.title) + (cn.pack == ent._.pack ? "" : " (" + ent._.pack + ")");
         return Object.assign(Object.assign({}, ent), { title });
     });
-    let enums = exports.glob.enums.map((ent) => {
-        let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
+    let enums = exports.glob.enums.filter(en => containsPack(cn, en._.pack)).map((ent) => {
+        let title = getText(cn, ent.title) + (cn.pack == ent._.pack ? "" : " (" + ent._.pack + ")");
         return Object.assign(Object.assign({}, ent), { title });
     });
     let types = objects.concat(functions, enums);
@@ -1339,9 +1342,14 @@ async function getTypes(cn) {
     return types;
 }
 exports.getTypes = getTypes;
+function containsPack(cn, pack) {
+    return pack == cn.pack || cn["app"].dependencies.indexOf(pack) > -1;
+}
+exports.containsPack = containsPack;
 async function getAllEntities(cn) {
-    let entities = exports.glob.entities.map(ent => {
-        let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
+    let entities = exports.glob.entities.filter(en => containsPack(cn, en._.pack));
+    entities = entities.map(ent => {
+        let title = getText(cn, ent.title) + (cn.pack == ent._.pack ? "" : " (" + ent._.pack + ")");
         return Object.assign(Object.assign({}, ent), { title });
     });
     entities = _.orderBy(entities, ['title']);
@@ -1350,7 +1358,7 @@ async function getAllEntities(cn) {
 exports.getAllEntities = getAllEntities;
 async function getDataEntities(cn) {
     let entities = exports.glob.entities.filter(e => e.entityType == types_1.EntityType.Function || e.entityType == types_1.EntityType.Object).map(ent => {
-        let title = getText(cn, ent.title) + (cn.pack == ent._package ? "" : " (" + ent._package + ")");
+        let title = getText(cn, ent.title) + (cn.pack == ent._.pack ? "" : " (" + ent._.pack + ")");
         return Object.assign(Object.assign({}, ent), { title });
     });
     entities = _.orderBy(entities, ['title']);
@@ -1458,8 +1466,8 @@ function parse(str) {
 }
 exports.parse = parse;
 async function getPropertyReferenceValues(cn, prop, instance) {
-    if (prop._enum) {
-        let items = _.map(prop._enum.items, (item) => {
+    if (prop._.enum) {
+        let items = _.map(prop._.enum.items, (item) => {
             return { ref: item.value, title: getText(cn, item.title) };
         });
         return items;
@@ -1482,8 +1490,8 @@ async function getPropertyReferenceValues(cn, prop, instance) {
     else if (entity.entityType === types_1.EntityType.Function) {
         let typeFunc = entity;
         let args = [];
-        if (typeFunc.parameters)
-            for (let param of typeFunc.parameters) {
+        if (typeFunc.properties)
+            for (let param of typeFunc.properties) {
                 switch (param.name) {
                     case "meta":
                         args.push(prop);
@@ -1543,7 +1551,7 @@ async function mock(cn, func, args) {
 }
 exports.mock = mock;
 async function invokeFuncMakeArgsReady(cn, func, action, args) {
-    if (!func.parameters)
+    if (!func.properties)
         return args;
     const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
     const ARGUMENT_NAMES = /([^\s,]+)/g;
@@ -1557,7 +1565,7 @@ async function invokeFuncMakeArgsReady(cn, func, action, args) {
     argNames.forEach((argName, i) => {
         argData[argName] = args[i];
     });
-    let fileParams = func.parameters.filter(p => p._gtype == types_1.GlobalType.file);
+    let fileParams = func.properties.filter(p => p._.gtype == types_1.GlobalType.file);
     if (fileParams.length) {
         let uploadedFiles = await getUploadedFiles(cn, true);
         for (let param of fileParams) {
@@ -1573,11 +1581,11 @@ async function invokeFuncMakeArgsReady(cn, func, action, args) {
             }
         }
     }
-    for (let prop of func.parameters) {
+    for (let prop of func.properties) {
         let val = argData[prop.name];
         if (val == null && prop.required)
             throwError(types_1.StatusCode.BadRequest, `parameter '${prop.name}' is mandatory!`);
-        if (prop._isRef && !prop._enum && prop.viewMode != types_1.PropertyViewMode.Hidden && isObjectId(val)) {
+        if (prop._.isRef && !prop._.enum && prop.viewMode != types_1.PropertyViewMode.Hidden && isObjectId(val)) {
             let refObj = findEntity(prop.type);
             if (!refObj)
                 throwError(types_1.StatusCode.UnprocessableEntity, `referred object for property '${cn.pack}.${prop.name}' not found!`);
@@ -1593,14 +1601,14 @@ async function invoke(cn, func, args) {
     if (func.test && func.test.mock && envMode() == types_1.EnvMode.Development && cn.url.pathname != "/functionTest") {
         return await mock(cn, func, args);
     }
-    let action = require(path.join(process.env.PACKAGES_ROOT, func._package, `src/main`))[func.name];
+    let action = require(getAbsolutePath('./' + func._.pack, `src/main`))[func.name];
     if (!action) {
-        if (func._package == types_1.Constants.sysPackage)
-            action = require(path.join(process.env.PACKAGES_ROOT, `web/src/main`))[func.name];
+        if (func._.pack == types_1.Constants.sysPackage)
+            action = require(getAbsolutePath(`./web/src/main`))[func.name];
         if (!action) {
-            let app = exports.glob.apps.find(app => app._package == cn.pack);
+            let app = exports.glob.apps.find(app => app._.pack == cn.pack);
             for (let pack of app.dependencies) {
-                action = require(path.join(process.env.PACKAGES_ROOT, pack, `src/main`))[func.name];
+                action = require(getAbsolutePath('./' + pack, `src/main`))[func.name];
                 if (action)
                     break;
             }
@@ -1638,8 +1646,8 @@ async function runFunction(cn, functionId, input) {
         throw types_1.StatusCode.NotFound;
     input = input || {};
     let args = [];
-    if (func.parameters)
-        for (let para of func.parameters) {
+    if (func.properties)
+        for (let para of func.properties) {
             args.push(input[para.name]);
         }
     return invoke(cn, func, args);
