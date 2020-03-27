@@ -562,4 +562,10 @@ exports.NotificationInfo = NotificationInfo;
 class ComponentParams {
 }
 exports.ComponentParams = ComponentParams;
+class ObjectMeta {
+}
+exports.ObjectMeta = ObjectMeta;
+class FunctionMeta {
+}
+exports.FunctionMeta = FunctionMeta;
 //# sourceMappingURL=types.js.map

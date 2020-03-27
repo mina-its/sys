@@ -1036,3 +1036,33 @@ export class ComponentParams {
 // export class ObjectMeta {
 //
 // }
+
+export class ObjectMeta {
+	title: string;
+	_ref: string;
+	newItemMode: NewItemMode;
+	rowHeaderStyle: GridRowHeaderStyle;
+	reorderable: boolean;
+	detailsViewType: ObjectDetailsViewType;
+	listsViewType: ObjectListsViewType;
+
+	pageLinks: any[];
+	properties: Property[];
+	pages: number;
+	page: number;
+	links: EntityLink[];
+}
+
+export class FunctionMeta {
+	_id: Reference;
+	name: string;
+	pack: string;
+	title: string;
+	interactive: boolean;
+	clientSide: boolean;
+	properties: Property[];
+	links?: EntityLink[];
+	test?: {
+		samples?: any[];
+	}
+}
