@@ -1066,3 +1066,14 @@ export class FunctionMeta {
 		samples?: any[];
 	}
 }
+
+export enum ReqParams {
+	query = "q",
+	version = "v",
+	locale = "e",
+	page = "p",
+	cache = "c",
+	sort = "s",
+	mode = "m",
+	functionType = "f"
+}
