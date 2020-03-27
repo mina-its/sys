@@ -1,5 +1,5 @@
-import {AjaxConfig, ComponentParams, NotificationInfo} from "./types";
-import {GetOptions, IError, StatusCode, WebMethod, LogType, WebResponse, EmbeddedInfo, Pair} from "../src/types";
+import {AjaxConfig, ComponentParams, ItemMeta, ItemState, NotificationInfo} from "./types";
+import {EmbeddedInfo, GetOptions, IError, LogType, Pair, StatusCode, WebMethod, WebResponse} from "../src/types";
 
 declare let $, Vue, axios, text, _: any;
 
@@ -179,4 +179,32 @@ export function setPropertyEmbeddedError(doc: any, propName: string, error: stri
 	doc._ = doc._ || {};
 	doc._[propName] = doc._[propName] || {};
 	(doc._[propName] as EmbeddedInfo).err = error;
+}
+
+export module appState {
+	export function reset() {
+
+	}
+
+	export function initItem(item: any) {
+		let meta: ItemMeta = item._;
+		meta.state = ItemState.Normal;
+
+	}
+
+	export function propChanged(ref: string, oldValue: any, newValue: any) {
+
+	}
+
+	export function commit(data: any, done: (res: WebResponse) => void) {
+
+	}
+
+	export function commitAll(done: (res: WebResponse) => void) {
+
+	}
+
+	export function isDirty(data?: any): boolean {
+		return false;
+	}
 }

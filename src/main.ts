@@ -1071,12 +1071,13 @@ export async function connect(pack: string | Context, connectionString?: string)
 		throw("Environment variable 'DB_ADDRESS' is needed.");
 
 	try {
-		let dbc = await MongoClient.connect(connectionString, {useNewUrlParser: true, useUnifiedTopology: true});
+		let dbc = await MongoClient.connect(connectionString, {useNewUrlParser: true, useUnifiedTopology: true, poolSize: Constants.mongodbPoolSize});
 		if (!dbc)
 			return null;
 		return glob.dbs[pack + ":" + connectionString] = dbc.db(pack);
 	} catch (e) {
-		throw `db '${pack}' connection failed [${connectionString}]`;
+		error(`db '${pack}' connection failed [${connectionString}]`);
+		throw `connecting to db '${pack}' failed`;
 	}
 }
 

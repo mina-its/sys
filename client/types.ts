@@ -1,4 +1,4 @@
-import {WebMethod, LogType} from "../src/types";
+import {WebMethod, LogType, ObjectModifyType} from "../src/types";
 
 export class Context {
 	data?: any;
@@ -32,4 +32,27 @@ export class ComponentParams {
 	destroyed?: () => void;
 	data?: () => void;
 	render?: (ce) => any;
+}
+
+export enum ItemState {
+	Normal = 0,
+	Updated = 1,
+	Inserted = 2,
+	Deleted = 4,
+}
+
+export class ItemMeta {
+	marked: boolean;
+	state: ItemState;
+	dec: FunctionMeta | ObjectMeta;
+	latest: any;
+	ref: string;
+}
+
+export class FunctionMeta {
+
+}
+
+export class ObjectMeta {
+
 }

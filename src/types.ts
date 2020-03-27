@@ -856,6 +856,7 @@ export const Constants = {
 	indexProperty: "_z",
 	defaultLoginUri: 'login',
 	amazonS3ApiVersion: "2006-03-01",
+	mongodbPoolSize: 10,
 	mainDbSourceName: "db",
 	systemPropertiesObjectName: "systemProperties",
 	timeZonesCollection: "timeZones",
