@@ -133,13 +133,17 @@ export class Function extends Entity implements IProperties {
 export class Form extends Entity {
 	template: string;
 	keywords: string;
-	changeFrequecy: ChangeFrequecy;
+	changeFrequency: ChangeFrequency;
 	breadcrumb: Pair[];
 	isPublic: boolean;
 	locale: Locale;
 	openGraph;
 	elems: Elem[] = [];
-	_: IEntity;
+	_: {
+		access?: { [pack: string]: Access; };
+		pack: string;
+		toolbar: boolean;
+	}
 }
 
 export class ObjectModifyState {
@@ -733,7 +737,7 @@ export enum FunctionMode {
 	Run = 3,
 }
 
-export enum ChangeFrequecy {
+export enum ChangeFrequency {
 	always = 1,
 	hourly = 2,
 	daily = 3,
@@ -891,19 +895,35 @@ export class WebResponse implements IError {
 	meta: any = {};
 	form: Form;
 	redirect: string;
-	menu: any[] = [];
-	navmenu: any[] = [];
 	message: string;
 	code: StatusCode;
-	config: {
-		interactive: boolean;
-		locale?: string;
-		appLocales?: Pair[];
-		brandingLogo: string;
-		appTitle: string;
-		loginRef: string;
-		loginTitle: string;
+	config: AppStateConfig;
+}
+
+export class AppStateConfig {
+	constructor() {
+		this.version = "";
+		this.appTitle = "";
+		this.brandingLogo = "";
+		this.locale = "";
+		this.appLocales = [];
+		this.loginRef = "";
+		this.loginTitle = "";
+		this.interactive = false;
+		this.menu = [];
+		this.navmenu = [];
 	}
+
+	version: string;
+	appTitle: string;
+	brandingLogo: string;
+	locale: string;
+	appLocales: [];
+	loginRef: string;
+	loginTitle: string;
+	interactive: boolean;
+	menu: [];
+	navmenu: [];
 }
 
 export enum WebMethod {

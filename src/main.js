@@ -922,6 +922,7 @@ async function connect(pack, connectionString) {
         return exports.glob.dbs[pack + ":" + connectionString] = dbc.db(pack);
     }
     catch (e) {
+        error(e.stack);
         error(`db '${pack}' connection failed [${connectionString}]`);
         throw `connecting to db '${pack}' failed`;
     }
