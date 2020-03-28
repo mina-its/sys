@@ -287,7 +287,7 @@ export async function portionsToMongoPath(pack: string | Context, rootId: Object
 			value = partItem;
 		}
 	}
-	return _.trim(path, '.');
+	return path.replace(/^\.+|\.+$/,'');
 }
 
 export async function count(pack: string | Context, objectName: string, options: GetOptions) {
@@ -302,7 +302,7 @@ export function extractRefPortions(cn: Context, ref: string, _default?: string):
 		if (!ref)
 			return null;
 
-		let portions: RefPortion[] = _.map(ref.split('/'), (portion) => {
+		let portions: RefPortion[] = ref.split('/').map(portion => {
 			return {value: portion} as RefPortion;
 		});
 
@@ -1646,7 +1646,7 @@ export function parse(str: string | any): any {
 
 export async function getPropertyReferenceValues(cn: Context, prop: Property, instance: any) {
 	if (prop._.enum) {
-		let items = _.map(prop._.enum.items, (item: EnumItem) => {
+		let items = prop._.enum.items.map(item => {
 			return {ref: item.value, title: getText(cn, item.title)} as Pair;
 		});
 		return items;
@@ -1661,7 +1661,7 @@ export async function getPropertyReferenceValues(cn: Context, prop: Property, in
 	if (entity.entityType == EntityType.Object) {
 		let result = await get(cn.pack, entity.name, {count: 10, rawData: true});
 		if (result) {
-			return _.map(result, (item) => {
+			return result.map(item => {
 				return {ref: item._id, title: getText(cn, item.title)} as Pair;
 			});
 		} else
