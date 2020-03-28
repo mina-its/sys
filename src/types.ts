@@ -142,7 +142,7 @@ export class Form extends Entity {
 	_: {
 		access?: { [pack: string]: Access; };
 		pack: string;
-		toolbar: boolean;
+		toolbar?: boolean;
 	}
 }
 
@@ -918,7 +918,7 @@ export class AppStateConfig {
 	appTitle: string;
 	brandingLogo: string;
 	locale: string;
-	appLocales: [];
+	appLocales: Pair[];
 	loginRef: string;
 	loginTitle: string;
 	interactive: boolean;
@@ -1035,20 +1035,20 @@ export class ComponentParams {
 	render?: (ce) => any;
 }
 
-// export enum ItemState {
-// 	Normal = 0,
-// 	Updated = 1,
-// 	Inserted = 2,
-// 	Deleted = 4,
-// }
-//
-// export class ItemMeta {
-// 	marked: boolean;
-// 	state: ItemState;
-// 	dec: FunctionMeta | ObjectMeta;
-// 	latest: any;
-// 	ref: string;
-// }
+export enum ItemState {
+	Default = 0,
+	Updated = 1,
+	Inserted = 2,
+	Deleted = 4,
+}
+
+export class ItemMeta {
+	marked: boolean;
+	state: ItemState;
+	dec: FunctionDeclare | ObjectDeclare;
+	latest: any;
+	ref: string;
+}
 //
 // export class FunctionMeta {
 //
@@ -1058,7 +1058,7 @@ export class ComponentParams {
 //
 // }
 
-export class ObjectMeta {
+export class ObjectDeclare {
 	title: string;
 	_ref: string;
 	newItemMode: NewItemMode;
@@ -1074,7 +1074,7 @@ export class ObjectMeta {
 	links: EntityLink[];
 }
 
-export class FunctionMeta {
+export class FunctionDeclare {
 	_id: Reference;
 	name: string;
 	pack: string;

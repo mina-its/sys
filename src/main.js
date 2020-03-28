@@ -795,9 +795,7 @@ function initializeRoles() {
     }
     for (let role of exports.glob.roles) {
         let result = graphlib.alg.postorder(g, role._id.toString());
-        role.roles = result.map((item) => {
-            return new mongodb_1.ObjectId(item);
-        });
+        role.roles = result.map(item => new mongodb_1.ObjectId(item));
     }
 }
 exports.initializeRoles = initializeRoles;
@@ -956,9 +954,7 @@ async function initializeEnums() {
             theEnum._ = { pack: pack.name };
             exports.glob.enums.push(theEnum);
             let texts = {};
-            _.sortBy(theEnum.items, types_1.Constants.indexProperty).forEach((item) => {
-                texts[item.value] = item.title || item.name;
-            });
+            _.sortBy(theEnum.items, types_1.Constants.indexProperty).forEach(item => texts[item.value] = item.title || item.name);
             exports.glob.enumTexts[pack.name + "." + theEnum.name] = texts;
         }
     }
@@ -1319,15 +1315,15 @@ function parseDate(loc, date) {
 }
 exports.parseDate = parseDate;
 async function getTypes(cn) {
-    let objects = allObjects(cn).map((ent) => {
+    let objects = allObjects(cn).map(ent => {
         let title = getText(cn, ent.title) + (cn.pack == ent._.pack ? "" : " (" + ent._.pack + ")");
         return Object.assign(Object.assign({}, ent), { title });
     });
-    let functions = allFunctions(cn).map((ent) => {
+    let functions = allFunctions(cn).map(ent => {
         let title = getText(cn, ent.title) + (cn.pack == ent._.pack ? "" : " (" + ent._.pack + ")");
         return Object.assign(Object.assign({}, ent), { title });
     });
-    let enums = exports.glob.enums.filter(en => containsPack(cn, en._.pack)).map((ent) => {
+    let enums = exports.glob.enums.filter(en => containsPack(cn, en._.pack)).map(ent => {
         let title = getText(cn, ent.title) + (cn.pack == ent._.pack ? "" : " (" + ent._.pack + ")");
         return Object.assign(Object.assign({}, ent), { title });
     });
@@ -1421,7 +1417,7 @@ exports.stringify = stringify;
 function parse(str) {
     let json = typeof str == "string" ? JSON.parse(str) : str;
     let keys = {};
-    const findKeys = (obj) => {
+    const findKeys = obj => {
         if (obj && obj._0) {
             keys[obj._0] = obj;
             delete obj._0;
@@ -1432,7 +1428,7 @@ function parse(str) {
         }
     };
     const seen = new WeakSet();
-    const replaceRef = (obj) => {
+    const replaceRef = obj => {
         if (seen.has(obj))
             return;
         seen.add(obj);
@@ -1529,9 +1525,7 @@ async function mock(cn, func, args) {
     log(`mocking function '${cn.pack}.${func.name}' ...`);
     if (!func.test.samples || !func.test.samples.length)
         return { code: types_1.StatusCode.Ok, message: "No sample data!" };
-    let withInputs = func.test.samples.filter((sample) => {
-        return sample.input;
-    });
+    let withInputs = func.test.samples.filter(sample => sample.input);
     for (let sample of withInputs) {
         if (mockCheckMatchInput(cn, func, args, sample)) {
             if (sample.code)
@@ -1562,9 +1556,7 @@ async function invokeFuncMakeArgsReady(cn, func, action, args) {
     if (argNames[0] == "cn")
         argNames.shift();
     let argData = {};
-    argNames.forEach((argName, i) => {
-        argData[argName] = args[i];
-    });
+    argNames.forEach((argName, i) => argData[argName] = args[i]);
     let fileParams = func.properties.filter(p => p._.gtype == types_1.GlobalType.file);
     if (fileParams.length) {
         let uploadedFiles = await getUploadedFiles(cn, true);
@@ -1678,7 +1670,7 @@ function clientCommand(cn, command, ...args) {
 exports.clientCommand = clientCommand;
 async function removeDir(dir) {
     return new Promise((resolve, reject) => {
-        rimraf(dir, { silent: true }, (ex) => {
+        rimraf(dir, { silent: true }, ex => {
             if (ex)
                 reject(ex);
             else
@@ -1690,7 +1682,7 @@ exports.removeDir = removeDir;
 async function clientQuestion(cn, message, optionsEnum) {
     return new Promise(resolve => {
         let items = getEnumItems(cn, optionsEnum);
-        let waitFn = (answer) => resolve(answer);
+        let waitFn = answer => resolve(answer);
         let questionID = new mongodb_1.ObjectId().toString();
         exports.glob.clientQuestionCallbacks[cn["httpReq"].session.id + ":" + questionID] = waitFn;
         exports.postClientCommandCallback(cn, types_1.ClientCommand.Question, questionID, message, items);

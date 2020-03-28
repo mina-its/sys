@@ -287,7 +287,7 @@ export async function portionsToMongoPath(pack: string | Context, rootId: Object
 			value = partItem;
 		}
 	}
-	return path.replace(/^\.+|\.+$/,'');
+	return path.replace(/^\.+|\.+$/, '');
 }
 
 export async function count(pack: string | Context, objectName: string, options: GetOptions) {
@@ -932,9 +932,7 @@ export function initializeRoles() {
 
 	for (let role of glob.roles) {
 		let result = graphlib.alg.postorder(g, role._id.toString());
-		role.roles = result.map((item) => {
-			return new ObjectId(item);
-		});
+		role.roles = result.map(item => new ObjectId(item));
 	}
 }
 
@@ -1107,9 +1105,7 @@ export async function initializeEnums() {
 			glob.enums.push(theEnum);
 
 			let texts = {};
-			_.sortBy(theEnum.items, Constants.indexProperty).forEach((item) => {
-				texts[item.value] = item.title || item.name;
-			});
+			_.sortBy(theEnum.items, Constants.indexProperty).forEach(item => texts[item.value] = item.title || item.name);
 			glob.enumTexts[pack.name + "." + theEnum.name] = texts;
 		}
 	}
@@ -1489,15 +1485,15 @@ export function parseDate(loc: Locale, date: string): Date {
 }
 
 export async function getTypes(cn: Context) {
-	let objects: any[] = allObjects(cn).map((ent: mObject) => {
+	let objects: any[] = allObjects(cn).map(ent => {
 		let title = getText(cn, ent.title) + (cn.pack == ent._.pack ? "" : " (" + ent._.pack + ")");
 		return {...ent, title}
 	});
-	let functions: any[] = allFunctions(cn).map((ent: Function) => {
+	let functions: any[] = allFunctions(cn).map(ent => {
 		let title = getText(cn, ent.title) + (cn.pack == ent._.pack ? "" : " (" + ent._.pack + ")");
 		return {...ent, title}
 	});
-	let enums: any[] = glob.enums.filter(en => containsPack(cn, en._.pack)).map((ent: Enum) => {
+	let enums: any[] = glob.enums.filter(en => containsPack(cn, en._.pack)).map(ent => {
 		let title = getText(cn, ent.title) + (cn.pack == ent._.pack ? "" : " (" + ent._.pack + ")");
 		return {...ent, title}
 	});
@@ -1598,7 +1594,7 @@ export function stringify(value): string {
 export function parse(str: string | any): any {
 	let json = typeof str == "string" ? JSON.parse(str) : str;
 	let keys = {};
-	const findKeys = (obj) => {
+	const findKeys = obj => {
 		if (obj && obj._0) {
 			keys[obj._0] = obj;
 			delete obj._0;
@@ -1611,7 +1607,7 @@ export function parse(str: string | any): any {
 	};
 
 	const seen = new WeakSet();
-	const replaceRef = (obj) => {
+	const replaceRef = obj => {
 		if (seen.has(obj)) return;
 		seen.add(obj);
 
@@ -1716,9 +1712,7 @@ export async function mock(cn: Context, func: Function, args: any[]) {
 	if (!func.test.samples || !func.test.samples.length)
 		return {code: StatusCode.Ok, message: "No sample data!"};
 
-	let withInputs = func.test.samples.filter((sample) => {
-		return sample.input;
-	});
+	let withInputs = func.test.samples.filter(sample => sample.input);
 	for (let sample of withInputs) {
 		if (mockCheckMatchInput(cn, func, args, sample)) {
 			if (sample.code)
@@ -1754,9 +1748,7 @@ async function invokeFuncMakeArgsReady(cn: Context, func: Function, action, args
 		argNames.shift();
 
 	let argData = {};
-	argNames.forEach((argName, i) => {
-		argData[argName] = args[i];
-	});
+	argNames.forEach((argName, i) => argData[argName] = args[i]);
 
 	let fileParams = func.properties.filter(p => p._.gtype == GlobalType.file);
 	if (fileParams.length) {
@@ -1881,7 +1873,7 @@ export function clientCommand(cn: Context, command: ClientCommand, ...args) {
 
 export async function removeDir(dir: string) {
 	return new Promise((resolve, reject) => {
-		rimraf(dir, {silent: true}, (ex) => {
+		rimraf(dir, {silent: true}, ex => {
 			if (ex)
 				reject(ex);
 			else
@@ -1893,7 +1885,7 @@ export async function removeDir(dir: string) {
 export async function clientQuestion(cn: Context, message: string, optionsEnum: string): Promise<number> {
 	return new Promise(resolve => {
 		let items = getEnumItems(cn, optionsEnum);
-		let waitFn = (answer: number) => resolve(answer);
+		let waitFn = answer => resolve(answer);
 		let questionID = new ObjectId().toString();
 		glob.clientQuestionCallbacks[cn["httpReq"].session.id + ":" + questionID] = waitFn;
 		postClientCommandCallback(cn, ClientCommand.Question, questionID, message, items);
