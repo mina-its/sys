@@ -229,6 +229,7 @@ export class Property implements IProperties {
 		ref?: string;
 		items?: Pair[];
 		parentPropertiesCompared?: boolean;
+		sorted?: boolean;
 	};
 }
 

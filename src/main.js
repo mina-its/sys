@@ -62,9 +62,7 @@ async function audit(auditType, args) {
     args.type = args.type || new mongodb_1.ObjectId(auditType);
     args.time = new Date();
     let comment = args.comment || "";
-    let type = _.find(exports.glob.auditTypes, (type) => {
-        return type._id.equals(args.type);
-    });
+    let type = exports.glob.auditTypes.find(type => type._id.equals(args.type));
     let msg = "audit(" + (type ? type.name : args.type) + "): " + comment;
     switch (args.level) {
         case types_1.LogType.Fatal:
@@ -223,9 +221,7 @@ async function portionsToMongoPath(pack, rootId, portions, endIndex) {
                 value = {};
         }
         else {
-            let partItem = _.find(value, (it) => {
-                return it._id && it._id.toString() == part;
-            });
+            let partItem = value.find(it => it._id && it._id.toString() == part);
             if (!partItem)
                 throw types_1.StatusCode.ServerError;
             path += "." + value.indexOf(partItem);
@@ -262,9 +258,7 @@ function extractRefPortions(cn, ref, _default) {
         for (let i = 1; i < portions.length; i++) {
             portions[i].pre = portions[i - 1];
         }
-        let entity = _.find(exports.glob.entities, (entity) => {
-            return entity._id.toString() === portions[0].value;
-        });
+        let entity = exports.glob.entities.find(entity => entity._id.toString() === portions[0].value);
         if (!entity)
             entity = exports.glob.entities.find(en => en._.pack == cn.pack && en.name == portions[0].value);
         if (!entity)
@@ -294,7 +288,7 @@ function extractRefPortions(cn, ref, _default) {
             }
             else {
                 pr.type = types_1.RefPortionType.property;
-                parent = pr.property = _.find(parent.properties, { name: pr.value });
+                parent = pr.property = parent.properties.find(p => p.name == pr.value);
                 if (!pr.property)
                     error(`Invalid property name '${pr.value}' in path '${ref}'`);
             }
@@ -918,7 +912,11 @@ async function connect(pack, connectionString) {
     if (!connectionString)
         throw ("Environment variable 'DB_ADDRESS' is needed.");
     try {
-        let dbc = await mongodb_1.MongoClient.connect(connectionString, { useNewUrlParser: true, useUnifiedTopology: true, poolSize: types_1.Constants.mongodbPoolSize });
+        let dbc = await mongodb_1.MongoClient.connect(connectionString, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            poolSize: types_1.Constants.mongodbPoolSize
+        });
         if (!dbc)
             return null;
         return exports.glob.dbs[pack + ":" + connectionString] = dbc.db(pack);

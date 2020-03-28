@@ -119,9 +119,7 @@ export async function audit(auditType: string, args: AuditArgs) {
 	args.type = args.type || new ObjectId(auditType);
 	args.time = new Date();
 	let comment = args.comment || "";
-	let type = _.find(glob.auditTypes, (type: AuditType) => {
-		return type._id.equals(args.type)
-	});
+	let type = glob.auditTypes.find(type => type._id.equals(args.type));
 	let msg = "audit(" + (type ? type.name : args.type) + "): " + comment;
 
 	switch (args.level) {
@@ -283,9 +281,7 @@ export async function portionsToMongoPath(pack: string | Context, rootId: Object
 			if (value == null)
 				value = {}; // sample: access.items
 		} else {
-			let partItem = _.find(value, (it) => {
-				return it._id && it._id.toString() == part;
-			});
+			let partItem = value.find(it => it._id && it._id.toString() == part);
 			if (!partItem) throw StatusCode.ServerError;
 			path += "." + value.indexOf(partItem);
 			value = partItem;
@@ -324,10 +320,7 @@ export function extractRefPortions(cn: Context, ref: string, _default?: string):
 			portions[i].pre = portions[i - 1];
 		}
 
-		let entity: Entity = _.find(glob.entities, (entity) => {
-			return entity._id.toString() === portions[0].value
-		});
-
+		let entity = glob.entities.find(entity => entity._id.toString() === portions[0].value);
 		if (!entity)
 			entity = glob.entities.find(en => en._.pack == cn.pack && en.name == portions[0].value);
 
@@ -358,7 +351,7 @@ export function extractRefPortions(cn: Context, ref: string, _default?: string):
 				pr.itemId = new ObjectId(itemId);
 			} else {
 				pr.type = RefPortionType.property;
-				parent = pr.property = _.find(parent.properties, {name: pr.value});
+				parent = pr.property = parent.properties.find(p => p.name == pr.value);
 				if (!pr.property)
 					error(`Invalid property name '${pr.value}' in path '${ref}'`);
 			}
@@ -1071,7 +1064,11 @@ export async function connect(pack: string | Context, connectionString?: string)
 		throw("Environment variable 'DB_ADDRESS' is needed.");
 
 	try {
-		let dbc = await MongoClient.connect(connectionString, {useNewUrlParser: true, useUnifiedTopology: true, poolSize: Constants.mongodbPoolSize});
+		let dbc = await MongoClient.connect(connectionString, {
+			useNewUrlParser: true,
+			useUnifiedTopology: true,
+			poolSize: Constants.mongodbPoolSize
+		});
 		if (!dbc)
 			return null;
 		return glob.dbs[pack + ":" + connectionString] = dbc.db(pack);
