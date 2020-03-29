@@ -128,8 +128,8 @@ async function makeObjectReady(pack, properties, data) {
     if (!data)
         return;
     data = Array.isArray(data) ? data : [data];
-    for (let item of data) {
-        for (let prop of properties) {
+    for (const item of data) {
+        for (const prop of properties) {
             let val = item[prop.name];
             if (!val)
                 continue;
@@ -212,7 +212,7 @@ async function portionsToMongoPath(pack, rootId, portions, endIndex) {
     if (!value)
         throw types_1.StatusCode.ServerError;
     let path = "";
-    for (let i = 2; i < endIndex; i++) {
+    for (const i = 2; i < endIndex; i++) {
         let part = portions[i].value;
         if (portions[i].type == types_1.RefPortionType.property) {
             path += "." + part;
@@ -255,7 +255,7 @@ function extractRefPortions(cn, ref, _default) {
             if (/^v\d/.test(portions[0].value))
                 cn["apiVersion"] = portions.shift().value;
         }
-        for (let i = 1; i < portions.length; i++) {
+        for (const i = 1; i < portions.length; i++) {
             portions[i].pre = portions[i - 1];
         }
         let entity = exports.glob.entities.find(entity => entity._id.toString() === portions[0].value);
@@ -272,7 +272,7 @@ function extractRefPortions(cn, ref, _default) {
         if (entity.entityType !== types_1.EntityType.Object || portions.length < 2)
             return portions;
         let parent = entity;
-        for (let i = 1; i < portions.length; i++) {
+        for (const i = 1; i < portions.length; i++) {
             let pr = portions[i];
             if (parent == null) {
                 warn(`Invalid path '${ref}'`);
@@ -318,7 +318,7 @@ async function patch(pack, objectName, patchData, options) {
     if (portions[portions.length - 1].property && portions[portions.length - 1].property._.gtype == types_1.GlobalType.file)
         command["$set"][path] = patchData;
     else
-        for (let key in patchData) {
+        for (const key in patchData) {
             if (key == "_id")
                 continue;
             command[patchData[key] == null ? "$unset" : "$set"][path + (path ? "." : "") + key] = patchData[key];
@@ -498,7 +498,7 @@ async function listDir(drive, dir) {
             let files = list.map(item => {
                 return { name: item.name, type: item.isDirectory() ? types_1.DirFileType.Folder : types_1.DirFileType.File };
             });
-            for (let file of files) {
+            for (const file of files) {
                 if (file.type == types_1.DirFileType.File) {
                     let stat = await fsPromises.stat(path.join(addr, file.name));
                     file.size = stat.size;
@@ -563,7 +563,7 @@ async function movFile(pack, sourcePath, targetPath) {
 exports.movFile = movFile;
 function joinUri(...parts) {
     let uri = "";
-    for (let part of parts) {
+    for (const part of parts) {
         uri += "/" + (part || "").replace(/^\//, '').replace(/\/$/, '');
     }
     return uri.substr(1);
@@ -645,7 +645,7 @@ function getEnabledPackages() {
 async function loadSysConfig() {
     let collection = await getCollection(types_1.Constants.sysPackage, types_1.SysCollection.systemConfig);
     exports.glob.sysConfig = await collection.findOne({});
-    for (let pack of getEnabledPackages()) {
+    for (const pack of getEnabledPackages()) {
         try {
             exports.glob.packages[pack.name] = require(getAbsolutePath('./' + pack.name, `src/main`));
             if (exports.glob.packages[pack.name] == null)
@@ -675,13 +675,13 @@ async function loadPackageSystemCollections(packConfig) {
     let pack = packConfig.name;
     log(`Loading system collections package '${pack}' ...`);
     let objects = await get(pack, types_1.SysCollection.objects, { rawData: true });
-    for (let object of objects) {
+    for (const object of objects) {
         object._ = { pack };
         object.entityType = types_1.EntityType.Object;
         exports.glob.entities.push(object);
     }
     let functions = await get(pack, types_1.SysCollection.functions, { rawData: true });
-    for (let func of functions) {
+    for (const func of functions) {
         func._ = { pack };
         func.entityType = types_1.EntityType.Function;
         exports.glob.entities.push(func);
@@ -697,27 +697,27 @@ async function loadPackageSystemCollections(packConfig) {
         log(`package '${pack}' loaded. version: ${exports.glob.packageConfigs[pack]._.version}`);
     }
     let forms = await get(pack, types_1.SysCollection.forms, { rawData: true });
-    for (let form of forms) {
+    for (const form of forms) {
         form._ = { pack };
         form.entityType = types_1.EntityType.Form;
         exports.glob.entities.push(form);
     }
     let texts = await get(pack, types_1.SysCollection.dictionary, { rawData: true });
-    for (let item of texts) {
+    for (const item of texts) {
         exports.glob.dictionary[pack + "." + item.name] = item.text;
     }
     let menus = await get(pack, types_1.SysCollection.menus, { rawData: true });
-    for (let menu of menus) {
+    for (const menu of menus) {
         menu._ = { pack };
         exports.glob.menus.push(menu);
     }
     let roles = await get(pack, types_1.SysCollection.roles, { rawData: true });
-    for (let role of roles) {
+    for (const role of roles) {
         role._ = { pack };
         exports.glob.roles.push(role);
     }
     let drives = await get(pack, types_1.SysCollection.drives, { rawData: true });
-    for (let drive of drives) {
+    for (const drive of drives) {
         drive._ = { pack };
         exports.glob.drives.push(drive);
     }
@@ -728,7 +728,7 @@ async function loadSystemCollections() {
     exports.glob.menus = [];
     exports.glob.roles = [];
     exports.glob.drives = [];
-    for (let packConfig of getEnabledPackages()) {
+    for (const packConfig of getEnabledPackages()) {
         try {
             await loadPackageSystemCollections(packConfig);
         }
@@ -787,13 +787,13 @@ function validateApp(pack, app) {
 }
 function initializeRoles() {
     let g = new graphlib.Graph();
-    for (let role of exports.glob.roles) {
+    for (const role of exports.glob.roles) {
         g.setNode(role._id.toString());
-        for (let subRole of role.roles || []) {
+        for (const subRole of role.roles || []) {
             g.setEdge(role._id.toString(), subRole.toString());
         }
     }
-    for (let role of exports.glob.roles) {
+    for (const role of exports.glob.roles) {
         let result = graphlib.alg.postorder(g, role._id.toString());
         role.roles = result.map(item => new mongodb_1.ObjectId(item));
     }
@@ -809,9 +809,9 @@ exports.checkAppMenu = checkAppMenu;
 function initializePackages() {
     log(`initializePackages: ${exports.glob.sysConfig.packages.map(p => p.name).join(' , ')}`);
     exports.glob.apps = [];
-    for (let pack of getEnabledPackages()) {
+    for (const pack of getEnabledPackages()) {
         let config = exports.glob.packageConfigs[pack.name];
-        for (let app of (config.apps || [])) {
+        for (const app of (config.apps || [])) {
             app._ = { pack: pack.name };
             app.dependencies = app.dependencies || [];
             app.dependencies.push(types_1.Constants.sysPackage);
@@ -948,9 +948,9 @@ async function initializeEnums() {
     log('initializeEnums ...');
     exports.glob.enums = [];
     exports.glob.enumTexts = {};
-    for (let pack of getEnabledPackages()) {
+    for (const pack of getEnabledPackages()) {
         let enums = await get(pack.name, types_1.SysCollection.enums, { rawData: true });
-        for (let theEnum of enums) {
+        for (const theEnum of enums) {
             theEnum._ = { pack: pack.name };
             exports.glob.enums.push(theEnum);
             let texts = {};
@@ -972,17 +972,17 @@ exports.allFunctions = allFunctions;
 async function initializeEntities() {
     log(`Initializing '${allObjects(null).length}' Objects ...`);
     let allObjs = allObjects(null);
-    for (let obj of allObjs) {
+    for (const obj of allObjs) {
         obj._.inited = false;
     }
-    for (let obj of allObjs) {
+    for (const obj of allObjs) {
         initObject(obj);
     }
-    for (let pack of getEnabledPackages()) {
+    for (const pack of getEnabledPackages()) {
         let config = exports.glob.packageConfigs[pack.name];
         let obj = findObject(pack.name, types_1.SysCollection.packageConfig);
         await makeObjectReady(pack.name, obj.properties, config);
-        for (let app of config.apps) {
+        for (const app of config.apps) {
             app._.loginForm = types_1.Constants.defaultLoginUri;
             if (app.loginForm) {
                 let entity = findEntity(app.loginForm);
@@ -992,7 +992,7 @@ async function initializeEntities() {
         }
     }
     log(`Initializing '${allFunctions(null).length}' functions ...`);
-    for (let func of allFunctions(null)) {
+    for (const func of allFunctions(null)) {
         try {
             func._.access = {};
             func._.access[func._.pack] = func.access;
@@ -1024,7 +1024,7 @@ function checkForSystemProperty(prop) {
 function initProperties(properties, entity, parentTitle) {
     if (!properties)
         return;
-    for (let prop of properties) {
+    for (const prop of properties) {
         prop._ = {};
         checkForSystemProperty(prop);
         prop.group = prop.group || parentTitle;
@@ -1054,7 +1054,7 @@ function initObject(obj) {
             compareParentProperties(obj.properties, referenceObj.properties, obj);
         }
         else if (obj.properties) {
-            for (let prop of obj.properties) {
+            for (const prop of obj.properties) {
                 checkPropertyReference(prop, obj);
             }
         }
@@ -1080,7 +1080,7 @@ function checkPropertyReference(property, entity) {
         }
     }
     else if (property.properties)
-        for (let prop of property.properties) {
+        for (const prop of property.properties) {
             checkPropertyReference(prop, entity);
         }
 }
@@ -1089,7 +1089,7 @@ function compareParentProperties(properties, parentProperties, entity) {
         return;
     let parentNames = parentProperties.map(p => p.name);
     properties.filter(p => parentNames.indexOf(p.name) == -1).forEach(newProperty => checkPropertyReference(newProperty, entity));
-    for (let parentProperty of parentProperties) {
+    for (const parentProperty of parentProperties) {
         let property = properties.find(p => p.name === parentProperty.name);
         if (!property) {
             properties.push(parentProperty);
@@ -1166,7 +1166,7 @@ function getEnumItems(cn, enumName) {
 exports.getEnumItems = getEnumItems;
 function getEnumByName(thePackage, dependencies, enumType) {
     let theEnum = exports.glob.enumTexts[thePackage + "." + enumType];
-    for (let i = 0; !theEnum && i < dependencies.length; i++) {
+    for (const i = 0; !theEnum && i < dependencies.length; i++) {
         theEnum = exports.glob.enumTexts[dependencies[i] + "." + enumType];
     }
     return theEnum;
@@ -1245,7 +1245,7 @@ function applyFileQuota(dir, quota) {
 exports.applyFileQuota = applyFileQuota;
 function toQueryString(obj) {
     let str = '';
-    for (let key in obj) {
+    for (const key in obj) {
         str += '&' + key + '=' + obj[key];
     }
     return str.slice(1);
@@ -1330,7 +1330,7 @@ async function getTypes(cn) {
     let types = objects.concat(functions, enums);
     types = _.orderBy(types, ['title']);
     let ptypes = [];
-    for (let type in types_1.PType) {
+    for (const type in types_1.PType) {
         ptypes.push({ _id: new mongodb_1.ObjectId(types_1.PType[type]), title: getText(cn, type, true) });
     }
     types.unshift({ _id: null, title: "-" });
@@ -1378,7 +1378,7 @@ function stringify(value) {
                 if (seen.has(value)) {
                     return { _$: value._0 };
                 }
-                for (let attr in value) {
+                for (const attr in value) {
                     let val = value[attr];
                     if (val) {
                         if (val.constructor == mongodb_1.ObjectId)
@@ -1397,7 +1397,7 @@ function stringify(value) {
         if (seen.has(obj))
             return;
         seen.add(obj);
-        for (let key in obj) {
+        for (const key in obj) {
             let val = obj[key];
             if (!val)
                 continue;
@@ -1422,7 +1422,7 @@ function parse(str) {
             keys[obj._0] = obj;
             delete obj._0;
         }
-        for (let key in obj) {
+        for (const key in obj) {
             if (typeof obj[key] === "object")
                 findKeys(obj[key]);
         }
@@ -1432,7 +1432,7 @@ function parse(str) {
         if (seen.has(obj))
             return;
         seen.add(obj);
-        for (let key in obj) {
+        for (const key in obj) {
             let val = obj[key];
             if (!val)
                 continue;
@@ -1487,7 +1487,7 @@ async function getPropertyReferenceValues(cn, prop, instance) {
         let typeFunc = entity;
         let args = [];
         if (typeFunc.properties)
-            for (let param of typeFunc.properties) {
+            for (const param of typeFunc.properties) {
                 switch (param.name) {
                     case "meta":
                         args.push(prop);
@@ -1515,7 +1515,7 @@ function envMode() {
 }
 exports.envMode = envMode;
 function mockCheckMatchInput(cn, func, args, sample) {
-    for (let key in sample.input) {
+    for (const key in sample.input) {
         if (!_.isEqual(sample.input[key], cn.req[key]))
             return false;
     }
@@ -1526,7 +1526,7 @@ async function mock(cn, func, args) {
     if (!func.test.samples || !func.test.samples.length)
         return { code: types_1.StatusCode.Ok, message: "No sample data!" };
     let withInputs = func.test.samples.filter(sample => sample.input);
-    for (let sample of withInputs) {
+    for (const sample of withInputs) {
         if (mockCheckMatchInput(cn, func, args, sample)) {
             if (sample.code)
                 return { code: sample.code, message: sample.message, result: sample.result };
@@ -1560,7 +1560,7 @@ async function invokeFuncMakeArgsReady(cn, func, action, args) {
     let fileParams = func.properties.filter(p => p._.gtype == types_1.GlobalType.file);
     if (fileParams.length) {
         let uploadedFiles = await getUploadedFiles(cn, true);
-        for (let param of fileParams) {
+        for (const param of fileParams) {
             if (param.isList)
                 throwError(types_1.StatusCode.NotImplemented, `no support for multiple files params!`);
             let val = argData[param.name];
@@ -1573,7 +1573,7 @@ async function invokeFuncMakeArgsReady(cn, func, action, args) {
             }
         }
     }
-    for (let prop of func.properties) {
+    for (const prop of func.properties) {
         let val = argData[prop.name];
         if (val == null && prop.required)
             throwError(types_1.StatusCode.BadRequest, `parameter '${prop.name}' is mandatory!`);
@@ -1599,7 +1599,7 @@ async function invoke(cn, func, args) {
             action = require(getAbsolutePath(`./web/src/main`))[func.name];
         if (!action) {
             let app = exports.glob.apps.find(app => app._.pack == cn.pack);
-            for (let pack of app.dependencies) {
+            for (const pack of app.dependencies) {
                 action = require(getAbsolutePath('./' + pack, `src/main`))[func.name];
                 if (action)
                     break;
@@ -1620,7 +1620,7 @@ exports.invoke = invoke;
 async function getUploadedFiles(cn, readBuffer) {
     let files = [];
     assert(cn["httpReq"].files, "files is not ready in the request");
-    for (let file of cn["httpReq"].files) {
+    for (const file of cn["httpReq"].files) {
         let buffer;
         if (readBuffer) {
             buffer = await fs.readFile(file.path);
@@ -1639,7 +1639,7 @@ async function runFunction(cn, functionId, input) {
     input = input || {};
     let args = [];
     if (func.properties)
-        for (let para of func.properties) {
+        for (const para of func.properties) {
             args.push(input[para.name]);
         }
     return invoke(cn, func, args);

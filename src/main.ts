@@ -186,8 +186,8 @@ export async function makeObjectReady(pack: string | Context, properties: Proper
 	if (!data) return;
 
 	data = Array.isArray(data) ? data : [data];
-	for (let item of data) {
-		for (let prop of properties) {
+	for (const item of data) {
+		for (const prop of properties) {
 			let val = item[prop.name];
 			if (!val) continue;
 			if (prop._ && prop._.isRef && !prop._.enum && prop.viewMode != PropertyViewMode.Hidden && isObjectId(val)) {
@@ -273,7 +273,7 @@ export async function portionsToMongoPath(pack: string | Context, rootId: Object
 	if (!value) throw StatusCode.ServerError;
 
 	let path = "";
-	for (let i = 2; i < endIndex; i++) {
+	for (const i = 2; i < endIndex; i++) {
 		let part = portions[i].value;
 		if (portions[i].type == RefPortionType.property) {
 			path += "." + part;
@@ -316,7 +316,7 @@ export function extractRefPortions(cn: Context, ref: string, _default?: string):
 				cn["apiVersion"] = portions.shift().value;
 		}
 
-		for (let i = 1; i < portions.length; i++) {
+		for (const i = 1; i < portions.length; i++) {
 			portions[i].pre = portions[i - 1];
 		}
 
@@ -338,7 +338,7 @@ export function extractRefPortions(cn: Context, ref: string, _default?: string):
 
 		let parent: any = entity;
 
-		for (let i = 1; i < portions.length; i++) {
+		for (const i = 1; i < portions.length; i++) {
 			let pr = portions[i];
 			if (parent == null) {
 				warn(`Invalid path '${ref}'`);
@@ -381,7 +381,7 @@ export async function patch(pack: string | Context, objectName: string, patchDat
 	if (portions[portions.length - 1].property && portions[portions.length - 1].property._.gtype == GlobalType.file)
 		command["$set"][path] = patchData; // e.g. multiple values for files in 'tests' object
 	else
-		for (let key in patchData) {
+		for (const key in patchData) {
 			if (key == "_id") continue;
 			command[patchData[key] == null ? "$unset" : "$set"][path + (path ? "." : "") + key] = patchData[key];
 		}
@@ -573,7 +573,7 @@ export async function listDir(drive: Drive, dir: string): Promise<DirFile[]> {
 			let files: DirFile[] = list.map(item => {
 				return {name: item.name, type: item.isDirectory() ? DirFileType.Folder : DirFileType.File} as DirFile
 			});
-			for (let file of files) {
+			for (const file of files) {
 				if (file.type == DirFileType.File) {
 					let stat = await fsPromises.stat(path.join(addr, file.name));
 					file.size = stat.size;
@@ -674,7 +674,7 @@ export async function movFile(pack: string | Context, sourcePath: string, target
 
 export function joinUri(...parts: string[]): string {
 	let uri = "";
-	for (let part of parts) {
+	for (const part of parts) {
 		uri += "/" + (part || "").replace(/^\//, '').replace(/\/$/, '');
 	}
 	return uri.substr(1);
@@ -760,7 +760,7 @@ function getEnabledPackages(): SystemConfigPackage[] {
 async function loadSysConfig() {
 	let collection = await getCollection(Constants.sysPackage, SysCollection.systemConfig);
 	glob.sysConfig = await collection.findOne({});
-	for (let pack of getEnabledPackages()) {
+	for (const pack of getEnabledPackages()) {
 		try {
 			glob.packages[pack.name] = require(getAbsolutePath('./' + pack.name, `src/main`));
 			if (glob.packages[pack.name] == null)
@@ -795,14 +795,14 @@ async function loadPackageSystemCollections(packConfig: SystemConfigPackage) {
 	log(`Loading system collections package '${pack}' ...`);
 
 	let objects: mObject[] = await get(pack, SysCollection.objects, {rawData: true});
-	for (let object of objects) {
+	for (const object of objects) {
 		object._ = {pack};
 		object.entityType = EntityType.Object;
 		glob.entities.push(object as Entity);
 	}
 
 	let functions: Function[] = await get(pack, SysCollection.functions, {rawData: true});
-	for (let func of functions) {
+	for (const func of functions) {
 		func._ = {pack};
 		func.entityType = EntityType.Function;
 		glob.entities.push(func as Entity);
@@ -819,31 +819,31 @@ async function loadPackageSystemCollections(packConfig: SystemConfigPackage) {
 	}
 
 	let forms: Form[] = await get(pack, SysCollection.forms, {rawData: true});
-	for (let form of forms) {
+	for (const form of forms) {
 		form._ = {pack};
 		form.entityType = EntityType.Form;
 		glob.entities.push(form as Entity);
 	}
 
 	let texts: Text[] = await get(pack, SysCollection.dictionary, {rawData: true});
-	for (let item of texts) {
+	for (const item of texts) {
 		glob.dictionary[pack + "." + item.name] = item.text;
 	}
 
 	let menus: Menu[] = await get(pack, SysCollection.menus, {rawData: true});
-	for (let menu of menus) {
+	for (const menu of menus) {
 		menu._ = {pack};
 		glob.menus.push(menu);
 	}
 
 	let roles: Role[] = await get(pack, SysCollection.roles, {rawData: true});
-	for (let role of roles) {
+	for (const role of roles) {
 		role._ = {pack};
 		glob.roles.push(role);
 	}
 
 	let drives: Drive[] = await get(pack, SysCollection.drives, {rawData: true});
-	for (let drive of drives) {
+	for (const drive of drives) {
 		drive._ = {pack};
 		glob.drives.push(drive);
 	}
@@ -856,7 +856,7 @@ async function loadSystemCollections() {
 	glob.roles = [];
 	glob.drives = [];
 
-	for (let packConfig of getEnabledPackages()) {
+	for (const packConfig of getEnabledPackages()) {
 		try {
 			await loadPackageSystemCollections(packConfig);
 		} catch (err) {
@@ -923,14 +923,14 @@ function validateApp(pack: string, app: App): boolean {
 
 export function initializeRoles() {
 	let g = new graphlib.Graph();
-	for (let role of glob.roles) {
+	for (const role of glob.roles) {
 		g.setNode(role._id.toString());
-		for (let subRole of role.roles || []) {
+		for (const subRole of role.roles || []) {
 			g.setEdge(role._id.toString(), subRole.toString());
 		}
 	}
 
-	for (let role of glob.roles) {
+	for (const role of glob.roles) {
 		let result = graphlib.alg.postorder(g, role._id.toString());
 		role.roles = result.map(item => new ObjectId(item));
 	}
@@ -947,9 +947,9 @@ export function checkAppMenu(app: App) {
 function initializePackages() {
 	log(`initializePackages: ${glob.sysConfig.packages.map(p => p.name).join(' , ')}`);
 	glob.apps = [];
-	for (let pack of getEnabledPackages()) {
+	for (const pack of getEnabledPackages()) {
 		let config = glob.packageConfigs[pack.name];
-		for (let app of (config.apps || [])) {
+		for (const app of (config.apps || [])) {
 			app._ = {pack: pack.name};
 			app.dependencies = app.dependencies || [];
 			app.dependencies.push(Constants.sysPackage);
@@ -1098,9 +1098,9 @@ export async function initializeEnums() {
 	glob.enums = [];
 	glob.enumTexts = {};
 
-	for (let pack of getEnabledPackages()) {
+	for (const pack of getEnabledPackages()) {
 		let enums: Enum[] = await get(pack.name, SysCollection.enums, {rawData: true});
-		for (let theEnum of enums) {
+		for (const theEnum of enums) {
 			theEnum._ = {pack: pack.name};
 			glob.enums.push(theEnum);
 
@@ -1123,19 +1123,19 @@ export function allFunctions(cn: Context): Function[] {
 async function initializeEntities() {
 	log(`Initializing '${allObjects(null).length}' Objects ...`);
 	let allObjs = allObjects(null);
-	for (let obj of allObjs) {
+	for (const obj of allObjs) {
 		obj._.inited = false;
 	}
 
-	for (let obj of allObjs) {
+	for (const obj of allObjs) {
 		initObject(obj);
 	}
 
-	for (let pack of getEnabledPackages()) {
+	for (const pack of getEnabledPackages()) {
 		let config = glob.packageConfigs[pack.name];
 		let obj = findObject(pack.name, SysCollection.packageConfig);
 		await makeObjectReady(pack.name, obj.properties, config);
-		for (let app of config.apps) {
+		for (const app of config.apps) {
 			app._.loginForm = Constants.defaultLoginUri;
 			if (app.loginForm) {
 				let entity = findEntity(app.loginForm);
@@ -1145,7 +1145,7 @@ async function initializeEntities() {
 	}
 
 	log(`Initializing '${allFunctions(null).length}' functions ...`);
-	for (let func of allFunctions(null)) {
+	for (const func of allFunctions(null)) {
 		try {
 			func._.access = {};
 			func._.access[func._.pack] = func.access;
@@ -1177,7 +1177,7 @@ function checkForSystemProperty(prop: Property) {
 
 export function initProperties(properties: Property[], entity: Entity, parentTitle?) {
 	if (!properties) return;
-	for (let prop of properties) {
+	for (const prop of properties) {
 		prop._ = {};
 		checkForSystemProperty(prop);
 		prop.group = prop.group || parentTitle;
@@ -1210,7 +1210,7 @@ export function initObject(obj: mObject) {
 			_.defaultsDeep(obj, referenceObj);
 			compareParentProperties(obj.properties, referenceObj.properties, obj);
 		} else if (obj.properties) {
-			for (let prop of obj.properties) {
+			for (const prop of obj.properties) {
 				checkPropertyReference(prop, obj);
 			}
 		}
@@ -1235,7 +1235,7 @@ function checkPropertyReference(property: Property, entity: Entity) {
 			compareParentProperties(property.properties, propertyParentObject.properties, entity);
 		}
 	} else if (property.properties)
-		for (let prop of property.properties) {
+		for (const prop of property.properties) {
 			checkPropertyReference(prop, entity);
 		}
 }
@@ -1247,7 +1247,7 @@ function compareParentProperties(properties: Property[], parentProperties: Prope
 	let parentNames = parentProperties.map(p => p.name);
 	properties.filter(p => parentNames.indexOf(p.name) == -1).forEach(newProperty => checkPropertyReference(newProperty, entity));
 
-	for (let parentProperty of parentProperties) {
+	for (const parentProperty of parentProperties) {
 		let property: Property = properties.find(p => p.name === parentProperty.name);
 		if (!property) {
 			//properties.push(_.cloneDeep(parentProperty));  // e.x. Objects > View Elem > Properties > Panel > Sub Properties > StackPanel
@@ -1332,7 +1332,7 @@ export function getEnumItems(cn: Context, enumName: string): Pair[] {
 export function getEnumByName(thePackage: string, dependencies: string[], enumType: string) {
 	let theEnum = glob.enumTexts[thePackage + "." + enumType];
 
-	for (let i = 0; !theEnum && i < dependencies.length; i++) {
+	for (const i = 0; !theEnum && i < dependencies.length; i++) {
 		theEnum = glob.enumTexts[dependencies[i] + "." + enumType];
 	}
 
@@ -1415,7 +1415,7 @@ export function applyFileQuota(dir, quota) {
 
 export function toQueryString(obj: any) {
 	let str = '';
-	for (let key in obj) {
+	for (const key in obj) {
 		str += '&' + key + '=' + obj[key];
 	}
 	return str.slice(1);
@@ -1502,7 +1502,7 @@ export async function getTypes(cn: Context) {
 	types = _.orderBy(types, ['title']);
 
 	let ptypes: any[] = [];
-	for (let type in PType) {
+	for (const type in PType) {
 		ptypes.push({_id: new ObjectId(PType[type]), title: getText(cn, type, true)});
 	}
 
@@ -1553,7 +1553,7 @@ export function stringify(value): string {
 					return {_$: value._0};
 				}
 
-				for (let attr in value) {
+				for (const attr in value) {
 					let val = value[attr];
 					if (val) {
 						if (val.constructor == ObjectId)
@@ -1574,7 +1574,7 @@ export function stringify(value): string {
 		if (seen.has(obj)) return;
 		seen.add(obj);
 
-		for (let key in obj) {
+		for (const key in obj) {
 			let val = obj[key];
 			if (!val) continue;
 			if (typeof val === "object" && val.constructor != ObjectId) {
@@ -1600,7 +1600,7 @@ export function parse(str: string | any): any {
 			delete obj._0;
 		}
 
-		for (let key in obj) {
+		for (const key in obj) {
 			if (typeof obj[key] === "object")
 				findKeys(obj[key]);
 		}
@@ -1611,7 +1611,7 @@ export function parse(str: string | any): any {
 		if (seen.has(obj)) return;
 		seen.add(obj);
 
-		for (let key in obj) {
+		for (const key in obj) {
 			let val = obj[key];
 			if (!val) continue;
 			if (typeof val === "object") {
@@ -1667,7 +1667,7 @@ export async function getPropertyReferenceValues(cn: Context, prop: Property, in
 		let typeFunc = entity as Function;
 		let args = [];
 		if (typeFunc.properties)
-			for (let param of typeFunc.properties) {
+			for (const param of typeFunc.properties) {
 				switch (param.name) {
 					case "meta":
 						args.push(prop);
@@ -1699,7 +1699,7 @@ export function envMode(): EnvMode {
 }
 
 function mockCheckMatchInput(cn: Context, func: Function, args: any[], sample: FunctionTestSample): boolean {
-	for (let key in sample.input) {
+	for (const key in sample.input) {
 		if (!_.isEqual(sample.input[key], cn.req[key]))
 			return false;
 	}
@@ -1713,7 +1713,7 @@ export async function mock(cn: Context, func: Function, args: any[]) {
 		return {code: StatusCode.Ok, message: "No sample data!"};
 
 	let withInputs = func.test.samples.filter(sample => sample.input);
-	for (let sample of withInputs) {
+	for (const sample of withInputs) {
 		if (mockCheckMatchInput(cn, func, args, sample)) {
 			if (sample.code)
 				return {code: sample.code, message: sample.message, result: sample.result};
@@ -1754,7 +1754,7 @@ async function invokeFuncMakeArgsReady(cn: Context, func: Function, action, args
 	if (fileParams.length) {
 		let uploadedFiles = await getUploadedFiles(cn, true);
 
-		for (let param of fileParams) {
+		for (const param of fileParams) {
 			if (param.isList)
 				throwError(StatusCode.NotImplemented, `no support for multiple files params!`);
 
@@ -1769,7 +1769,7 @@ async function invokeFuncMakeArgsReady(cn: Context, func: Function, action, args
 		}
 	}
 
-	for (let prop of func.properties) {
+	for (const prop of func.properties) {
 		let val = argData[prop.name];
 		if (val == null && prop.required)
 			throwError(StatusCode.BadRequest, `parameter '${prop.name}' is mandatory!`);
@@ -1801,7 +1801,7 @@ export async function invoke(cn: Context, func: Function, args: any[]) {
 			action = require(getAbsolutePath(`./web/src/main`))[func.name];
 		if (!action) {
 			let app = glob.apps.find(app => app._.pack == cn.pack);
-			for (let pack of app.dependencies) {
+			for (const pack of app.dependencies) {
 				action = require(getAbsolutePath('./' + pack, `src/main`))[func.name];
 				if (action)
 					break;
@@ -1822,7 +1822,7 @@ export async function invoke(cn: Context, func: Function, args: any[]) {
 export async function getUploadedFiles(cn: Context, readBuffer: boolean): Promise<UploadedFile[]> {
 	let files: UploadedFile[] = [];
 	assert(cn["httpReq"].files, "files is not ready in the request");
-	for (let file of cn["httpReq"].files) {
+	for (const file of cn["httpReq"].files) {
 		let buffer;
 		if (readBuffer) {
 			buffer = await fs.readFile(file.path);
@@ -1841,7 +1841,7 @@ export async function runFunction(cn: Context, functionId: ObjectId, input: any)
 	input = input || {};
 	let args = [];
 	if (func.properties)
-		for (let para of func.properties) {
+		for (const para of func.properties) {
 			args.push(input[para.name]);
 		}
 
