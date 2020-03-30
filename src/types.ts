@@ -1059,7 +1059,6 @@ export class EntityMeta {
     marked: boolean;
     state: ItemState;
     dec: FunctionDec | ObjectDec;
-    msg: string;
 }
 
 export class ObjectDec {

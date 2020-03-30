@@ -474,7 +474,8 @@ export function getAbsolutePath(...paths: string[]): string {
     if (!paths || paths.length == 0)
         return glob.rootDir;
 
-    return /^\./.test(paths[0]) ? path.join(glob.rootDir, ...paths) : path.join(...paths);
+    let result = /^\./.test(paths[0]) ? path.join(glob.rootDir, ...paths) : path.join(...paths);
+    return result;
 }
 
 export async function createDir(drive: Drive, dir: string, recursive: boolean = true) {
@@ -1785,14 +1786,15 @@ export async function invoke(cn: Context, func: Function, args: any[]) {
         return await mock(cn, func, args);
     }
 
-    let action = require(getAbsolutePath('./' + func._.pack, `src/main`))[func.name];
+    let pathPath = getAbsolutePath('./' + func._.pack, `src/main`);
+    let action = require(pathPath)[func.name];
     if (!action) {
         if (func._.pack == Constants.sysPackage)
             action = require(getAbsolutePath(`./web/src/main`))[func.name];
         if (!action) {
             let app = glob.apps.find(app => app._.pack == cn.pack);
             for (const pack of app.dependencies) {
-                action = require(getAbsolutePath('./' + pack, `src/main`))[func.name];
+                action = require(pathPath)[func.name];
                 if (action)
                     break;
             }
