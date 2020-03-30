@@ -884,8 +884,7 @@ export enum EnvMode {
 }
 
 export enum RequestMode {
-    normal = 0,
-    partial = 1,
+    form = 1,
     download = 2,
     api = 3
 }
@@ -914,7 +913,7 @@ export class AppStateConfig {
         this.navmenu = [];
     }
 
-    host: string;
+    host?: string;
     version: string;
     appTitle: string;
     brandingLogo: string;

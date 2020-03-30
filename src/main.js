@@ -212,7 +212,7 @@ async function portionsToMongoPath(pack, rootId, portions, endIndex) {
     if (!value)
         throw types_1.StatusCode.ServerError;
     let path = "";
-    for (const i = 2; i < endIndex; i++) {
+    for (let i = 2; i < endIndex; i++) {
         let part = portions[i].value;
         if (portions[i].type == types_1.RefPortionType.property) {
             path += "." + part;
@@ -255,7 +255,7 @@ function extractRefPortions(cn, ref, _default) {
             if (/^v\d/.test(portions[0].value))
                 cn["apiVersion"] = portions.shift().value;
         }
-        for (const i = 1; i < portions.length; i++) {
+        for (let i = 1; i < portions.length; i++) {
             portions[i].pre = portions[i - 1];
         }
         let entity = exports.glob.entities.find(entity => entity._id.toString() === portions[0].value);
@@ -272,7 +272,7 @@ function extractRefPortions(cn, ref, _default) {
         if (entity.entityType !== types_1.EntityType.Object || portions.length < 2)
             return portions;
         let parent = entity;
-        for (const i = 1; i < portions.length; i++) {
+        for (let i = 1; i < portions.length; i++) {
             let pr = portions[i];
             if (parent == null) {
                 warn(`Invalid path '${ref}'`);
@@ -1166,7 +1166,7 @@ function getEnumItems(cn, enumName) {
 exports.getEnumItems = getEnumItems;
 function getEnumByName(thePackage, dependencies, enumType) {
     let theEnum = exports.glob.enumTexts[thePackage + "." + enumType];
-    for (const i = 0; !theEnum && i < dependencies.length; i++) {
+    for (let i = 0; !theEnum && i < dependencies.length; i++) {
         theEnum = exports.glob.enumTexts[dependencies[i] + "." + enumType];
     }
     return theEnum;

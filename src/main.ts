@@ -15,7 +15,6 @@ import {fromCallback} from 'universalify';
 import {
 	App,
 	AuditArgs,
-	AuditType,
 	ClientCommand,
 	Constants,
 	Context,
@@ -26,7 +25,6 @@ import {
 	Entity,
 	EntityType,
 	Enum,
-	EnumItem,
 	EnvMode,
 	ErrorObject,
 	File,
@@ -35,7 +33,7 @@ import {
 	FunctionTestSample,
 	GetOptions,
 	Global,
-	GlobalType, IProperties,
+	GlobalType,
 	Locale,
 	LogType,
 	Menu,
@@ -273,7 +271,7 @@ export async function portionsToMongoPath(pack: string | Context, rootId: Object
 	if (!value) throw StatusCode.ServerError;
 
 	let path = "";
-	for (const i = 2; i < endIndex; i++) {
+	for (let i = 2; i < endIndex; i++) {
 		let part = portions[i].value;
 		if (portions[i].type == RefPortionType.property) {
 			path += "." + part;
@@ -316,7 +314,7 @@ export function extractRefPortions(cn: Context, ref: string, _default?: string):
 				cn["apiVersion"] = portions.shift().value;
 		}
 
-		for (const i = 1; i < portions.length; i++) {
+		for (let i = 1; i < portions.length; i++) {
 			portions[i].pre = portions[i - 1];
 		}
 
@@ -338,7 +336,7 @@ export function extractRefPortions(cn: Context, ref: string, _default?: string):
 
 		let parent: any = entity;
 
-		for (const i = 1; i < portions.length; i++) {
+		for (let i = 1; i < portions.length; i++) {
 			let pr = portions[i];
 			if (parent == null) {
 				warn(`Invalid path '${ref}'`);
@@ -1332,7 +1330,7 @@ export function getEnumItems(cn: Context, enumName: string): Pair[] {
 export function getEnumByName(thePackage: string, dependencies: string[], enumType: string) {
 	let theEnum = glob.enumTexts[thePackage + "." + enumType];
 
-	for (const i = 0; !theEnum && i < dependencies.length; i++) {
+	for (let i = 0; !theEnum && i < dependencies.length; i++) {
 		theEnum = glob.enumTexts[dependencies[i] + "." + enumType];
 	}
 
