@@ -37,7 +37,10 @@ async function reload(cn) {
 exports.reload = reload;
 async function start() {
     try {
-        process.on('uncaughtException', async (err) => await audit(types_1.SysAuditTypes.uncaughtException, { level: types_1.LogType.Fatal, comment: err.message + ". " + err.stack }));
+        process.on('uncaughtException', async (err) => await audit(types_1.SysAuditTypes.uncaughtException, {
+            level: types_1.LogType.Fatal,
+            comment: err.message + ". " + err.stack
+        }));
         process.on('unhandledRejection', async (err) => {
             await audit(types_1.SysAuditTypes.unhandledRejection, {
                 level: types_1.LogType.Fatal,
@@ -1504,16 +1507,6 @@ async function getPropertyReferenceValues(cn, prop, instance) {
     }
 }
 exports.getPropertyReferenceValues = getPropertyReferenceValues;
-function envMode() {
-    switch (process.env.NODE_ENV) {
-        case "production":
-            return types_1.EnvMode.Production;
-        case "development":
-        default:
-            return types_1.EnvMode.Development;
-    }
-}
-exports.envMode = envMode;
 function mockCheckMatchInput(cn, func, args, sample) {
     for (const key in sample.input) {
         if (!_.isEqual(sample.input[key], cn.req[key]))
@@ -1590,7 +1583,7 @@ async function invokeFuncMakeArgsReady(cn, func, action, args) {
     return Object.values(argData);
 }
 async function invoke(cn, func, args) {
-    if (func.test && func.test.mock && envMode() == types_1.EnvMode.Development && cn.url.pathname != "/functionTest") {
+    if (func.test && func.test.mock && process.env.NODE_ENV == types_1.EnvMode.Development && cn.url.pathname != "/functionTest") {
         return await mock(cn, func, args);
     }
     let action = require(getAbsolutePath('./' + func._.pack, `src/main`))[func.name];
@@ -1661,11 +1654,11 @@ function getReference(id) {
 exports.getReference = getReference;
 function clientLog(cn, message, type = types_1.LogType.Debug, ref) {
     logger.log(types_1.LogType[type].toLowerCase(), message);
-    exports.postClientCommandCallback(cn, types_1.ClientCommand.Log, message, type, ref);
+    exports.glob.postClientCommandCallback(cn, types_1.ClientCommand.Log, message, type, ref);
 }
 exports.clientLog = clientLog;
 function clientCommand(cn, command, ...args) {
-    exports.postClientCommandCallback(cn, command, ...args);
+    exports.glob.postClientCommandCallback(cn, command, ...args);
 }
 exports.clientCommand = clientCommand;
 async function removeDir(dir) {
@@ -1685,7 +1678,7 @@ async function clientQuestion(cn, message, optionsEnum) {
         let waitFn = answer => resolve(answer);
         let questionID = new mongodb_1.ObjectId().toString();
         exports.glob.clientQuestionCallbacks[cn["httpReq"].session.id + ":" + questionID] = waitFn;
-        exports.postClientCommandCallback(cn, types_1.ClientCommand.Question, questionID, message, items);
+        exports.glob.postClientCommandCallback(cn, types_1.ClientCommand.Question, questionID, message, items);
     });
 }
 exports.clientQuestion = clientQuestion;
@@ -1700,7 +1693,7 @@ function clientAnswerReceived(sessionId, questionID, answer) {
 }
 exports.clientAnswerReceived = clientAnswerReceived;
 function clientNotify(cn, title, message, url, icon) {
-    exports.postClientCommandCallback(cn, types_1.ClientCommand.Notification, title, message, url, icon);
+    exports.glob.postClientCommandCallback(cn, types_1.ClientCommand.Notification, title, message, url, icon);
 }
 exports.clientNotify = clientNotify;
 async function execShellCommand(cmd, std) {

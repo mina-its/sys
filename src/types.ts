@@ -59,8 +59,9 @@ export class AuditType {
 }
 
 export class Global {
+    postClientCommandCallback: (cn: Context, ...args: any[]) => void;
     sysConfig: SystemConfig;
-    dbs: any[] = []; // mongodb.Db
+    dbs: { [packAndCs: string]: any } = {}; // any not mongodb.Db because of client side reference
     packages: { [id: string]: any } = {};
     packageConfigs: { [pack: string]: PackageConfig; } = {};
     clientQuestionCallbacks: { [sessionId: string]: (answer: number | null) => void; } = {};
@@ -139,11 +140,21 @@ export class Form extends Entity {
     locale: Locale;
     openGraph;
     elems: Elem[] = [];
-    _: {
-        access?: { [pack: string]: Access; };
-        pack: string;
-        toolbar?: boolean;
+    _: IEntity;
+
+    constructor(pack) {
+        super();
+        this._ = {pack};
     }
+}
+
+export class FormDto {
+    title: string;
+    breadcrumb: Pair[];
+    elems: Elem[] = [];
+    toolbar?: boolean;
+    dataset?: { [ref: string]: any; };
+    declarations?: { [ref: string]: ObjectDec | FunctionDec; };
 }
 
 export class ObjectModifyState {
@@ -879,20 +890,22 @@ export enum DefaultPermission {
 }
 
 export enum EnvMode {
-    Development = 1,
-    Production = 2,
+    Development = 'development',
+    Production = 'production',
 }
 
 export enum RequestMode {
-    form = 1,
+    inline = 1,
     download = 2,
     api = 3
 }
 
 export class WebResponse implements IError {
-    data: any = {};
-    meta: any = {};
-    form: Form;
+    data: any;
+    form: FormDto;
+    keywords: string;
+    openGraph;
+    description: string;
     redirect: string;
     message: string;
     code: StatusCode;
@@ -900,6 +913,18 @@ export class WebResponse implements IError {
 }
 
 export class AppStateConfig {
+    host?: string;
+    version: string;
+    appTitle: string;
+    brandingLogo: string;
+    locale: string;
+    appLocales: Pair[];
+    loginRef: string;
+    loginTitle: string;
+    interactive: boolean;
+    menu: MenuItem[];
+    navmenu: MenuItem[];
+
     constructor() {
         this.version = "";
         this.appTitle = "";
@@ -912,18 +937,6 @@ export class AppStateConfig {
         this.menu = [];
         this.navmenu = [];
     }
-
-    host?: string;
-    version: string;
-    appTitle: string;
-    brandingLogo: string;
-    locale: string;
-    appLocales: Pair[];
-    loginRef: string;
-    loginTitle: string;
-    interactive: boolean;
-    menu: MenuItem[];
-    navmenu: MenuItem[];
 }
 
 export enum WebMethod {
@@ -1042,32 +1055,21 @@ export enum ItemState {
     Deleted = 4,
 }
 
-export class ItemMeta {
+export class EntityMeta {
     marked: boolean;
     state: ItemState;
-    dec: FunctionDeclare | ObjectDeclare;
-    latest: any;
-    ref: string;
+    dec: FunctionDec | ObjectDec;
+    msg: string;
 }
 
-//
-// export class FunctionMeta {
-//
-// }
-//
-// export class ObjectMeta {
-//
-// }
-
-export class ObjectDeclare {
+export class ObjectDec {
     title: string;
-    _ref: string;
+    ref: string;
     newItemMode: NewItemMode;
     rowHeaderStyle: GridRowHeaderStyle;
     reorderable: boolean;
     detailsViewType: ObjectDetailsViewType;
     listsViewType: ObjectListsViewType;
-
     pageLinks: any[];
     properties: Property[];
     pages: number;
@@ -1075,10 +1077,9 @@ export class ObjectDeclare {
     links: EntityLink[];
 }
 
-export class FunctionDeclare {
+export class FunctionDec {
     _id: Reference;
     name: string;
-    pack: string;
     title: string;
     interactive: boolean;
     clientSide: boolean;

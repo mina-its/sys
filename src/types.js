@@ -18,7 +18,7 @@ class AuditType {
 exports.AuditType = AuditType;
 class Global {
     constructor() {
-        this.dbs = [];
+        this.dbs = {};
         this.packages = {};
         this.packageConfigs = {};
         this.clientQuestionCallbacks = {};
@@ -35,12 +35,19 @@ class Function extends Entity {
 }
 exports.Function = Function;
 class Form extends Entity {
-    constructor() {
-        super(...arguments);
+    constructor(pack) {
+        super();
         this.elems = [];
+        this._ = { pack };
     }
 }
 exports.Form = Form;
+class FormDto {
+    constructor() {
+        this.elems = [];
+    }
+}
+exports.FormDto = FormDto;
 class ObjectModifyState {
 }
 exports.ObjectModifyState = ObjectModifyState;
@@ -477,20 +484,16 @@ var DefaultPermission;
 })(DefaultPermission = exports.DefaultPermission || (exports.DefaultPermission = {}));
 var EnvMode;
 (function (EnvMode) {
-    EnvMode[EnvMode["Development"] = 1] = "Development";
-    EnvMode[EnvMode["Production"] = 2] = "Production";
+    EnvMode["Development"] = "development";
+    EnvMode["Production"] = "production";
 })(EnvMode = exports.EnvMode || (exports.EnvMode = {}));
 var RequestMode;
 (function (RequestMode) {
-    RequestMode[RequestMode["form"] = 1] = "form";
+    RequestMode[RequestMode["inline"] = 1] = "inline";
     RequestMode[RequestMode["download"] = 2] = "download";
     RequestMode[RequestMode["api"] = 3] = "api";
 })(RequestMode = exports.RequestMode || (exports.RequestMode = {}));
 class WebResponse {
-    constructor() {
-        this.data = {};
-        this.meta = {};
-    }
 }
 exports.WebResponse = WebResponse;
 class AppStateConfig {
@@ -581,15 +584,15 @@ var ItemState;
     ItemState[ItemState["Inserted"] = 2] = "Inserted";
     ItemState[ItemState["Deleted"] = 4] = "Deleted";
 })(ItemState = exports.ItemState || (exports.ItemState = {}));
-class ItemMeta {
+class EntityMeta {
 }
-exports.ItemMeta = ItemMeta;
-class ObjectDeclare {
+exports.EntityMeta = EntityMeta;
+class ObjectDec {
 }
-exports.ObjectDeclare = ObjectDeclare;
-class FunctionDeclare {
+exports.ObjectDec = ObjectDec;
+class FunctionDec {
 }
-exports.FunctionDeclare = FunctionDeclare;
+exports.FunctionDec = FunctionDec;
 var ReqParams;
 (function (ReqParams) {
     ReqParams["query"] = "q";
