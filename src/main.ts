@@ -959,7 +959,10 @@ function initializePackages() {
             if (validateApp(pack.name, app)) {
                 glob.apps.push(app);
                 let host = glob.sysConfig.hosts.find(host => host.app && host.app.equals(app._id));
-                if (host) host._ = {app};
+                if (host) {
+                    host._ = {app};
+                    app._.publicUri = host.publicUri;
+                }
             }
         }
     }

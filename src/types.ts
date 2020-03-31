@@ -62,7 +62,7 @@ export class Global {
     postClientCommandCallback: (cn: Context, ...args: any[]) => void;
     sysConfig: SystemConfig;
     dbs: { [packAndCs: string]: any } = {}; // any not mongodb.Db because of client side reference
-    packages: { [id: string]: any } = {};
+    packages: { [pack: string]: any } = {};
     packageConfigs: { [pack: string]: PackageConfig; } = {};
     clientQuestionCallbacks: { [sessionId: string]: (answer: number | null) => void; } = {};
     rootDir: string;
@@ -436,6 +436,7 @@ export class App {
     _: {
         pack?: string;
         loginForm?: string;
+        publicUri?: string;
     }
 }
 
@@ -449,6 +450,7 @@ export class SystemConfig {
     hosts: {
         _id: ObjectId;
         address: string;
+        publicUri: string;
         app: ObjectId;
         _: {
             app: App

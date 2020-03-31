@@ -823,8 +823,10 @@ function initializePackages() {
             if (validateApp(pack.name, app)) {
                 exports.glob.apps.push(app);
                 let host = exports.glob.sysConfig.hosts.find(host => host.app && host.app.equals(app._id));
-                if (host)
+                if (host) {
                     host._ = { app };
+                    app._.publicUri = host.publicUri;
+                }
             }
         }
     }
