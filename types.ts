@@ -345,6 +345,7 @@ export class Elem {
         props: any;
         data?: Reference;
         _ref: string;
+        _data: any;
     };
     text?: {
         content: string;

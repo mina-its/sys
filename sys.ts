@@ -1060,7 +1060,8 @@ function checkPropertyGtype(prop: Property, entity: Entity) {
 }
 
 export async function dbConnection(cn: Context, connectionString?: string): Promise<mongodb.Db> {
-    if (glob.dbs[cn.pack + ":" + connectionString]) return glob.dbs[cn.pack + ":" + connectionString];
+    let key = cn.pack + ":" + connectionString;
+    if (glob.dbs[key]) return glob.dbs[key];
     connectionString = connectionString || process.env.DB_ADDRESS;
     if (!connectionString)
         throw("Environment variable 'DB_ADDRESS' is needed.");
@@ -1073,7 +1074,7 @@ export async function dbConnection(cn: Context, connectionString?: string): Prom
         });
         if (!dbc)
             return null;
-        return glob.dbs[cn.pack + ":" + connectionString] = dbc.db(cn.pack);
+        return glob.dbs[key] = dbc.db(cn.pack);
     } catch (e) {
         error(e.stack);
         error(`db '${cn.pack}' connection failed [${connectionString}]`);

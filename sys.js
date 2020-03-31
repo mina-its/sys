@@ -909,8 +909,9 @@ function checkPropertyGtype(prop, entity) {
     }
 }
 async function dbConnection(cn, connectionString) {
-    if (exports.glob.dbs[cn.pack + ":" + connectionString])
-        return exports.glob.dbs[cn.pack + ":" + connectionString];
+    let key = cn.pack + ":" + connectionString;
+    if (exports.glob.dbs[key])
+        return exports.glob.dbs[key];
     connectionString = connectionString || process.env.DB_ADDRESS;
     if (!connectionString)
         throw ("Environment variable 'DB_ADDRESS' is needed.");
@@ -922,7 +923,7 @@ async function dbConnection(cn, connectionString) {
         });
         if (!dbc)
             return null;
-        return exports.glob.dbs[cn.pack + ":" + connectionString] = dbc.db(cn.pack);
+        return exports.glob.dbs[key] = dbc.db(cn.pack);
     }
     catch (e) {
         error(e.stack);
