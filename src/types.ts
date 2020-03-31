@@ -897,7 +897,8 @@ export enum EnvMode {
 export enum RequestMode {
     inline = 1,
     download = 2,
-    api = 3
+    api = 3,
+    inlineDev = 4,
 }
 
 export class WebResponse implements IError {

@@ -492,6 +492,7 @@ var RequestMode;
     RequestMode[RequestMode["inline"] = 1] = "inline";
     RequestMode[RequestMode["download"] = 2] = "download";
     RequestMode[RequestMode["api"] = 3] = "api";
+    RequestMode[RequestMode["inlineDev"] = 4] = "inlineDev";
 })(RequestMode = exports.RequestMode || (exports.RequestMode = {}));
 class WebResponse {
 }
