@@ -152,9 +152,9 @@ export class FormDto {
     title: string;
     breadcrumb: Pair[];
     elems: Elem[] = [];
-    toolbar?: boolean;
-    dataset?: { [ref: string]: any; };
-    declarations?: { [ref: string]: ObjectDec | FunctionDec; };
+    toolbar?: boolean = false;
+    dataset?: { [ref: string]: any; } = {};
+    declarations?: { [ref: string]: ObjectDec | FunctionDec; } = {};
 }
 
 export class ObjectModifyState {
