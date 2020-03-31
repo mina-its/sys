@@ -139,7 +139,7 @@ export async function audit(auditType: string, args: AuditArgs) {
     }
 
     if (type && type.disabled) return;
-    await put(args.pack || Constants.sysPackage, SysCollection.audits, args);
+    await put({pack: args.pack || Constants.sysPackage} as Context, SysCollection.audits, args);
 }
 
 export function run(cn, func: string, ...args) {
@@ -151,8 +151,8 @@ export function run(cn, func: string, ...args) {
     }
 }
 
-export async function get(pack: string | Context, objectName: string, options?: GetOptions) {
-    let collection = await getCollection(pack, objectName);
+export async function get(cn: Context, objectName: string, options?: GetOptions) {
+    let collection = await getCollection(cn, objectName);
     options = options || {} as GetOptions;
 
     let result;
@@ -172,18 +172,18 @@ export async function get(pack: string | Context, objectName: string, options?: 
     if (options && options.rawData)
         return result;
 
-    let obj = findObject(pack, objectName);
+    let obj = findObject(cn, objectName);
     if (!obj)
-        throw `object '${pack}.${objectName}' not found!`;
+        throw `object '${cn}.${objectName}' not found!`;
 
     if (!obj.isList && Array.isArray(result))
         result = result[0];
 
-    await makeObjectReady(pack, obj.properties, result);
+    await makeObjectReady(cn, obj.properties, result);
     return result;
 }
 
-export async function makeObjectReady(pack: string | Context, properties: Property[], data: any) {
+export async function makeObjectReady(cn: Context, properties: Property[], data: any) {
     if (!data) return;
 
     data = Array.isArray(data) ? data : [data];
@@ -194,31 +194,31 @@ export async function makeObjectReady(pack: string | Context, properties: Proper
             if (prop._ && prop._.isRef && !prop._.enum && prop.viewMode != PropertyViewMode.Hidden && isObjectId(val)) {
                 let refObj = findEntity(prop.type);
                 if (!refObj)
-                    throwError(StatusCode.UnprocessableEntity, `referred object for property '${pack}.${prop.name}' not found!`);
+                    throwError(StatusCode.UnprocessableEntity, `referred object for property '${cn.pack}.${prop.name}' not found!`);
 
                 if (refObj.entityType == EntityType.Object)
-                    item[prop.name] = await get(pack, refObj.name, {itemId: val, rawData: true});
+                    item[prop.name] = await get(cn, refObj.name, {itemId: val, rawData: true});
                 else if (refObj.entityType == EntityType.Function) {
                     // todo: makeObjectReady for functions
                 }
             }
             if (prop.properties)
-                await makeObjectReady(pack, prop.properties, val);
+                await makeObjectReady(cn, prop.properties, val);
         }
     }
 }
 
-export async function getOne(pack: string | Context, objectName: string, rawData: boolean = false) {
-    return get(pack, objectName, {count: 1, rawData});
+export async function getOne(cn: Context, objectName: string, rawData: boolean = false) {
+    return get(cn, objectName, {count: 1, rawData});
 }
 
-async function getCollection(pack: string | Context, objectName: string) {
-    let db = await connect(pack);
+async function getCollection(cn: Context, objectName: string) {
+    let db = await dbConnection(cn);
     return db.collection(objectName);
 }
 
-export async function put(pack: string | Context, objectName: string, item: any, options?: PutOptions) {
-    let collection = await getCollection(pack, objectName);
+export async function put(cn: Context, objectName: string, item: any, options?: PutOptions) {
+    let collection = await getCollection(cn, objectName);
     item = item || {};
     if (!options || !options.portions || options.portions.length == 1) {
         if (item._id) {
@@ -251,7 +251,7 @@ export async function put(pack: string | Context, objectName: string, item: any,
             let command = {$addToSet: {}};
             item._id = item._id || new ObjectId();
             let rootId = portions[1].itemId;
-            let pth: string = await portionsToMongoPath(pack, rootId, portions, portions.length);
+            let pth: string = await portionsToMongoPath(cn, rootId, portions, portions.length);
             command.$addToSet[pth] = item;
             await collection.updateOne({_id: rootId}, command);
             return {
@@ -262,11 +262,11 @@ export async function put(pack: string | Context, objectName: string, item: any,
     }
 }
 
-export async function portionsToMongoPath(pack: string | Context, rootId: ObjectId, portions: RefPortion[], endIndex: number) {
+export async function portionsToMongoPath(cn: Context, rootId: ObjectId, portions: RefPortion[], endIndex: number) {
     if (endIndex == 3) // not need to fetch data
         return portions[2].property.name;
 
-    let db = await connect(pack);
+    let db = await dbConnection(cn);
     let collection = db.collection(portions[0].value);
     if (!collection) throw StatusCode.BadRequest;
 
@@ -291,8 +291,8 @@ export async function portionsToMongoPath(pack: string | Context, rootId: Object
     return path.replace(/^\.+|\.+$/, '');
 }
 
-export async function count(pack: string | Context, objectName: string, options: GetOptions) {
-    let collection = await getCollection(pack, objectName);
+export async function count(cn: Context, objectName: string, options: GetOptions) {
+    let collection = await getCollection(cn, objectName);
     options = options || {} as GetOptions;
     return await collection.countDocuments(options);
 }
@@ -364,8 +364,8 @@ export function extractRefPortions(cn: Context, ref: string, _default?: string):
     }
 }
 
-export async function patch(pack: string | Context, objectName: string, patchData: any, options?: PutOptions) {
-    let db = await connect(pack);
+export async function patch(cn: Context, objectName: string, patchData: any, options?: PutOptions) {
+    let db = await dbConnection(cn);
     let collection = db.collection(objectName);
     if (!collection) throw StatusCode.BadRequest;
     if (!options) options = {portions: []};
@@ -377,7 +377,7 @@ export async function patch(pack: string | Context, objectName: string, patchDat
         throw StatusCode.BadRequest;
 
     let theRootId = portions.length < 2 ? patchData._id : portions[1].itemId;
-    let path = await portionsToMongoPath(pack, theRootId, portions, portions.length);
+    let path = await portionsToMongoPath(cn, theRootId, portions, portions.length);
     let command = {$set: {}, $unset: {}};
     if (portions[portions.length - 1].property && portions[portions.length - 1].property._.gtype == GlobalType.file)
         command["$set"][path] = patchData; // e.g. multiple values for files in 'tests' object
@@ -399,8 +399,8 @@ export async function patch(pack: string | Context, objectName: string, patchDat
     } as ObjectModifyState;
 }
 
-export async function del(pack: string | Context, objectName: string, options?: DelOptions) {
-    let db = await connect(pack);
+export async function del(cn: Context, objectName: string, options?: DelOptions) {
+    let db = await dbConnection(cn);
     let collection = db.collection(objectName);
     if (!collection) throw StatusCode.BadRequest;
     if (!options) {
@@ -437,7 +437,7 @@ export async function del(pack: string | Context, objectName: string, options?: 
             let rootId = portions[1].itemId;
             let itemId = portions[portions.length - 1].itemId;
 
-            let path = await portionsToMongoPath(pack, rootId, portions, portions.length - 1);
+            let path = await portionsToMongoPath(cn, rootId, portions, portions.length - 1);
             command.$pull[path] = {_id: itemId};
             await collection.updateOne({_id: rootId}, command);
             return {
@@ -496,7 +496,7 @@ export async function getFile(drive: Drive, filePath: string): Promise<Buffer> {
             return await fs.readFile(_path);
 
         case SourceType.Db:
-            let db = await connect(drive._.pack);
+            let db = await dbConnection({pack: drive._.pack} as Context);
             let bucket = new mongodb.GridFSBucket(db);
             let stream = bucket.openDownloadStreamByName(filePath);
             let data: Buffer;
@@ -538,7 +538,7 @@ export async function putFile(drive: Drive, relativePath: string, file: Buffer) 
             break;
 
         case SourceType.Db:
-            let db = await connect(drive._.pack);
+            let db = await dbConnection({pack: drive._.pack} as Context);
             ;
             let bucket = new mongodb.GridFSBucket(db);
             let stream = bucket.openUploadStream(relativePath);
@@ -738,8 +738,8 @@ export function isRtl(lang: Locale): boolean {
 async function loadGeneralCollections() {
     log('loadGeneralCollections ...');
 
-    glob.timeZones = await get(Constants.sysPackage, Constants.timeZonesCollection);
-    let result: mObject = await get(Constants.sysPackage, SysCollection.objects, {
+    glob.timeZones = await get({pack: Constants.sysPackage} as Context, Constants.timeZonesCollection);
+    let result: mObject = await get({pack: Constants.sysPackage} as Context, SysCollection.objects, {
         query: {name: Constants.systemPropertiesObjectName},
         count: 1, rawData: true
     });
@@ -752,7 +752,7 @@ async function loadGeneralCollections() {
 
 async function loadAuditTypes() {
     log('loadAuditTypes ...');
-    glob.auditTypes = await get(Constants.sysPackage, SysCollection.auditTypes, {rawData: true});
+    glob.auditTypes = await get({pack: Constants.sysPackage} as Context, SysCollection.auditTypes, {rawData: true});
 }
 
 function getEnabledPackages(): SystemConfigPackage[] {
@@ -760,11 +760,11 @@ function getEnabledPackages(): SystemConfigPackage[] {
 }
 
 async function loadSysConfig() {
-    let collection = await getCollection(Constants.sysPackage, SysCollection.systemConfig);
+    let collection = await getCollection({pack: Constants.sysPackage} as Context, SysCollection.systemConfig);
     glob.sysConfig = await collection.findOne({});
     for (const pack of getEnabledPackages()) {
         try {
-            glob.packages[pack.name] = require(getAbsolutePath('./' + pack.name, `src/main`));
+            glob.packages[pack.name] = require(getAbsolutePath('./' + pack.name));
             if (glob.packages[pack.name] == null)
                 error(`Error loading package ${pack.name}!`);
         } catch (ex) {
@@ -795,22 +795,23 @@ async function loadPackageSystemCollections(packConfig: SystemConfigPackage) {
     let pack = packConfig.name;
 
     log(`Loading system collections package '${pack}' ...`);
+    let cn = {pack} as Context;
 
-    let objects: mObject[] = await get(pack, SysCollection.objects, {rawData: true});
+    let objects: mObject[] = await get(cn, SysCollection.objects, {rawData: true});
     for (const object of objects) {
         object._ = {pack};
         object.entityType = EntityType.Object;
         glob.entities.push(object as Entity);
     }
 
-    let functions: Function[] = await get(pack, SysCollection.functions, {rawData: true});
+    let functions: Function[] = await get(cn, SysCollection.functions, {rawData: true});
     for (const func of functions) {
         func._ = {pack};
         func.entityType = EntityType.Function;
         glob.entities.push(func as Entity);
     }
 
-    let config: PackageConfig = await getOne(pack, SysCollection.packageConfig, true);
+    let config: PackageConfig = await getOne(cn, SysCollection.packageConfig, true);
     if (!config) {
         packConfig.enabled = false;
         error(`Config for package '${pack}' not found!`);
@@ -820,31 +821,31 @@ async function loadPackageSystemCollections(packConfig: SystemConfigPackage) {
         log(`package '${pack}' loaded. version: ${glob.packageConfigs[pack]._.version}`);
     }
 
-    let forms: Form[] = await get(pack, SysCollection.forms, {rawData: true});
+    let forms: Form[] = await get(cn, SysCollection.forms, {rawData: true});
     for (const form of forms) {
         form._ = {pack};
         form.entityType = EntityType.Form;
         glob.entities.push(form as Entity);
     }
 
-    let texts: Text[] = await get(pack, SysCollection.dictionary, {rawData: true});
+    let texts: Text[] = await get(cn, SysCollection.dictionary, {rawData: true});
     for (const item of texts) {
         glob.dictionary[pack + "." + item.name] = item.text;
     }
 
-    let menus: Menu[] = await get(pack, SysCollection.menus, {rawData: true});
+    let menus: Menu[] = await get(cn, SysCollection.menus, {rawData: true});
     for (const menu of menus) {
         menu._ = {pack};
         glob.menus.push(menu);
     }
 
-    let roles: Role[] = await get(pack, SysCollection.roles, {rawData: true});
+    let roles: Role[] = await get(cn, SysCollection.roles, {rawData: true});
     for (const role of roles) {
         role._ = {pack};
         glob.roles.push(role);
     }
 
-    let drives: Drive[] = await get(pack, SysCollection.drives, {rawData: true});
+    let drives: Drive[] = await get(cn, SysCollection.drives, {rawData: true});
     for (const drive of drives) {
         drive._ = {pack};
         glob.drives.push(drive);
@@ -1058,10 +1059,8 @@ function checkPropertyGtype(prop: Property, entity: Entity) {
     }
 }
 
-export async function connect(pack: string | Context, connectionString?: string): Promise<mongodb.Db> {
-    if (typeof pack != "string")
-        pack = pack.pack;
-    if (glob.dbs[pack + ":" + connectionString]) return glob.dbs[pack + ":" + connectionString];
+export async function dbConnection(cn: Context, connectionString?: string): Promise<mongodb.Db> {
+    if (glob.dbs[cn.pack + ":" + connectionString]) return glob.dbs[cn.pack + ":" + connectionString];
     connectionString = connectionString || process.env.DB_ADDRESS;
     if (!connectionString)
         throw("Environment variable 'DB_ADDRESS' is needed.");
@@ -1074,11 +1073,11 @@ export async function connect(pack: string | Context, connectionString?: string)
         });
         if (!dbc)
             return null;
-        return glob.dbs[pack + ":" + connectionString] = dbc.db(pack);
+        return glob.dbs[cn.pack + ":" + connectionString] = dbc.db(cn.pack);
     } catch (e) {
         error(e.stack);
-        error(`db '${pack}' connection failed [${connectionString}]`);
-        throw `connecting to db '${pack}' failed`;
+        error(`db '${cn.pack}' connection failed [${connectionString}]`);
+        throw `connecting to db '${cn.pack}' failed`;
     }
 }
 
@@ -1104,7 +1103,7 @@ export async function initializeEnums() {
     glob.enumTexts = {};
 
     for (const pack of getEnabledPackages()) {
-        let enums: Enum[] = await get(pack.name, SysCollection.enums, {rawData: true});
+        let enums: Enum[] = await get({pack: pack.name} as Context, SysCollection.enums, {rawData: true});
         for (const theEnum of enums) {
             theEnum._ = {pack: pack.name};
             glob.enums.push(theEnum);
@@ -1139,7 +1138,7 @@ async function initializeEntities() {
     for (const pack of getEnabledPackages()) {
         let config = glob.packageConfigs[pack.name];
         let obj = findObject(pack.name, SysCollection.packageConfig);
-        await makeObjectReady(pack.name, obj.properties, config);
+        await makeObjectReady({pack: pack.name} as Context, obj.properties, config);
         for (const app of config.apps) {
             app._.loginForm = Constants.defaultLoginUri;
             if (app.loginForm) {
@@ -1661,7 +1660,7 @@ export async function getPropertyReferenceValues(cn: Context, prop: Property, in
     }
 
     if (entity.entityType == EntityType.Object) {
-        let result = await get(cn.pack, entity.name, {count: 10, rawData: true});
+        let result = await get({pack: cn.pack} as Context, entity.name, {count: 10, rawData: true});
         if (result) {
             return result.map(item => {
                 return {ref: item._id, title: getText(cn, item.title)} as Pair;
@@ -1774,7 +1773,7 @@ async function invokeFuncMakeArgsReady(cn: Context, func: Function, action, args
                 throwError(StatusCode.UnprocessableEntity, `referred object for property '${cn.pack}.${prop.name}' not found!`);
 
             if (refObj.entityType == EntityType.Object)
-                argData[prop.name] = await get(cn.pack, refObj.name, {itemId: val, rawData: true});
+                argData[prop.name] = await get({pack: cn.pack} as Context, refObj.name, {itemId: val, rawData: true});
             else if (refObj.entityType == EntityType.Function) {
                 // todo: makeObjectReady for functions
             }
@@ -1789,11 +1788,11 @@ export async function invoke(cn: Context, func: Function, args: any[]) {
         return await mock(cn, func, args);
     }
 
-    let pathPath = getAbsolutePath('./' + func._.pack, `src/main`);
+    let pathPath = getAbsolutePath('./' + func._.pack);
     let action = require(pathPath)[func.name];
     if (!action) {
         if (func._.pack == Constants.sysPackage)
-            action = require(getAbsolutePath(`./web/src/main`))[func.name];
+            action = require(getAbsolutePath(`./web`))[func.name];
         if (!action) {
             let app = glob.apps.find(app => app._.pack == cn.pack);
             for (const pack of app.dependencies) {

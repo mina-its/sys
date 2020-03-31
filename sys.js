@@ -83,7 +83,7 @@ async function audit(auditType, args) {
     }
     if (type && type.disabled)
         return;
-    await put(args.pack || types_1.Constants.sysPackage, types_1.SysCollection.audits, args);
+    await put({ pack: args.pack || types_1.Constants.sysPackage }, types_1.SysCollection.audits, args);
 }
 exports.audit = audit;
 function run(cn, func, ...args) {
@@ -96,8 +96,8 @@ function run(cn, func, ...args) {
     }
 }
 exports.run = run;
-async function get(pack, objectName, options) {
-    let collection = await getCollection(pack, objectName);
+async function get(cn, objectName, options) {
+    let collection = await getCollection(cn, objectName);
     options = options || {};
     let result;
     if (options.itemId)
@@ -118,16 +118,16 @@ async function get(pack, objectName, options) {
     }
     if (options && options.rawData)
         return result;
-    let obj = findObject(pack, objectName);
+    let obj = findObject(cn, objectName);
     if (!obj)
-        throw `object '${pack}.${objectName}' not found!`;
+        throw `object '${cn}.${objectName}' not found!`;
     if (!obj.isList && Array.isArray(result))
         result = result[0];
-    await makeObjectReady(pack, obj.properties, result);
+    await makeObjectReady(cn, obj.properties, result);
     return result;
 }
 exports.get = get;
-async function makeObjectReady(pack, properties, data) {
+async function makeObjectReady(cn, properties, data) {
     if (!data)
         return;
     data = Array.isArray(data) ? data : [data];
@@ -139,28 +139,28 @@ async function makeObjectReady(pack, properties, data) {
             if (prop._ && prop._.isRef && !prop._.enum && prop.viewMode != types_1.PropertyViewMode.Hidden && isObjectId(val)) {
                 let refObj = findEntity(prop.type);
                 if (!refObj)
-                    throwError(types_1.StatusCode.UnprocessableEntity, `referred object for property '${pack}.${prop.name}' not found!`);
+                    throwError(types_1.StatusCode.UnprocessableEntity, `referred object for property '${cn.pack}.${prop.name}' not found!`);
                 if (refObj.entityType == types_1.EntityType.Object)
-                    item[prop.name] = await get(pack, refObj.name, { itemId: val, rawData: true });
+                    item[prop.name] = await get(cn, refObj.name, { itemId: val, rawData: true });
                 else if (refObj.entityType == types_1.EntityType.Function) {
                 }
             }
             if (prop.properties)
-                await makeObjectReady(pack, prop.properties, val);
+                await makeObjectReady(cn, prop.properties, val);
         }
     }
 }
 exports.makeObjectReady = makeObjectReady;
-async function getOne(pack, objectName, rawData = false) {
-    return get(pack, objectName, { count: 1, rawData });
+async function getOne(cn, objectName, rawData = false) {
+    return get(cn, objectName, { count: 1, rawData });
 }
 exports.getOne = getOne;
-async function getCollection(pack, objectName) {
-    let db = await connect(pack);
+async function getCollection(cn, objectName) {
+    let db = await dbConnection(cn);
     return db.collection(objectName);
 }
-async function put(pack, objectName, item, options) {
-    let collection = await getCollection(pack, objectName);
+async function put(cn, objectName, item, options) {
+    let collection = await getCollection(cn, objectName);
     item = item || {};
     if (!options || !options.portions || options.portions.length == 1) {
         if (item._id) {
@@ -193,7 +193,7 @@ async function put(pack, objectName, item, options) {
             let command = { $addToSet: {} };
             item._id = item._id || new mongodb_1.ObjectId();
             let rootId = portions[1].itemId;
-            let pth = await portionsToMongoPath(pack, rootId, portions, portions.length);
+            let pth = await portionsToMongoPath(cn, rootId, portions, portions.length);
             command.$addToSet[pth] = item;
             await collection.updateOne({ _id: rootId }, command);
             return {
@@ -204,10 +204,10 @@ async function put(pack, objectName, item, options) {
     }
 }
 exports.put = put;
-async function portionsToMongoPath(pack, rootId, portions, endIndex) {
+async function portionsToMongoPath(cn, rootId, portions, endIndex) {
     if (endIndex == 3)
         return portions[2].property.name;
-    let db = await connect(pack);
+    let db = await dbConnection(cn);
     let collection = db.collection(portions[0].value);
     if (!collection)
         throw types_1.StatusCode.BadRequest;
@@ -234,8 +234,8 @@ async function portionsToMongoPath(pack, rootId, portions, endIndex) {
     return path.replace(/^\.+|\.+$/, '');
 }
 exports.portionsToMongoPath = portionsToMongoPath;
-async function count(pack, objectName, options) {
-    let collection = await getCollection(pack, objectName);
+async function count(cn, objectName, options) {
+    let collection = await getCollection(cn, objectName);
     options = options || {};
     return await collection.countDocuments(options);
 }
@@ -303,8 +303,8 @@ function extractRefPortions(cn, ref, _default) {
     }
 }
 exports.extractRefPortions = extractRefPortions;
-async function patch(pack, objectName, patchData, options) {
-    let db = await connect(pack);
+async function patch(cn, objectName, patchData, options) {
+    let db = await dbConnection(cn);
     let collection = db.collection(objectName);
     if (!collection)
         throw types_1.StatusCode.BadRequest;
@@ -316,7 +316,7 @@ async function patch(pack, objectName, patchData, options) {
     if (portions.length == 1)
         throw types_1.StatusCode.BadRequest;
     let theRootId = portions.length < 2 ? patchData._id : portions[1].itemId;
-    let path = await portionsToMongoPath(pack, theRootId, portions, portions.length);
+    let path = await portionsToMongoPath(cn, theRootId, portions, portions.length);
     let command = { $set: {}, $unset: {} };
     if (portions[portions.length - 1].property && portions[portions.length - 1].property._.gtype == types_1.GlobalType.file)
         command["$set"][path] = patchData;
@@ -339,8 +339,8 @@ async function patch(pack, objectName, patchData, options) {
     };
 }
 exports.patch = patch;
-async function del(pack, objectName, options) {
-    let db = await connect(pack);
+async function del(cn, objectName, options) {
+    let db = await dbConnection(cn);
     let collection = db.collection(objectName);
     if (!collection)
         throw types_1.StatusCode.BadRequest;
@@ -373,7 +373,7 @@ async function del(pack, objectName, options) {
             let command = { $pull: {} };
             let rootId = portions[1].itemId;
             let itemId = portions[portions.length - 1].itemId;
-            let path = await portionsToMongoPath(pack, rootId, portions, portions.length - 1);
+            let path = await portionsToMongoPath(cn, rootId, portions, portions.length - 1);
             command.$pull[path] = { _id: itemId };
             await collection.updateOne({ _id: rootId }, command);
             return {
@@ -430,7 +430,7 @@ async function getFile(drive, filePath) {
             let _path = path.join(getAbsolutePath(drive.address), filePath);
             return await fs.readFile(_path);
         case types_1.SourceType.Db:
-            let db = await connect(drive._.pack);
+            let db = await dbConnection({ pack: drive._.pack });
             let bucket = new mongodb.GridFSBucket(db);
             let stream = bucket.openDownloadStreamByName(filePath);
             let data;
@@ -468,7 +468,7 @@ async function putFile(drive, relativePath, file) {
             await fs.writeFile(_path, file);
             break;
         case types_1.SourceType.Db:
-            let db = await connect(drive._.pack);
+            let db = await dbConnection({ pack: drive._.pack });
             ;
             let bucket = new mongodb.GridFSBucket(db);
             let stream = bucket.openUploadStream(relativePath);
@@ -628,8 +628,8 @@ function isRtl(lang) {
 exports.isRtl = isRtl;
 async function loadGeneralCollections() {
     log('loadGeneralCollections ...');
-    exports.glob.timeZones = await get(types_1.Constants.sysPackage, types_1.Constants.timeZonesCollection);
-    let result = await get(types_1.Constants.sysPackage, types_1.SysCollection.objects, {
+    exports.glob.timeZones = await get({ pack: types_1.Constants.sysPackage }, types_1.Constants.timeZonesCollection);
+    let result = await get({ pack: types_1.Constants.sysPackage }, types_1.SysCollection.objects, {
         query: { name: types_1.Constants.systemPropertiesObjectName },
         count: 1, rawData: true
     });
@@ -641,17 +641,17 @@ async function loadGeneralCollections() {
 }
 async function loadAuditTypes() {
     log('loadAuditTypes ...');
-    exports.glob.auditTypes = await get(types_1.Constants.sysPackage, types_1.SysCollection.auditTypes, { rawData: true });
+    exports.glob.auditTypes = await get({ pack: types_1.Constants.sysPackage }, types_1.SysCollection.auditTypes, { rawData: true });
 }
 function getEnabledPackages() {
     return exports.glob.sysConfig.packages.filter(pack => pack.enabled);
 }
 async function loadSysConfig() {
-    let collection = await getCollection(types_1.Constants.sysPackage, types_1.SysCollection.systemConfig);
+    let collection = await getCollection({ pack: types_1.Constants.sysPackage }, types_1.SysCollection.systemConfig);
     exports.glob.sysConfig = await collection.findOne({});
     for (const pack of getEnabledPackages()) {
         try {
-            exports.glob.packages[pack.name] = require(getAbsolutePath('./' + pack.name, `src/main`));
+            exports.glob.packages[pack.name] = require(getAbsolutePath('./' + pack.name));
             if (exports.glob.packages[pack.name] == null)
                 error(`Error loading package ${pack.name}!`);
         }
@@ -678,19 +678,20 @@ function applyAmazonConfig() {
 async function loadPackageSystemCollections(packConfig) {
     let pack = packConfig.name;
     log(`Loading system collections package '${pack}' ...`);
-    let objects = await get(pack, types_1.SysCollection.objects, { rawData: true });
+    let cn = { pack };
+    let objects = await get(cn, types_1.SysCollection.objects, { rawData: true });
     for (const object of objects) {
         object._ = { pack };
         object.entityType = types_1.EntityType.Object;
         exports.glob.entities.push(object);
     }
-    let functions = await get(pack, types_1.SysCollection.functions, { rawData: true });
+    let functions = await get(cn, types_1.SysCollection.functions, { rawData: true });
     for (const func of functions) {
         func._ = { pack };
         func.entityType = types_1.EntityType.Function;
         exports.glob.entities.push(func);
     }
-    let config = await getOne(pack, types_1.SysCollection.packageConfig, true);
+    let config = await getOne(cn, types_1.SysCollection.packageConfig, true);
     if (!config) {
         packConfig.enabled = false;
         error(`Config for package '${pack}' not found!`);
@@ -700,27 +701,27 @@ async function loadPackageSystemCollections(packConfig) {
         exports.glob.packageConfigs[pack]._ = require(getAbsolutePath('./' + pack, `package.json`));
         log(`package '${pack}' loaded. version: ${exports.glob.packageConfigs[pack]._.version}`);
     }
-    let forms = await get(pack, types_1.SysCollection.forms, { rawData: true });
+    let forms = await get(cn, types_1.SysCollection.forms, { rawData: true });
     for (const form of forms) {
         form._ = { pack };
         form.entityType = types_1.EntityType.Form;
         exports.glob.entities.push(form);
     }
-    let texts = await get(pack, types_1.SysCollection.dictionary, { rawData: true });
+    let texts = await get(cn, types_1.SysCollection.dictionary, { rawData: true });
     for (const item of texts) {
         exports.glob.dictionary[pack + "." + item.name] = item.text;
     }
-    let menus = await get(pack, types_1.SysCollection.menus, { rawData: true });
+    let menus = await get(cn, types_1.SysCollection.menus, { rawData: true });
     for (const menu of menus) {
         menu._ = { pack };
         exports.glob.menus.push(menu);
     }
-    let roles = await get(pack, types_1.SysCollection.roles, { rawData: true });
+    let roles = await get(cn, types_1.SysCollection.roles, { rawData: true });
     for (const role of roles) {
         role._ = { pack };
         exports.glob.roles.push(role);
     }
-    let drives = await get(pack, types_1.SysCollection.drives, { rawData: true });
+    let drives = await get(cn, types_1.SysCollection.drives, { rawData: true });
     for (const drive of drives) {
         drive._ = { pack };
         exports.glob.drives.push(drive);
@@ -907,11 +908,9 @@ function checkPropertyGtype(prop, entity) {
         }
     }
 }
-async function connect(pack, connectionString) {
-    if (typeof pack != "string")
-        pack = pack.pack;
-    if (exports.glob.dbs[pack + ":" + connectionString])
-        return exports.glob.dbs[pack + ":" + connectionString];
+async function dbConnection(cn, connectionString) {
+    if (exports.glob.dbs[cn.pack + ":" + connectionString])
+        return exports.glob.dbs[cn.pack + ":" + connectionString];
     connectionString = connectionString || process.env.DB_ADDRESS;
     if (!connectionString)
         throw ("Environment variable 'DB_ADDRESS' is needed.");
@@ -923,15 +922,15 @@ async function connect(pack, connectionString) {
         });
         if (!dbc)
             return null;
-        return exports.glob.dbs[pack + ":" + connectionString] = dbc.db(pack);
+        return exports.glob.dbs[cn.pack + ":" + connectionString] = dbc.db(cn.pack);
     }
     catch (e) {
         error(e.stack);
-        error(`db '${pack}' connection failed [${connectionString}]`);
-        throw `connecting to db '${pack}' failed`;
+        error(`db '${cn.pack}' connection failed [${connectionString}]`);
+        throw `connecting to db '${cn.pack}' failed`;
     }
 }
-exports.connect = connect;
+exports.dbConnection = dbConnection;
 function findEnum(type) {
     if (!type)
         return null;
@@ -955,7 +954,7 @@ async function initializeEnums() {
     exports.glob.enums = [];
     exports.glob.enumTexts = {};
     for (const pack of getEnabledPackages()) {
-        let enums = await get(pack.name, types_1.SysCollection.enums, { rawData: true });
+        let enums = await get({ pack: pack.name }, types_1.SysCollection.enums, { rawData: true });
         for (const theEnum of enums) {
             theEnum._ = { pack: pack.name };
             exports.glob.enums.push(theEnum);
@@ -987,7 +986,7 @@ async function initializeEntities() {
     for (const pack of getEnabledPackages()) {
         let config = exports.glob.packageConfigs[pack.name];
         let obj = findObject(pack.name, types_1.SysCollection.packageConfig);
-        await makeObjectReady(pack.name, obj.properties, config);
+        await makeObjectReady({ pack: pack.name }, obj.properties, config);
         for (const app of config.apps) {
             app._.loginForm = types_1.Constants.defaultLoginUri;
             if (app.loginForm) {
@@ -1480,7 +1479,7 @@ async function getPropertyReferenceValues(cn, prop, instance) {
         throw types_1.StatusCode.NotFound;
     }
     if (entity.entityType == types_1.EntityType.Object) {
-        let result = await get(cn.pack, entity.name, { count: 10, rawData: true });
+        let result = await get({ pack: cn.pack }, entity.name, { count: 10, rawData: true });
         if (result) {
             return result.map(item => {
                 return { ref: item._id, title: getText(cn, item.title) };
@@ -1578,7 +1577,7 @@ async function invokeFuncMakeArgsReady(cn, func, action, args) {
             if (!refObj)
                 throwError(types_1.StatusCode.UnprocessableEntity, `referred object for property '${cn.pack}.${prop.name}' not found!`);
             if (refObj.entityType == types_1.EntityType.Object)
-                argData[prop.name] = await get(cn.pack, refObj.name, { itemId: val, rawData: true });
+                argData[prop.name] = await get({ pack: cn.pack }, refObj.name, { itemId: val, rawData: true });
             else if (refObj.entityType == types_1.EntityType.Function) {
             }
         }
@@ -1589,11 +1588,11 @@ async function invoke(cn, func, args) {
     if (func.test && func.test.mock && process.env.NODE_ENV == types_1.EnvMode.Development && cn.url.pathname != "/functionTest") {
         return await mock(cn, func, args);
     }
-    let pathPath = getAbsolutePath('./' + func._.pack, `src/main`);
+    let pathPath = getAbsolutePath('./' + func._.pack);
     let action = require(pathPath)[func.name];
     if (!action) {
         if (func._.pack == types_1.Constants.sysPackage)
-            action = require(getAbsolutePath(`./web/src/main`))[func.name];
+            action = require(getAbsolutePath(`./web`))[func.name];
         if (!action) {
             let app = exports.glob.apps.find(app => app._.pack == cn.pack);
             for (const pack of app.dependencies) {
@@ -1720,4 +1719,4 @@ async function execShellCommand(cmd, std) {
     });
 }
 exports.execShellCommand = execShellCommand;
-//# sourceMappingURL=main.js.map
+//# sourceMappingURL=sys.js.map
