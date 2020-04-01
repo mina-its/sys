@@ -2,7 +2,6 @@
   "name": "@minaits/sys",
   "version": "5.2.5",
   "description": "mina sys package",
-  "main": "sys.js",
   "scripts": {
     "test": "jest"
   },

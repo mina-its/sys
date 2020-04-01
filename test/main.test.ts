@@ -1,6 +1,6 @@
 ///<reference path="../node_modules/@types/jest/index.d.ts"/>
-import {glob} from "../sys";
-import {Constants, mObject, StatusCode, SysCollection, UnitTestObject} from "../types";
+import {glob} from "../../sys";
+import {Constants, mObject, StatusCode, SysCollection, UnitTestObject} from "../src/types";
 import {ObjectId} from "bson";
 
 const types = require("./types");
