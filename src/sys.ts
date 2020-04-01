@@ -1793,7 +1793,7 @@ export async function invoke(cn: Context, func: Function, args: any[]) {
     let action = require(pathPath)[func.name];
     if (!action) {
         if (func._.pack == Constants.sysPackage)
-            action = require(getAbsolutePath(`./web`))[func.name];
+            action = require(getAbsolutePath(`./web/src/web`))[func.name];
         if (!action) {
             let app = glob.apps.find(app => app._.pack == cn.pack);
             for (const pack of app.dependencies) {

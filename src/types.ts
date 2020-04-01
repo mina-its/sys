@@ -150,10 +150,9 @@ export class Form extends Entity {
 
 export class FormDto {
     title: string;
-    breadcrumb: Pair[];
+    breadcrumb: Pair[] = [];
     elems: Elem[] = [];
     toolbar?: boolean = false;
-    dataset?: { [ref: string]: any; } = {};
     declarations?: { [ref: string]: ObjectDec | FunctionDec; } = {};
 }
 
