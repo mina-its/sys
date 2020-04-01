@@ -315,7 +315,7 @@ export class Elem {
     };
     obj?: {
         ref: string;
-        type: ObjectViewType;
+        type?: ObjectViewType;
         props?: {
             name: string;
             viewType: ObjectViewType;
