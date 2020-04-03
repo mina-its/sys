@@ -1,37 +1,48 @@
-export class AuditArgs {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class AuditArgs {
 }
-export class Role {
+exports.AuditArgs = AuditArgs;
+class Role {
 }
-export class User {
+exports.Role = Role;
+class User {
     constructor() {
         this.roles = [];
         this.disabled = false;
     }
 }
-export class AuditType {
+exports.User = User;
+class AuditType {
 }
-export class Global {
+exports.AuditType = AuditType;
+class Global {
     constructor() {
-        this.dbs = {}; // any not mongodb.Db because of client side reference
+        this.dbs = {};
         this.packages = {};
         this.packageConfigs = {};
         this.clientQuestionCallbacks = {};
     }
 }
-export class Entity {
+exports.Global = Global;
+class Entity {
 }
-export class mObject extends Entity {
+exports.Entity = Entity;
+class mObject extends Entity {
 }
-export class Function extends Entity {
+exports.mObject = mObject;
+class Function extends Entity {
 }
-export class Form extends Entity {
+exports.Function = Function;
+class Form extends Entity {
     constructor(pack) {
         super();
         this.elems = [];
         this._ = { pack };
     }
 }
-export class FormDto {
+exports.Form = Form;
+class FormDto {
     constructor() {
         this.breadcrumb = [];
         this.elems = [];
@@ -39,32 +50,39 @@ export class FormDto {
         this.declarations = {};
     }
 }
-export class ObjectModifyState {
+exports.FormDto = FormDto;
+class ObjectModifyState {
 }
-export var ObjectModifyType;
+exports.ObjectModifyState = ObjectModifyState;
+var ObjectModifyType;
 (function (ObjectModifyType) {
     ObjectModifyType[ObjectModifyType["Update"] = 1] = "Update";
     ObjectModifyType[ObjectModifyType["Insert"] = 2] = "Insert";
     ObjectModifyType[ObjectModifyType["Patch"] = 3] = "Patch";
     ObjectModifyType[ObjectModifyType["Delete"] = 4] = "Delete";
-})(ObjectModifyType || (ObjectModifyType = {}));
-export class Property {
+})(ObjectModifyType = exports.ObjectModifyType || (exports.ObjectModifyType = {}));
+class Property {
 }
-export class Drive {
+exports.Property = Property;
+class Drive {
 }
-export class FunctionTestSample {
+exports.Drive = Drive;
+class FunctionTestSample {
 }
-export class EntityLink {
+exports.FunctionTestSample = FunctionTestSample;
+class EntityLink {
 }
-export var ObjectViewType;
+exports.EntityLink = EntityLink;
+var ObjectViewType;
 (function (ObjectViewType) {
     ObjectViewType[ObjectViewType["GridView"] = 1] = "GridView";
     ObjectViewType[ObjectViewType["DetailsView"] = 2] = "DetailsView";
     ObjectViewType[ObjectViewType["TreeView"] = 3] = "TreeView";
-})(ObjectViewType || (ObjectViewType = {}));
-export class Elem {
+})(ObjectViewType = exports.ObjectViewType || (exports.ObjectViewType = {}));
+class Elem {
 }
-export class ErrorObject extends Error {
+exports.Elem = Elem;
+class ErrorObject extends Error {
     constructor(code, message) {
         super();
         this.code = code;
@@ -74,57 +92,83 @@ export class ErrorObject extends Error {
         };
     }
 }
-export class ChartSeries {
+exports.ErrorObject = ErrorObject;
+class ChartSeries {
 }
-export class Access {
+exports.ChartSeries = ChartSeries;
+class Access {
 }
-export class AccessItem {
+exports.Access = Access;
+class AccessItem {
 }
-export class Menu {
+exports.AccessItem = AccessItem;
+class Menu {
 }
-export class MenuItem {
+exports.Menu = Menu;
+class MenuItem {
 }
-export class Pair {
+exports.MenuItem = MenuItem;
+class Pair {
 }
-export class App {
+exports.Pair = Pair;
+class App {
 }
-export class SystemConfigPackage {
+exports.App = App;
+class SystemConfigPackage {
 }
-export class SystemConfig {
+exports.SystemConfigPackage = SystemConfigPackage;
+class SystemConfig {
 }
-export class Enum {
+exports.SystemConfig = SystemConfig;
+class Enum {
 }
-export class EnumItem {
+exports.Enum = Enum;
+class EnumItem {
 }
-export class MultilangText {
+exports.EnumItem = EnumItem;
+class MultilangText {
 }
-export class SmsAccount {
+exports.MultilangText = MultilangText;
+class SmsAccount {
 }
-export class EmailAccount {
+exports.SmsAccount = SmsAccount;
+class EmailAccount {
 }
-export class PackageConfig {
+exports.EmailAccount = EmailAccount;
+class PackageConfig {
 }
-export class PackageAddressRule {
+exports.PackageConfig = PackageConfig;
+class PackageAddressRule {
 }
-export class File {
+exports.PackageAddressRule = PackageAddressRule;
+class File {
 }
-export class Text {
+exports.File = File;
+class Text {
 }
-export class TimeZone {
+exports.Text = Text;
+class TimeZone {
 }
-export class RefPortion {
+exports.TimeZone = TimeZone;
+class RefPortion {
 }
-export class GeoLocation {
+exports.RefPortion = RefPortion;
+class GeoLocation {
 }
-export class PutOptions {
+exports.GeoLocation = GeoLocation;
+class PutOptions {
 }
-export class PatchOptions {
+exports.PutOptions = PutOptions;
+class PatchOptions {
 }
-export class DelOptions {
+exports.PatchOptions = PatchOptions;
+class DelOptions {
 }
-export class GetOptions {
+exports.DelOptions = DelOptions;
+class GetOptions {
 }
-export var StatusCode;
+exports.GetOptions = GetOptions;
+var StatusCode;
 (function (StatusCode) {
     StatusCode[StatusCode["Ok"] = 200] = "Ok";
     StatusCode[StatusCode["Accepted"] = 202] = "Accepted";
@@ -154,10 +198,11 @@ export var StatusCode;
     StatusCode[StatusCode["NetworkAuthenticationRequired"] = 511] = "NetworkAuthenticationRequired";
     StatusCode[StatusCode["UnknownError"] = 1001] = "UnknownError";
     StatusCode[StatusCode["ConfigurationProblem"] = 1002] = "ConfigurationProblem";
-})(StatusCode || (StatusCode = {}));
-export class UploadedFile {
+})(StatusCode = exports.StatusCode || (exports.StatusCode = {}));
+class UploadedFile {
 }
-export var LogType;
+exports.UploadedFile = UploadedFile;
+var LogType;
 (function (LogType) {
     LogType[LogType["Fatal"] = 0] = "Fatal";
     LogType[LogType["Error"] = 3] = "Error";
@@ -165,27 +210,26 @@ export var LogType;
     LogType[LogType["Info"] = 6] = "Info";
     LogType[LogType["Debug"] = 7] = "Debug";
     LogType[LogType["Silly"] = 8] = "Silly";
-})(LogType || (LogType = {}));
-export var LinkType;
+})(LogType = exports.LogType || (exports.LogType = {}));
+var LinkType;
 (function (LinkType) {
     LinkType[LinkType["Auto"] = 0] = "Auto";
     LinkType[LinkType["Help"] = 1] = "Help";
-})(LinkType || (LinkType = {}));
-export var PanelType;
+})(LinkType = exports.LinkType || (exports.LinkType = {}));
+var PanelType;
 (function (PanelType) {
     PanelType[PanelType["Stack"] = 1] = "Stack";
     PanelType[PanelType["Dock"] = 2] = "Dock";
-    // Grid = 3,
     PanelType[PanelType["Wrap"] = 4] = "Wrap";
     PanelType[PanelType["Flex"] = 5] = "Flex";
     PanelType[PanelType["Modal"] = 6] = "Modal";
-})(PanelType || (PanelType = {}));
-export var Orientation;
+})(PanelType = exports.PanelType || (exports.PanelType = {}));
+var Orientation;
 (function (Orientation) {
     Orientation[Orientation["Horizontal"] = 1] = "Horizontal";
     Orientation[Orientation["Vertical"] = 2] = "Vertical";
-})(Orientation || (Orientation = {}));
-export var ElemType;
+})(Orientation = exports.Orientation || (exports.Orientation = {}));
+var ElemType;
 (function (ElemType) {
     ElemType[ElemType["Text"] = 1] = "Text";
     ElemType[ElemType["Panel"] = 2] = "Panel";
@@ -200,15 +244,15 @@ export var ElemType;
     ElemType[ElemType["Tree"] = 11] = "Tree";
     ElemType[ElemType["Document"] = 12] = "Document";
     ElemType[ElemType["View"] = 13] = "View";
-})(ElemType || (ElemType = {}));
-export var EntityType;
+})(ElemType = exports.ElemType || (exports.ElemType = {}));
+var EntityType;
 (function (EntityType) {
     EntityType[EntityType["Object"] = 1] = "Object";
     EntityType[EntityType["Function"] = 2] = "Function";
     EntityType[EntityType["Form"] = 3] = "Form";
     EntityType[EntityType["File"] = 4] = "File";
-})(EntityType || (EntityType = {}));
-export var AccessPermission;
+})(EntityType = exports.EntityType || (exports.EntityType = {}));
+var AccessPermission;
 (function (AccessPermission) {
     AccessPermission[AccessPermission["None"] = 0] = "None";
     AccessPermission[AccessPermission["View"] = 1] = "View";
@@ -216,19 +260,19 @@ export var AccessPermission;
     AccessPermission[AccessPermission["DeleteItem"] = 3] = "DeleteItem";
     AccessPermission[AccessPermission["Edit"] = 4] = "Edit";
     AccessPermission[AccessPermission["Full"] = 8] = "Full";
-})(AccessPermission || (AccessPermission = {}));
-export var PropertyViewMode;
+})(AccessPermission = exports.AccessPermission || (exports.AccessPermission = {}));
+var PropertyViewMode;
 (function (PropertyViewMode) {
     PropertyViewMode[PropertyViewMode["Visible"] = 0] = "Visible";
     PropertyViewMode[PropertyViewMode["DetailViewVisible"] = 1] = "DetailViewVisible";
     PropertyViewMode[PropertyViewMode["Hidden"] = 2] = "Hidden";
-})(PropertyViewMode || (PropertyViewMode = {}));
-export var PropertyEditMode;
+})(PropertyViewMode = exports.PropertyViewMode || (exports.PropertyViewMode = {}));
+var PropertyEditMode;
 (function (PropertyEditMode) {
     PropertyEditMode[PropertyEditMode["Readonly"] = 3] = "Readonly";
     PropertyEditMode[PropertyEditMode["OnceOnly"] = 4] = "OnceOnly";
-})(PropertyEditMode || (PropertyEditMode = {}));
-export var Keys;
+})(PropertyEditMode = exports.PropertyEditMode || (exports.PropertyEditMode = {}));
+var Keys;
 (function (Keys) {
     Keys[Keys["left"] = 37] = "left";
     Keys[Keys["right"] = 39] = "right";
@@ -267,8 +311,8 @@ export var Keys;
     Keys[Keys["q"] = 81] = "q";
     Keys[Keys["num_8"] = 104] = "num_8";
     Keys[Keys["num_2"] = 98] = "num_2";
-})(Keys || (Keys = {}));
-export var Locale;
+})(Keys = exports.Keys || (exports.Keys = {}));
+var Locale;
 (function (Locale) {
     Locale[Locale["en"] = 1033] = "en";
     Locale[Locale["ar"] = 1025] = "ar";
@@ -285,8 +329,8 @@ export var Locale;
     Locale[Locale["hi"] = 1081] = "hi";
     Locale[Locale["ja"] = 1041] = "ja";
     Locale[Locale["ko"] = 1042] = "ko";
-})(Locale || (Locale = {}));
-export var SourceType;
+})(Locale = exports.Locale || (exports.Locale = {}));
+var SourceType;
 (function (SourceType) {
     SourceType[SourceType["Db"] = 1] = "Db";
     SourceType[SourceType["File"] = 2] = "File";
@@ -297,14 +341,14 @@ export var SourceType;
     SourceType[SourceType["Soap"] = 7] = "Soap";
     SourceType[SourceType["Kafka"] = 8] = "Kafka";
     SourceType[SourceType["S3"] = 9] = "S3";
-})(SourceType || (SourceType = {}));
-export var FunctionMode;
+})(SourceType = exports.SourceType || (exports.SourceType = {}));
+var FunctionMode;
 (function (FunctionMode) {
     FunctionMode[FunctionMode["OpenDialog"] = 1] = "OpenDialog";
     FunctionMode[FunctionMode["OpenPage"] = 2] = "OpenPage";
     FunctionMode[FunctionMode["Run"] = 3] = "Run";
-})(FunctionMode || (FunctionMode = {}));
-export var ChangeFrequency;
+})(FunctionMode = exports.FunctionMode || (exports.FunctionMode = {}));
+var ChangeFrequency;
 (function (ChangeFrequency) {
     ChangeFrequency[ChangeFrequency["always"] = 1] = "always";
     ChangeFrequency[ChangeFrequency["hourly"] = 2] = "hourly";
@@ -313,20 +357,20 @@ export var ChangeFrequency;
     ChangeFrequency[ChangeFrequency["monthly"] = 5] = "monthly";
     ChangeFrequency[ChangeFrequency["yearly"] = 6] = "yearly";
     ChangeFrequency[ChangeFrequency["never"] = 7] = "never";
-})(ChangeFrequency || (ChangeFrequency = {}));
-export var NewItemMode;
+})(ChangeFrequency = exports.ChangeFrequency || (exports.ChangeFrequency = {}));
+var NewItemMode;
 (function (NewItemMode) {
     NewItemMode[NewItemMode["inline"] = 0] = "inline";
     NewItemMode[NewItemMode["newPage"] = 1] = "newPage";
     NewItemMode[NewItemMode["modal"] = 2] = "modal";
-})(NewItemMode || (NewItemMode = {}));
-export var PropertyReferType;
+})(NewItemMode = exports.NewItemMode || (exports.NewItemMode = {}));
+var PropertyReferType;
 (function (PropertyReferType) {
     PropertyReferType[PropertyReferType["inlineData"] = 9] = "inlineData";
     PropertyReferType[PropertyReferType["outbound"] = 5] = "outbound";
     PropertyReferType[PropertyReferType["select"] = 10] = "select";
-})(PropertyReferType || (PropertyReferType = {}));
-export var GlobalType;
+})(PropertyReferType = exports.PropertyReferType || (exports.PropertyReferType = {}));
+var GlobalType;
 (function (GlobalType) {
     GlobalType[GlobalType["unknown"] = 0] = "unknown";
     GlobalType[GlobalType["number"] = 1] = "number";
@@ -337,33 +381,33 @@ export var GlobalType;
     GlobalType[GlobalType["id"] = 6] = "id";
     GlobalType[GlobalType["object"] = 7] = "object";
     GlobalType[GlobalType["file"] = 8] = "file";
-})(GlobalType || (GlobalType = {}));
-export var RefPortionType;
+})(GlobalType = exports.GlobalType || (exports.GlobalType = {}));
+var RefPortionType;
 (function (RefPortionType) {
     RefPortionType[RefPortionType["entity"] = 1] = "entity";
     RefPortionType[RefPortionType["property"] = 2] = "property";
     RefPortionType[RefPortionType["item"] = 3] = "item";
     RefPortionType[RefPortionType["file"] = 4] = "file";
-})(RefPortionType || (RefPortionType = {}));
-export var TimeFormat;
+})(RefPortionType = exports.RefPortionType || (exports.RefPortionType = {}));
+var TimeFormat;
 (function (TimeFormat) {
     TimeFormat[TimeFormat["yearMonthDayHourMinute"] = 1] = "yearMonthDayHourMinute";
     TimeFormat[TimeFormat["hourMinute"] = 2] = "hourMinute";
     TimeFormat[TimeFormat["dateWithDayOfWeek"] = 3] = "dateWithDayOfWeek";
     TimeFormat[TimeFormat["friendlyDate"] = 4] = "friendlyDate";
-})(TimeFormat || (TimeFormat = {}));
-export var ObjectReferType;
+})(TimeFormat = exports.TimeFormat || (exports.TimeFormat = {}));
+var ObjectReferType;
 (function (ObjectReferType) {
     ObjectReferType[ObjectReferType["similar"] = 0] = "similar";
     ObjectReferType[ObjectReferType["filter"] = 1] = "filter";
     ObjectReferType[ObjectReferType["aggregate"] = 2] = "aggregate";
     ObjectReferType[ObjectReferType["value"] = 3] = "value";
-})(ObjectReferType || (ObjectReferType = {}));
-export var RedirectType;
+})(ObjectReferType = exports.ObjectReferType || (exports.ObjectReferType = {}));
+var RedirectType;
 (function (RedirectType) {
     RedirectType[RedirectType["Permanent"] = 0] = "Permanent";
-})(RedirectType || (RedirectType = {}));
-export var SysCollection;
+})(RedirectType = exports.RedirectType || (exports.RedirectType = {}));
+var SysCollection;
 (function (SysCollection) {
     SysCollection["audits"] = "audits";
     SysCollection["users"] = "users";
@@ -378,8 +422,8 @@ export var SysCollection;
     SysCollection["forms"] = "forms";
     SysCollection["auditTypes"] = "auditTypes";
     SysCollection["enums"] = "enums";
-})(SysCollection || (SysCollection = {}));
-export var SysAuditTypes;
+})(SysCollection = exports.SysCollection || (exports.SysCollection = {}));
+var SysAuditTypes;
 (function (SysAuditTypes) {
     SysAuditTypes["addItem"] = "5d7b8fbd10f5321b74a1b83b";
     SysAuditTypes["edit"] = "5d7b91d410f5321b74a1b83c";
@@ -391,17 +435,18 @@ export var SysAuditTypes;
     SysAuditTypes["uncaughtException"] = "5d7b922910f5321b74a1b842";
     SysAuditTypes["unhandledRejection"] = "5d7b923510f5321b74a1b843";
     SysAuditTypes["tryNotAllowedModify"] = "5d7b920d10f5321b74a1b840";
-})(SysAuditTypes || (SysAuditTypes = {}));
-export var SystemProperty;
+})(SysAuditTypes = exports.SysAuditTypes || (exports.SysAuditTypes = {}));
+var SystemProperty;
 (function (SystemProperty) {
     SystemProperty["title"] = "title";
     SystemProperty["name"] = "name";
     SystemProperty["time"] = "time";
     SystemProperty["comment"] = "comment";
-})(SystemProperty || (SystemProperty = {}));
-export class EmbeddedInfo {
+})(SystemProperty = exports.SystemProperty || (exports.SystemProperty = {}));
+class EmbeddedInfo {
 }
-export var PType;
+exports.EmbeddedInfo = EmbeddedInfo;
+var PType;
 (function (PType) {
     PType["text"] = "589f2d8bb16c7523543ae1b0";
     PType["number"] = "589f2d8bb16c7523543ae1b3";
@@ -411,14 +456,14 @@ export var PType;
     PType["location"] = "58a18d9c70c25e0c30930287";
     PType["file"] = "589f2d8bb16c7523543ae1c2";
     PType["obj"] = "5e2562d9a3c257129832b75f";
-})(PType || (PType = {}));
-export var GridRowHeaderStyle;
+})(PType = exports.PType || (exports.PType = {}));
+var GridRowHeaderStyle;
 (function (GridRowHeaderStyle) {
     GridRowHeaderStyle[GridRowHeaderStyle["index"] = 0] = "index";
     GridRowHeaderStyle[GridRowHeaderStyle["empty"] = 1] = "empty";
     GridRowHeaderStyle[GridRowHeaderStyle["select"] = 2] = "select";
-})(GridRowHeaderStyle || (GridRowHeaderStyle = {}));
-export const Constants = {
+})(GridRowHeaderStyle = exports.GridRowHeaderStyle || (exports.GridRowHeaderStyle = {}));
+exports.Constants = {
     urlPortionApi: "api",
     sysPackage: "sys",
     indexProperty: "_z",
@@ -429,32 +474,33 @@ export const Constants = {
     systemPropertiesObjectName: "systemProperties",
     timeZonesCollection: "timeZones",
 };
-export var PropertyConditionBehavior;
+var PropertyConditionBehavior;
 (function (PropertyConditionBehavior) {
     PropertyConditionBehavior[PropertyConditionBehavior["Visible"] = 1] = "Visible";
     PropertyConditionBehavior[PropertyConditionBehavior["Enable"] = 2] = "Enable";
-})(PropertyConditionBehavior || (PropertyConditionBehavior = {}));
-export var DefaultPermission;
+})(PropertyConditionBehavior = exports.PropertyConditionBehavior || (exports.PropertyConditionBehavior = {}));
+var DefaultPermission;
 (function (DefaultPermission) {
     DefaultPermission[DefaultPermission["None"] = 0] = "None";
     DefaultPermission[DefaultPermission["View"] = 1] = "View";
     DefaultPermission[DefaultPermission["Full"] = 8] = "Full";
-})(DefaultPermission || (DefaultPermission = {}));
-export var EnvMode;
+})(DefaultPermission = exports.DefaultPermission || (exports.DefaultPermission = {}));
+var EnvMode;
 (function (EnvMode) {
     EnvMode["Development"] = "development";
     EnvMode["Production"] = "production";
-})(EnvMode || (EnvMode = {}));
-export var RequestMode;
+})(EnvMode = exports.EnvMode || (exports.EnvMode = {}));
+var RequestMode;
 (function (RequestMode) {
     RequestMode[RequestMode["inline"] = 1] = "inline";
     RequestMode[RequestMode["download"] = 2] = "download";
     RequestMode[RequestMode["api"] = 3] = "api";
     RequestMode[RequestMode["inlineDev"] = 4] = "inlineDev";
-})(RequestMode || (RequestMode = {}));
-export class WebResponse {
+})(RequestMode = exports.RequestMode || (exports.RequestMode = {}));
+class WebResponse {
 }
-export class AppStateConfig {
+exports.WebResponse = WebResponse;
+class AppStateConfig {
     constructor() {
         this.version = "";
         this.appTitle = "";
@@ -468,29 +514,32 @@ export class AppStateConfig {
         this.navmenu = [];
     }
 }
-export var WebMethod;
+exports.AppStateConfig = AppStateConfig;
+var WebMethod;
 (function (WebMethod) {
     WebMethod["get"] = "GET";
     WebMethod["post"] = "POST";
     WebMethod["put"] = "PUT";
     WebMethod["patch"] = "PATCH";
     WebMethod["del"] = "DELETE";
-})(WebMethod || (WebMethod = {}));
-export class UnitTestObject {
+})(WebMethod = exports.WebMethod || (exports.WebMethod = {}));
+class UnitTestObject {
 }
-export var DriveMode;
+exports.UnitTestObject = UnitTestObject;
+var DriveMode;
 (function (DriveMode) {
     DriveMode[DriveMode["Gallery"] = 1] = "Gallery";
     DriveMode[DriveMode["NonSelectable"] = 2] = "NonSelectable";
-})(DriveMode || (DriveMode = {}));
-export var DirFileType;
+})(DriveMode = exports.DriveMode || (exports.DriveMode = {}));
+var DirFileType;
 (function (DirFileType) {
     DirFileType[DirFileType["File"] = 1] = "File";
     DirFileType[DirFileType["Folder"] = 2] = "Folder";
-})(DirFileType || (DirFileType = {}));
-export class DirFile {
+})(DirFileType = exports.DirFileType || (exports.DirFileType = {}));
+class DirFile {
 }
-export var ClientCommand;
+exports.DirFile = DirFile;
+var ClientCommand;
 (function (ClientCommand) {
     ClientCommand[ClientCommand["Notification"] = 1] = "Notification";
     ClientCommand[ClientCommand["Log"] = 2] = "Log";
@@ -501,40 +550,47 @@ export var ClientCommand;
     ClientCommand[ClientCommand["Ping"] = 7] = "Ping";
     ClientCommand[ClientCommand["PingAck"] = 8] = "PingAck";
     ClientCommand[ClientCommand["Download"] = 9] = "Download";
-})(ClientCommand || (ClientCommand = {}));
-export var ObjectDetailsViewType;
+})(ClientCommand = exports.ClientCommand || (exports.ClientCommand = {}));
+var ObjectDetailsViewType;
 (function (ObjectDetailsViewType) {
     ObjectDetailsViewType[ObjectDetailsViewType["Grouped"] = 1] = "Grouped";
     ObjectDetailsViewType[ObjectDetailsViewType["Tabular"] = 2] = "Tabular";
     ObjectDetailsViewType[ObjectDetailsViewType["Simple"] = 3] = "Simple";
     ObjectDetailsViewType[ObjectDetailsViewType["Wizard"] = 4] = "Wizard";
-})(ObjectDetailsViewType || (ObjectDetailsViewType = {}));
-export var ObjectListsViewType;
+})(ObjectDetailsViewType = exports.ObjectDetailsViewType || (exports.ObjectDetailsViewType = {}));
+var ObjectListsViewType;
 (function (ObjectListsViewType) {
     ObjectListsViewType[ObjectListsViewType["Grid"] = 1] = "Grid";
     ObjectListsViewType[ObjectListsViewType["Card"] = 2] = "Card";
     ObjectListsViewType[ObjectListsViewType["Column"] = 3] = "Column";
-})(ObjectListsViewType || (ObjectListsViewType = {}));
-export var YesNo;
+})(ObjectListsViewType = exports.ObjectListsViewType || (exports.ObjectListsViewType = {}));
+var YesNo;
 (function (YesNo) {
     YesNo[YesNo["Yes"] = 1] = "Yes";
     YesNo[YesNo["No"] = 2] = "No";
-})(YesNo || (YesNo = {}));
-export class Context {
+})(YesNo = exports.YesNo || (exports.YesNo = {}));
+class Context {
 }
-export class AjaxConfig {
+exports.Context = Context;
+class AjaxConfig {
 }
-export class NotificationInfo {
+exports.AjaxConfig = AjaxConfig;
+class NotificationInfo {
 }
-export class ComponentParams {
+exports.NotificationInfo = NotificationInfo;
+class ComponentParams {
 }
-export class EntityMeta {
+exports.ComponentParams = ComponentParams;
+class EntityMeta {
 }
-export class ObjectDec {
+exports.EntityMeta = EntityMeta;
+class ObjectDec {
 }
-export class FunctionDec {
+exports.ObjectDec = ObjectDec;
+class FunctionDec {
 }
-export var ReqParams;
+exports.FunctionDec = FunctionDec;
+var ReqParams;
 (function (ReqParams) {
     ReqParams["query"] = "q";
     ReqParams["version"] = "v";
@@ -544,25 +600,31 @@ export var ReqParams;
     ReqParams["sort"] = "s";
     ReqParams["mode"] = "m";
     ReqParams["functionType"] = "f";
-})(ReqParams || (ReqParams = {}));
-export class ApiDocParameter {
+})(ReqParams = exports.ReqParams || (exports.ReqParams = {}));
+class ApiDocParameter {
 }
-export class ApiDocOperation {
+exports.ApiDocParameter = ApiDocParameter;
+class ApiDocOperation {
 }
-export class ApiDocBlock {
+exports.ApiDocOperation = ApiDocOperation;
+class ApiDocBlock {
     constructor() {
         this.operations = [];
     }
 }
-export class ApiDocSchema {
+exports.ApiDocBlock = ApiDocBlock;
+class ApiDocSchema {
 }
-export class ApiDocEnum {
+exports.ApiDocSchema = ApiDocSchema;
+class ApiDocEnum {
 }
-export class ApiDoc {
+exports.ApiDocEnum = ApiDocEnum;
+class ApiDoc {
     constructor() {
         this.blocks = [];
         this.schemas = [];
         this.enums = [];
     }
 }
+exports.ApiDoc = ApiDoc;
 //# sourceMappingURL=types.js.map
