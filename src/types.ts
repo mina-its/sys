@@ -1051,16 +1051,8 @@ export class ComponentParams {
     render?: (ce) => any;
 }
 
-export enum ItemState {
-    Default = 0,
-    Updated = 1,
-    Inserted = 2,
-    Deleted = 4,
-}
-
 export class EntityMeta {
     marked: boolean;
-    state: ItemState;
     dec: FunctionDec | ObjectDec;
 }
 
@@ -1101,4 +1093,51 @@ export enum ReqParams {
     sort = "s",
     mode = "m",
     functionType = "f"
+}
+
+export class ApiDocParameter {
+    title: string;
+    name: string;
+    type: string;
+    required: boolean;
+    comment: string;
+}
+
+export class ApiDocOperation {
+    method: WebMethod;
+    uri: string;
+    comment: string;
+    params: ApiDocParameter[];
+}
+
+export class ApiDocBlock {
+    title: string;
+    name: string;
+    operations: ApiDocOperation[] = [];
+}
+
+export class ApiDocSchema {
+    name: string;
+    properties: Array<{
+        name: string;
+        type: string;
+        required: boolean;
+    }>;
+}
+
+export class ApiDocEnum {
+    title: string;
+    name: string;
+    items: Array<{
+        name: string;
+        value: number;
+    }>;
+}
+
+export class ApiDoc {
+    version: string;
+    uriPrefix: string;
+    blocks: ApiDocBlock[] = [];
+    schemas: ApiDocSchema[] = [];
+    enums: ApiDocEnum[] = [];
 }
