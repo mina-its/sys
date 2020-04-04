@@ -27,7 +27,7 @@ import {
     Enum,
     EnvMode,
     ErrorObject,
-    File,
+    mFile,
     Form,
     Function,
     FunctionTestSample,
@@ -677,7 +677,8 @@ export async function movFile(pack: string | Context, sourcePath: string, target
 export function joinUri(...parts: string[]): string {
     let uri = "";
     for (const part of parts) {
-        uri += "/" + (part || "").replace(/^\//, '').replace(/\/$/, '');
+        if (part)
+            uri += "/" + part.replace(/^\//, '').replace(/\/$/, '');
     }
     return uri.substr(1);
 }
@@ -1752,7 +1753,7 @@ async function invokeFuncMakeArgsReady(cn: Context, func: Function, action, args
             if (param.isList)
                 throwError(StatusCode.NotImplemented, `no support for multiple files params!`);
 
-            let val: File = argData[param.name];
+            let val: mFile = argData[param.name];
             if (val) {
                 let file = uploadedFiles.find(f => f.name == val.name);
                 if (!file)

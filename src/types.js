@@ -45,8 +45,8 @@ exports.Form = Form;
 class FormDto {
     constructor() {
         this.breadcrumb = [];
-        this.elems = [];
         this.toolbar = false;
+        this.elems = [];
         this.declarations = {};
     }
 }
@@ -141,9 +141,9 @@ exports.PackageConfig = PackageConfig;
 class PackageAddressRule {
 }
 exports.PackageAddressRule = PackageAddressRule;
-class File {
+class mFile {
 }
-exports.File = File;
+exports.mFile = mFile;
 class Text {
 }
 exports.Text = Text;

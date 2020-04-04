@@ -568,7 +568,8 @@ exports.movFile = movFile;
 function joinUri(...parts) {
     let uri = "";
     for (const part of parts) {
-        uri += "/" + (part || "").replace(/^\//, '').replace(/\/$/, '');
+        if (part)
+            uri += "/" + part.replace(/^\//, '').replace(/\/$/, '');
     }
     return uri.substr(1);
 }

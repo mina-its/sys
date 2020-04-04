@@ -151,8 +151,8 @@ export class Form extends Entity {
 export class FormDto {
     title: string;
     breadcrumb: Pair[] = [];
-    elems: Elem[] = [];
     toolbar?: boolean = false;
+    elems: Elem[] = [];
     declarations?: { [ref: string]: ObjectDec | FunctionDec; } = {};
 }
 
@@ -177,6 +177,12 @@ export interface IEntity {
 export interface IProperties {
     name: string;
     properties: Property[];
+}
+
+export interface IData {
+    _id: any;
+    _z: number;
+    _: EntityMeta;
 }
 
 export class Property implements IProperties {
@@ -292,6 +298,7 @@ export enum ObjectViewType {
 }
 
 export class Elem {
+    id: string;
     type: ElemType;
     comment?: string;
     styles?: string;
@@ -529,15 +536,16 @@ export class PackageAddressRule {
     target: string;
 }
 
-export class File {
-    _id: ObjectId;
+export class mFile {
+    _id: string;
     size: number;
     name: string;
-    path: string;
-    created: Date;
-    _: {
+    path?: string;
+    created?: Date;
+    _?: {
         uri?: string;
         rawData?: Buffer;
+        dimensions?: string;
     };
 }
 
@@ -960,7 +968,7 @@ export class UnitTestObject {
     name: string;
     age: number;
     codes: StatusCode[];
-    picture?: File[];
+    picture?: mFile[];
     address: {
         detail: {
             "city": string
@@ -1025,6 +1033,7 @@ export class Context {
 
 export class AjaxConfig {
     method?: WebMethod;
+    files?: any[];
 }
 
 export class NotificationInfo {
@@ -1052,8 +1061,11 @@ export class ComponentParams {
 }
 
 export class EntityMeta {
-    marked: boolean;
+    marked?: boolean;
     dec: FunctionDec | ObjectDec;
+    files?: { [property: string]: any[] };
+    ref?: string;
+    msg?: any;
 }
 
 export class ObjectDec {
