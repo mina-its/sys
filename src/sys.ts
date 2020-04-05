@@ -1759,7 +1759,7 @@ async function invokeFuncMakeArgsReady(cn: Context, func: Function, action, args
                 if (!file)
                     throwError(StatusCode.BadRequest, `parameter '${param.name}' is mandatory!`);
                 val._ = val._ || {};
-                val._.rawData = file.rawData;
+                val._.rawData = new Blob([new Uint8Array(file.rawData, 0, file.rawData.length)]);
             }
         }
     }

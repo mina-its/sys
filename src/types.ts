@@ -537,14 +537,14 @@ export class PackageAddressRule {
 }
 
 export class mFile {
-    _id: string;
     size: number;
-    name: string;
+    name: string; // must be unique
+    type: string;
     path?: string;
-    created?: Date;
+    lastModified?: number;
     _?: {
         uri?: string;
-        rawData?: Buffer;
+        rawData?: Blob;
         dimensions?: string;
     };
 }
@@ -992,6 +992,7 @@ export enum DirFileType {
 export class DirFile {
     name: string;
     size?: number;
+    lastModified?: number;
     type: DirFileType;
 }
 
@@ -1033,7 +1034,6 @@ export class Context {
 
 export class AjaxConfig {
     method?: WebMethod;
-    files?: any[];
 }
 
 export class NotificationInfo {
@@ -1063,7 +1063,6 @@ export class ComponentParams {
 export class EntityMeta {
     marked?: boolean;
     dec: FunctionDec | ObjectDec;
-    files?: { [property: string]: any[] };
     ref?: string;
     msg?: any;
 }
