@@ -960,11 +960,8 @@ function initializePackages() {
             checkAppMenu(app);
             if (validateApp(pack.name, app)) {
                 glob.apps.push(app);
-                let host = glob.sysConfig.hosts.find(host => host.app && host.app.equals(app._id));
-                if (host) {
-                    host._ = {app};
-                    app._.publicUri = host.publicUri;
-                }
+                let hosts = glob.sysConfig.hosts.filter(host => host.app && app._id.equals(host.app as any as ObjectId));
+                hosts.forEach(host => host.app = app);
             }
         }
     }

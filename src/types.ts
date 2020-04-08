@@ -443,7 +443,6 @@ export class App {
     _: {
         pack?: string;
         loginForm?: string;
-        publicUri?: string;
     }
 }
 
@@ -452,17 +451,16 @@ export class SystemConfigPackage {
     enabled: boolean;
 }
 
+export class Host {
+    _id: ObjectId;
+    address: string;
+    publicUri: string;
+    app: App;
+}
+
 export class SystemConfig {
     packages: SystemConfigPackage[];
-    hosts: {
-        _id: ObjectId;
-        address: string;
-        publicUri: string;
-        app: ObjectId;
-        _: {
-            app: App
-        };
-    }[];
+    hosts: Host[];
     amazon: {
         accessKeyId: string;
         secretAccessKey: string;
@@ -539,7 +537,7 @@ export class PackageAddressRule {
 export class mFile {
     size: number;
     name: string; // must be unique
-    type: string;
+    type?: string;
     path?: string;
     lastModified?: number;
     _?: {
