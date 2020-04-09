@@ -582,9 +582,6 @@ exports.AjaxConfig = AjaxConfig;
 class NotificationInfo {
 }
 exports.NotificationInfo = NotificationInfo;
-class ComponentParams {
-}
-exports.ComponentParams = ComponentParams;
 class EntityMeta {
 }
 exports.EntityMeta = EntityMeta;

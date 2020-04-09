@@ -1040,24 +1040,6 @@ export class NotificationInfo {
     type: LogType;
 }
 
-export class ComponentParams {
-    template?: string;
-    computed?: any;
-    methods?: any;
-    bind?: any;
-    watch?: any;
-    beforeCreate?: () => void;
-    created?: () => void;
-    beforeMount?: () => void;
-    mounted?: () => void;
-    beforeUpdate?: () => void;
-    updated?: () => void;
-    beforeDestroy?: () => void;
-    destroyed?: () => void;
-    data?: () => void;
-    render?: (ce) => any;
-}
-
 export class EntityMeta {
     marked?: boolean;
     dec: FunctionDec | ObjectDec;
