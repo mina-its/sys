@@ -27,6 +27,7 @@
     "aws-sdk": "^2.611.0",
     "bson": "^4.0.2",
     "docxtemplater": "^3.14.0",
+    "ejs": "^3.0.2",
     "expect": "^25.1.0",
     "fs-extra": "^8.1.0",
     "graphlib": "^2.1.8",
