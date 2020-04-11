@@ -421,8 +421,8 @@ export class App {
     _id: ObjectId;
     home: string;
     template: string;
-    locales: Locale[];
     style: string;
+    locales: Locale[];
     defaultLocale: Locale;
     redirect: RedirectType;
     menu: Menu;
@@ -931,29 +931,17 @@ export class WebResponse implements IError {
 
 export class AppStateConfig {
     host?: string;
-    version: string;
-    appTitle: string;
-    brandingLogo: string;
-    locale: string;
-    appLocales: Pair[];
-    loginRef: string;
-    loginTitle: string;
-    interactive: boolean;
-    menu: MenuItem[];
-    navmenu: MenuItem[];
-
-    constructor() {
-        this.version = "";
-        this.appTitle = "";
-        this.brandingLogo = "";
-        this.locale = "";
-        this.appLocales = [];
-        this.loginRef = "";
-        this.loginTitle = "";
-        this.interactive = false;
-        this.menu = [];
-        this.navmenu = [];
-    }
+    version: string = "";
+    appTitle: string = "";
+    brandingLogo: string = "";
+    locale: string = "";
+    appLocales: Pair[] = [];
+    loginRef: string = "";
+    loginTitle: string = "";
+    interactive: boolean = false;
+    menu: MenuItem[] = [];
+    navmenu: MenuItem[] = [];
+    style: string;
 }
 
 export enum WebMethod {
