@@ -10,6 +10,7 @@ const moment = require("moment");
 const graphlib = require("graphlib");
 const Jalali = require("jalali-moment");
 const sourceMapSupport = require("source-map-support");
+const ejs = require("ejs");
 const AWS = require("aws-sdk");
 const rimraf = require("rimraf");
 const mongodb_1 = require("mongodb");
@@ -451,11 +452,17 @@ async function getFile(drive, filePath) {
     }
 }
 exports.getFile = getFile;
-async function fileExists(drive, filePath) {
+async function pathExists(path) {
+    return await new Promise(resolve => fs.access(path, fs.constants.F_OK, err => resolve(!err)));
+}
+exports.pathExists = pathExists;
+async function fileExists(filePath, drive) {
+    if (!drive)
+        return pathExists(filePath);
     switch (drive.type) {
         case types_1.SourceType.File:
             let _path = path.join(getAbsolutePath(drive.address), filePath);
-            return await fs.access(_path);
+            return await pathExists(_path);
         case types_1.SourceType.Db:
             throw types_1.StatusCode.NotImplemented;
         default:
@@ -815,15 +822,31 @@ function checkAppMenu(app) {
         warn(`Menu for app '${app.title}' not found!`);
 }
 exports.checkAppMenu = checkAppMenu;
+function templateRender(pack, template) {
+    try {
+        let render = ejs.compile(template);
+        return render;
+    }
+    catch (err) {
+        error(`templateRender error for pack '${pack}': `, err.stack);
+        return null;
+    }
+}
 function initializePackages() {
     log(`initializePackages: ${exports.glob.sysConfig.packages.map(p => p.name).join(' , ')}`);
     exports.glob.apps = [];
+    let sysTemplate = exports.glob.packageConfigs[types_1.Constants.sysPackage].apps[0].template;
+    let sysTemplateRender = templateRender(types_1.Constants.sysPackage, sysTemplate);
     for (const pack of getEnabledPackages()) {
         let config = exports.glob.packageConfigs[pack.name];
         for (const app of (config.apps || [])) {
             app._ = { pack: pack.name };
             app.dependencies = app.dependencies || [];
             app.dependencies.push(types_1.Constants.sysPackage);
+            if (app.template)
+                app._.templateRender = templateRender(pack, app.template);
+            else
+                app._.templateRender = sysTemplateRender;
             checkAppMenu(app);
             if (validateApp(pack.name, app)) {
                 exports.glob.apps.push(app);

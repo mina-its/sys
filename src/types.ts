@@ -420,7 +420,7 @@ export class Pair {
 export class App {
     _id: ObjectId;
     home: string;
-    defaultTemplate: string;
+    template: string;
     locales: Locale[];
     style: string;
     defaultLocale: Locale;
@@ -443,6 +443,7 @@ export class App {
     _: {
         pack?: string;
         loginForm?: string;
+        templateRender?: any;
     }
 }
 
@@ -451,15 +452,21 @@ export class SystemConfigPackage {
     enabled: boolean;
 }
 
+export class SystemConfigStaticPackage {
+    _id: ObjectId;
+    name: string;
+    address: string;
+}
+
 export class Host {
     _id: ObjectId;
     address: string;
-    static: string;
     app: App;
 }
 
 export class SystemConfig {
     packages: SystemConfigPackage[];
+    staticPackages: SystemConfigStaticPackage[];
     hosts: Host[];
     amazon: {
         accessKeyId: string;
