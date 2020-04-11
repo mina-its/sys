@@ -299,7 +299,9 @@ export async function count(cn: Context, objectName: string, options: GetOptions
 
 export function extractRefPortions(cn: Context, ref: string, _default?: string): RefPortion[] {
     try {
-        ref = _.trim(ref, '/') || _default;
+        ref = _.trim(ref, '/');
+        if (ref == Constants.defaultAddress) ref = "";
+        ref = ref || _default;
         if (!ref)
             return null;
 

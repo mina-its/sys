@@ -470,6 +470,7 @@ var GridRowHeaderStyle;
 exports.Constants = {
     urlPortionApi: "api",
     sysPackage: "sys",
+    defaultAddress: "_default",
     indexProperty: "_z",
     defaultLoginUri: 'login',
     amazonS3ApiVersion: "2006-03-01",

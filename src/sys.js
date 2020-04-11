@@ -242,7 +242,10 @@ async function count(cn, objectName, options) {
 exports.count = count;
 function extractRefPortions(cn, ref, _default) {
     try {
-        ref = _.trim(ref, '/') || _default;
+        ref = _.trim(ref, '/');
+        if (ref == types_1.Constants.defaultAddress)
+            ref = "";
+        ref = ref || _default;
         if (!ref)
             return null;
         let portions = ref.split('/').map(portion => {

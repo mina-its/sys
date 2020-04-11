@@ -454,7 +454,7 @@ export class SystemConfigPackage {
 export class Host {
     _id: ObjectId;
     address: string;
-    publicUri: string;
+    static: string;
     app: App;
 }
 
@@ -877,6 +877,7 @@ export enum GridRowHeaderStyle {
 export const Constants = {
     urlPortionApi: "api",
     sysPackage: "sys",
+    defaultAddress: "_default",
     indexProperty: "_z",
     defaultLoginUri: 'login',
     amazonS3ApiVersion: "2006-03-01",
