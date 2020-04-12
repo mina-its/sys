@@ -350,8 +350,10 @@ export class Elem {
         name: string;
         props: any;
         data?: Reference;
-        _ref: string;
-        _data: any;
+        _: {
+            ref: string;
+            data: any;
+        }
     };
     text?: {
         content: string;
