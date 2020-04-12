@@ -241,7 +241,7 @@ async function count(cn, objectName, options) {
     return await collection.countDocuments(options);
 }
 exports.count = count;
-function extractRefPortions(cn, ref, _default) {
+async function extractRefPortions(cn, ref, _default) {
     try {
         ref = _.trim(ref, '/');
         if (ref == types_1.Constants.defaultAddress)
@@ -276,7 +276,21 @@ function extractRefPortions(cn, ref, _default) {
         }
         else
             return null;
-        if (entity.entityType !== types_1.EntityType.Object || portions.length < 2)
+        if (entity.entityType == types_1.EntityType.Object && !entity.isList && portions.length == 1) {
+            let item = await get(cn, entity.name, { count: 1, rawData: true });
+            let portion = { type: types_1.RefPortionType.item, pre: portions[0] };
+            portions.push(portion);
+            if (item) {
+                portion.itemId = item._id;
+            }
+            else {
+                let result = await put(cn, entity.name, item, null);
+                portion.itemId = result.itemId;
+            }
+            portion.value = portion.itemId.toString();
+            return portions;
+        }
+        else if (entity.entityType !== types_1.EntityType.Object || portions.length < 2)
             return portions;
         let parent = entity;
         for (let i = 1; i < portions.length; i++) {

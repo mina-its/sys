@@ -298,7 +298,7 @@ export async function count(cn: Context, objectName: string, options: GetOptions
     return await collection.countDocuments(options);
 }
 
-export function extractRefPortions(cn: Context, ref: string, _default?: string): RefPortion[] {
+export async function extractRefPortions(cn: Context, ref: string, _default?: string): Promise<RefPortion[]> {
     try {
         ref = _.trim(ref, '/');
         if (ref == Constants.defaultAddress) ref = "";
@@ -337,7 +337,19 @@ export function extractRefPortions(cn: Context, ref: string, _default?: string):
         } else
             return null;
 
-        if (entity.entityType !== EntityType.Object || portions.length < 2)
+        if (entity.entityType == EntityType.Object && !(entity as mObject).isList && portions.length == 1) { // e.g. systemConfig
+            let item: any = await get(cn, entity.name, {count: 1, rawData: true});
+            let portion = {type: RefPortionType.item, pre: portions[0]} as RefPortion;
+            portions.push(portion);
+            if (item) {
+                portion.itemId = item._id;
+            } else { // not any item yet
+                let result: any = await put(cn, entity.name, item, null);
+                portion.itemId = result.itemId;
+            }
+            portion.value = portion.itemId.toString();
+            return portions;
+        } else if (entity.entityType !== EntityType.Object || portions.length < 2)
             return portions;
 
         let parent: any = entity;
