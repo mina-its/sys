@@ -929,6 +929,7 @@ export class WebResponse implements IError {
     message: string;
     code: StatusCode;
     config: AppStateConfig;
+    texts: { [key: string]: string };
 }
 
 export class AppStateConfig {
