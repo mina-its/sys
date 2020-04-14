@@ -551,7 +551,7 @@ export class mFile {
     lastModified?: number;
     _?: {
         uri?: string;
-        rawData?: Blob;
+        rawData?: Buffer;
         dimensions?: string;
     };
 }
