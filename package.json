@@ -1,6 +1,6 @@
 {
   "name": "@minaits/sys",
-  "version": "5.2.5",
+  "version": "5.2.7",
   "description": "mina sys package",
   "scripts": {
     "test": "jest"
