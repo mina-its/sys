@@ -797,6 +797,11 @@ async function loadSysConfig() {
     }
 
     glob.packageConfigs["web"] = {_: require(getAbsolutePath("./web", `package.json`))} as any;
+
+    for (const pack of glob.sysConfig.staticPackages) {
+        glob.packageConfigs[pack.name] = {_: require(getAbsolutePath("./" + pack.name, `package.json`))} as any;
+    }
+
     applyAmazonConfig();
 }
 
