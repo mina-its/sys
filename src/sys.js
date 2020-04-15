@@ -521,7 +521,7 @@ exports.putFile = putFile;
 async function listDir(drive, dir) {
     switch (drive.type) {
         case types_1.SourceType.File:
-            let addr = path.join(getAbsolutePath(drive.address), dir);
+            let addr = path.join(getAbsolutePath(drive.address), dir || "");
             let list = await fsPromises.readdir(addr, { withFileTypes: true });
             let files = list.map(item => {
                 return { name: item.name, type: item.isDirectory() ? types_1.DirFileType.Folder : types_1.DirFileType.File };
