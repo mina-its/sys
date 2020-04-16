@@ -1,0 +1,7 @@
+*.map
+*.iml
+tsconfig.json
+index.d.js
+/.db
+/test
+/src/*.map

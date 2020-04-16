@@ -1,10 +1,15 @@
 {
-  "name": "@minaits/sys",
-  "version": "5.2.7",
+  "name": "mina-sys",
+  "version": "5.2.19",
   "description": "mina sys package",
+  "main": "./src/sys.js",
+  "types": "index.d.ts",
   "scripts": {
     "test": "jest"
   },
+  "keywords": [
+    "mina sys"
+  ],
   "jest": {
     "moduleFileExtensions": [
       "js"
@@ -12,8 +17,10 @@
     "verbose": true
   },
   "repository": "https://github.com/mina-its/sys",
-  "author": "Farhad Jalali",
-  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mina-its/sys/issues"
+  },
+  "homepage": "https://github.com/mina-its/sys#readme",
   "devDependencies": {
     "@types/async": "^2.4.2",
     "@types/jest": "^25.1.1",
