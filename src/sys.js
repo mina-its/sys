@@ -687,7 +687,12 @@ async function loadSysConfig() {
     }
     exports.glob.packageConfigs["web"] = { _: require(getAbsolutePath("./web", `package.json`)) };
     for (const pack of exports.glob.sysConfig.staticPackages) {
-        exports.glob.packageConfigs[pack.name] = { _: require(getAbsolutePath("./" + pack.name, `package.json`)) };
+        try {
+            exports.glob.packageConfigs[pack.name] = { _: require(getAbsolutePath("./" + pack.name, `package.json`)) };
+        }
+        catch (ex) {
+            error("load staticPackages package.json file failed!", ex);
+        }
     }
     applyAmazonConfig();
 }
