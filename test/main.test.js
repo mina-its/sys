@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const sys_1 = require("../../sys");
 const types_1 = require("../src/types");
-const bson_1 = require("bson");
 const types = require("./types");
 const util = require('util');
 let sys = require('./main');
@@ -25,7 +25,7 @@ describe('reload test', () => {
 describe('crud test', function () {
     let testObject;
     testObject = {
-        "_id": new bson_1.ObjectId(),
+        "_id": sys_1.newID(),
         "name": "jila",
         "age": 36,
         "codes": [types_1.StatusCode.BadRequest, types_1.StatusCode.Gone],

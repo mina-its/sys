@@ -62,29 +62,38 @@ exports.start = start;
 function isWindows() {
     return /^win/.test(process.platform);
 }
+function newID(id) {
+    return new mongodb_1.ObjectId(id);
+}
+exports.newID = newID;
 async function audit(auditType, args) {
-    args.type = args.type || new mongodb_1.ObjectId(auditType);
-    args.time = new Date();
-    let comment = args.comment || "";
-    let type = exports.glob.auditTypes.find(type => type._id.equals(args.type));
-    let msg = "audit(" + (type ? type.name : args.type) + "): " + comment;
-    switch (args.level) {
-        case types_1.LogType.Fatal:
-            fatal(msg);
-            break;
-        case types_1.LogType.Error:
-            error(msg);
-            break;
-        case types_1.LogType.Info:
-            info(msg);
-            break;
-        case types_1.LogType.Warning:
-            warn(msg);
-            break;
+    try {
+        args.type = args.type || newID(auditType);
+        args.time = new Date();
+        let comment = args.comment || "";
+        let type = exports.glob.auditTypes.find(type => type._id.equals(args.type));
+        let msg = "audit(" + (type ? type.name : args.type) + "): " + comment;
+        switch (args.level) {
+            case types_1.LogType.Fatal:
+                fatal(msg);
+                break;
+            case types_1.LogType.Error:
+                error(msg);
+                break;
+            case types_1.LogType.Info:
+                info(msg);
+                break;
+            case types_1.LogType.Warning:
+                warn(msg);
+                break;
+        }
+        if (type && type.disabled)
+            return;
+        await put({ pack: args.pack || types_1.Constants.sysPackage }, types_1.SysCollection.audits, args);
     }
-    if (type && type.disabled)
-        return;
-    await put({ pack: args.pack || types_1.Constants.sysPackage }, types_1.SysCollection.audits, args);
+    catch (e) {
+        error(`Audit '${auditType}' error: ${e.stack}`);
+    }
 }
 exports.audit = audit;
 function run(cn, func, ...args) {
@@ -137,7 +146,7 @@ async function makeObjectReady(cn, properties, data) {
             let val = item[prop.name];
             if (!val)
                 continue;
-            if (prop._ && prop._.isRef && !prop._.enum && prop.viewMode != types_1.PropertyViewMode.Hidden && isObjectId(val)) {
+            if (prop._ && prop._.isRef && !prop._.enum && prop.viewMode != types_1.PropertyViewMode.Hidden && isID(val)) {
                 let refObj = findEntity(prop.type);
                 if (!refObj)
                     throwError(types_1.StatusCode.UnprocessableEntity, `referred object for property '${cn.pack}.${prop.name}' not found!`);
@@ -192,7 +201,7 @@ async function put(cn, objectName, item, options) {
             });
         default:
             let command = { $addToSet: {} };
-            item._id = item._id || new mongodb_1.ObjectId();
+            item._id = item._id || newID();
             let rootId = portions[1].itemId;
             let pth = await portionsToMongoPath(cn, rootId, portions, portions.length);
             command.$addToSet[pth] = item;
@@ -305,7 +314,7 @@ async function extractRefPortions(cn, ref, _default) {
             else if ((parent.entityType || parent.isList) && /[0-9a-f]{24}/.test(pr.value)) {
                 pr.type = types_1.RefPortionType.item;
                 let itemId = pr.value;
-                pr.itemId = new mongodb_1.ObjectId(itemId);
+                pr.itemId = newID(itemId);
             }
             else {
                 pr.type = types_1.RefPortionType.property;
@@ -833,7 +842,7 @@ function initializeRoles() {
     }
     for (const role of exports.glob.roles) {
         let result = graphlib.alg.postorder(g, role._id.toString());
-        role.roles = result.map(item => new mongodb_1.ObjectId(item));
+        role.roles = result.map(item => newID(item));
     }
 }
 exports.initializeRoles = initializeRoles;
@@ -1100,7 +1109,7 @@ function initObject(obj) {
         if (obj.reference) {
             let referenceObj = findEntity(obj.reference);
             if (!referenceObj)
-                return warn(`SimilarObject in service '${obj._.pack}' not found for object: '${obj.title}', SimilarObjectID:${obj.reference}`);
+                return warn(`SimilarObject in service '${obj._.pack}' not found for object: '${obj.title}', SimilarReference:${obj.reference}`);
             initObject(referenceObj);
             _.defaultsDeep(obj, referenceObj);
             compareParentProperties(obj.properties, referenceObj.properties, obj);
@@ -1314,24 +1323,13 @@ function jsonReviver(key, value) {
         let m = value.split("__REGEXP ")[1].match(/\/(.*)\/(.*)?/);
         return new RegExp(m[1], m[2] || "");
     }
-    else if (value && value.toString().indexOf("__ObjectID ") == 0) {
-        return new mongodb_1.ObjectId(value.split("__ObjectID ")[1]);
+    else if (value && value.toString().indexOf("__Reference ") == 0) {
+        return newID(value.split("__Reference ")[1]);
     }
     else
         return value;
 }
 exports.jsonReviver = jsonReviver;
-function jsonReplacer(key, value) {
-    if (value instanceof RegExp) {
-        return ("__REGEXP " + value.toString());
-    }
-    else if (value instanceof mongodb_1.ObjectId) {
-        return ("__ObjectID " + value.toString());
-    }
-    else
-        return value;
-}
-exports.jsonReplacer = jsonReplacer;
 function parseDate(loc, date) {
     if (!date)
         return null;
@@ -1383,7 +1381,7 @@ async function getTypes(cn) {
     types = _.orderBy(types, ['title']);
     let ptypes = [];
     for (const type in types_1.PType) {
-        ptypes.push({ _id: new mongodb_1.ObjectId(types_1.PType[type]), title: getText(cn, type, true) });
+        ptypes.push({ _id: newID(types_1.PType[type]), title: getText(cn, type, true) });
     }
     types.unshift({ _id: null, title: "-" });
     types = ptypes.concat(types);
@@ -1490,7 +1488,7 @@ function parse(str) {
                 continue;
             if (typeof val === "object") {
                 if (val.$oid) {
-                    obj[key] = new mongodb_1.ObjectId(val.$oid);
+                    obj[key] = newID(val.$oid);
                     continue;
                 }
                 if (val.$date) {
@@ -1619,7 +1617,7 @@ async function invokeFuncMakeArgsReady(cn, func, action, args) {
         let val = argData[prop.name];
         if (val == null && prop.required)
             throwError(types_1.StatusCode.BadRequest, `parameter '${prop.name}' is mandatory!`);
-        if (prop._.isRef && !prop._.enum && prop.viewMode != types_1.PropertyViewMode.Hidden && isObjectId(val)) {
+        if (prop._.isRef && !prop._.enum && prop.viewMode != types_1.PropertyViewMode.Hidden && isID(val)) {
             let refObj = findEntity(prop.type);
             if (!refObj)
                 throwError(types_1.StatusCode.UnprocessableEntity, `referred object for property '${cn.pack}.${prop.name}' not found!`);
@@ -1688,18 +1686,18 @@ async function runFunction(cn, functionId, input) {
     return invoke(cn, func, args);
 }
 exports.runFunction = runFunction;
-function isObjectId(value) {
+function isID(value) {
     if (!value)
         return false;
-    return value._bsontype == "ObjectID";
+    return value._bsontype;
 }
-exports.isObjectId = isObjectId;
+exports.isID = isID;
 function throwError(code, message) {
     throw new types_1.ErrorObject(code, message);
 }
 exports.throwError = throwError;
 function getReference(id) {
-    return new mongodb_1.ObjectId(id);
+    return newID(id);
 }
 exports.getReference = getReference;
 function clientLog(cn, message, type = types_1.LogType.Debug, ref) {
@@ -1726,7 +1724,7 @@ async function clientQuestion(cn, message, optionsEnum) {
     return new Promise(resolve => {
         let items = getEnumItems(cn, optionsEnum);
         let waitFn = answer => resolve(answer);
-        let questionID = new mongodb_1.ObjectId().toString();
+        let questionID = newID().toString();
         exports.glob.clientQuestionCallbacks[cn["httpReq"].session.id + ":" + questionID] = waitFn;
         exports.glob.postClientCommandCallback(cn, types_1.ClientCommand.Question, questionID, message, items);
     });

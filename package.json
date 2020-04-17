@@ -1,15 +1,13 @@
 {
   "name": "mina-sys",
-  "version": "5.2.19",
+  "version": "5.2.25",
   "description": "mina sys package",
-  "main": "./src/sys.js",
+  "main": "index.d.js",
   "types": "index.d.ts",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "publish": "npm publish"
   },
-  "keywords": [
-    "mina sys"
-  ],
   "jest": {
     "moduleFileExtensions": [
       "js"

@@ -1,7 +1,6 @@
 ///<reference path="../node_modules/@types/jest/index.d.ts"/>
-import {glob} from "../../sys";
+import {glob, newID} from "../../sys";
 import {Constants, mObject, StatusCode, SysCollection, UnitTestObject} from "../src/types";
-import {ObjectId} from "bson";
 
 const types = require("./types");
 const util = require('util');
@@ -36,7 +35,7 @@ describe('reload test', () => {
 describe('crud test', function () {
 	let testObject: UnitTestObject;
 	testObject = {
-		"_id": new ObjectId(),
+		"_id": newID(),
 		"name": "jila",
 		"age": 36,
 		"codes": [StatusCode.BadRequest, StatusCode.Gone],

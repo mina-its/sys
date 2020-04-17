@@ -1,1 +1,0 @@
-{"_id":{"$oid":"5e4fd80b92590320d89fdeea"},"changes":[{"op":1,"data":"[{\"query\":{\"_id\":{\"$oid\":\"5d78ecdf7b7c752a18d096b6\"}},\"update\":{\"$unset\":{\"comment\":\"\"}}}]","ns":"menus","_id":{"$oid":"5e4fd80b92590320d89fdeeb"}}],"filename":"5e4fd80b92590320d89fdeea.migration","node":"Shila","commitDate":{"$date":"2020-02-21T13:15:55.392Z"},"state":0}

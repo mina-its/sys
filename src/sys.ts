@@ -48,7 +48,7 @@ import {
     PropertyViewMode,
     PType,
     PutOptions,
-    Reference,
+    ID,
     RefPortion,
     RefPortionType,
     RequestMode,
@@ -117,30 +117,38 @@ function isWindows() {
     return /^win/.test(process.platform);
 }
 
+export function newID(id?: string): ID {
+    return new ObjectId(id) as any;
+}
+
 export async function audit(auditType: string, args: AuditArgs) {
-    args.type = args.type || new ObjectId(auditType);
-    args.time = new Date();
-    let comment = args.comment || "";
-    let type = glob.auditTypes.find(type => type._id.equals(args.type));
-    let msg = "audit(" + (type ? type.name : args.type) + "): " + comment;
+    try {
+        args.type = args.type || newID(auditType);
+        args.time = new Date();
+        let comment = args.comment || "";
+        let type = glob.auditTypes.find(type => type._id.equals(args.type));
+        let msg = "audit(" + (type ? type.name : args.type) + "): " + comment;
 
-    switch (args.level) {
-        case LogType.Fatal:
-            fatal(msg);
-            break;
-        case LogType.Error:
-            error(msg);
-            break;
-        case LogType.Info:
-            info(msg);
-            break;
-        case LogType.Warning:
-            warn(msg);
-            break;
+        switch (args.level) {
+            case LogType.Fatal:
+                fatal(msg);
+                break;
+            case LogType.Error:
+                error(msg);
+                break;
+            case LogType.Info:
+                info(msg);
+                break;
+            case LogType.Warning:
+                warn(msg);
+                break;
+        }
+
+        if (type && type.disabled) return;
+        await put({pack: args.pack || Constants.sysPackage} as Context, SysCollection.audits, args);
+    } catch (e) {
+        error(`Audit '${auditType}' error: ${e.stack}`);
     }
-
-    if (type && type.disabled) return;
-    await put({pack: args.pack || Constants.sysPackage} as Context, SysCollection.audits, args);
 }
 
 export function run(cn, func: string, ...args) {
@@ -192,7 +200,7 @@ export async function makeObjectReady(cn: Context, properties: Property[], data:
         for (const prop of properties) {
             let val = item[prop.name];
             if (!val) continue;
-            if (prop._ && prop._.isRef && !prop._.enum && prop.viewMode != PropertyViewMode.Hidden && isObjectId(val)) {
+            if (prop._ && prop._.isRef && !prop._.enum && prop.viewMode != PropertyViewMode.Hidden && isID(val)) {
                 let refObj = findEntity(prop.type);
                 if (!refObj)
                     throwError(StatusCode.UnprocessableEntity, `referred object for property '${cn.pack}.${prop.name}' not found!`);
@@ -250,7 +258,7 @@ export async function put(cn: Context, objectName: string, item: any, options?: 
 
         default: // Insert / Update not root item
             let command = {$addToSet: {}};
-            item._id = item._id || new ObjectId();
+            item._id = item._id || newID();
             let rootId = portions[1].itemId;
             let pth: string = await portionsToMongoPath(cn, rootId, portions, portions.length);
             command.$addToSet[pth] = item;
@@ -263,7 +271,7 @@ export async function put(cn: Context, objectName: string, item: any, options?: 
     }
 }
 
-export async function portionsToMongoPath(cn: Context, rootId: ObjectId, portions: RefPortion[], endIndex: number) {
+export async function portionsToMongoPath(cn: Context, rootId: ID, portions: RefPortion[], endIndex: number) {
     if (endIndex == 3) // not need to fetch data
         return portions[2].property.name;
 
@@ -364,7 +372,7 @@ export async function extractRefPortions(cn: Context, ref: string, _default?: st
             } else if ((parent.entityType || parent.isList) && /[0-9a-f]{24}/.test(pr.value)) {
                 pr.type = RefPortionType.item;
                 let itemId = pr.value;
-                pr.itemId = new ObjectId(itemId);
+                pr.itemId = newID(itemId);
             } else {
                 pr.type = RefPortionType.property;
                 parent = pr.property = parent.properties.find(p => p.name == pr.value);
@@ -967,7 +975,7 @@ export function initializeRoles() {
 
     for (const role of glob.roles) {
         let result = graphlib.alg.postorder(g, role._id.toString());
-        role.roles = result.map(item => new ObjectId(item));
+        role.roles = result.map(item => newID(item));
     }
 }
 
@@ -1011,7 +1019,7 @@ function initializePackages() {
             checkAppMenu(app);
             if (validateApp(pack.name, app)) {
                 glob.apps.push(app);
-                let hosts = glob.sysConfig.hosts.filter(host => host.app && app._id.equals(host.app as any as ObjectId));
+                let hosts = glob.sysConfig.hosts.filter(host => host.app && app._id.equals(host.app as any as ID));
                 hosts.forEach(host => host.app = app);
             }
         }
@@ -1131,12 +1139,12 @@ export async function dbConnection(cn: Context, connectionString?: string): Prom
     }
 }
 
-export function findEnum(type: ObjectId): Enum {
+export function findEnum(type: ID): Enum {
     if (!type) return null;
     return glob.enums.find(enm => enm._id.equals(type));
 }
 
-export function findEntity(id: ObjectId): Entity {
+export function findEntity(id: ID): Entity {
     if (!id) return null;
     return glob.entities.find(a => a._id.equals(id));
 }
@@ -1257,7 +1265,7 @@ export function initObject(obj: mObject) {
         if (obj.reference) {
             let referenceObj = findEntity(obj.reference) as mObject;
             if (!referenceObj)
-                return warn(`SimilarObject in service '${obj._.pack}' not found for object: '${obj.title}', SimilarObjectID:${obj.reference}`);
+                return warn(`SimilarObject in service '${obj._.pack}' not found for object: '${obj.title}', SimilarReference:${obj.reference}`);
 
             initObject(referenceObj);
 
@@ -1484,17 +1492,8 @@ export function jsonReviver(key, value) {
     if (value && value.toString().indexOf("__REGEXP ") == 0) {
         let m = value.split("__REGEXP ")[1].match(/\/(.*)\/(.*)?/);
         return new RegExp(m[1], m[2] || "");
-    } else if (value && value.toString().indexOf("__ObjectID ") == 0) {
-        return new ObjectId(value.split("__ObjectID ")[1]);
-    } else
-        return value;
-}
-
-export function jsonReplacer(key, value) {
-    if (value instanceof RegExp) {
-        return ("__REGEXP " + value.toString());
-    } else if (value instanceof ObjectId) {
-        return ("__ObjectID " + value.toString());
+    } else if (value && value.toString().indexOf("__Reference ") == 0) {
+        return newID(value.split("__Reference ")[1]);
     } else
         return value;
 }
@@ -1557,7 +1556,7 @@ export async function getTypes(cn: Context) {
 
     let ptypes: any[] = [];
     for (const type in PType) {
-        ptypes.push({_id: new ObjectId(PType[type]), title: getText(cn, type, true)});
+        ptypes.push({_id: newID(PType[type]), title: getText(cn, type, true)});
     }
 
     types.unshift({_id: null, title: "-"});
@@ -1670,7 +1669,7 @@ export function parse(str: string | any): any {
             if (!val) continue;
             if (typeof val === "object") {
                 if (val.$oid) {
-                    obj[key] = new ObjectId(val.$oid);
+                    obj[key] = newID(val.$oid);
                     continue;
                 }
                 if (val.$date) {
@@ -1817,7 +1816,7 @@ async function invokeFuncMakeArgsReady(cn: Context, func: Function, action, args
         if (val == null && prop.required)
             throwError(StatusCode.BadRequest, `parameter '${prop.name}' is mandatory!`);
 
-        if (prop._.isRef && !prop._.enum && prop.viewMode != PropertyViewMode.Hidden && isObjectId(val)) {
+        if (prop._.isRef && !prop._.enum && prop.viewMode != PropertyViewMode.Hidden && isID(val)) {
             let refObj = findEntity(prop.type);
             if (!refObj)
                 throwError(StatusCode.UnprocessableEntity, `referred object for property '${cn.pack}.${prop.name}' not found!`);
@@ -1878,7 +1877,7 @@ export async function getUploadedFiles(cn: Context, readBuffer: boolean): Promis
     return files;
 }
 
-export async function runFunction(cn: Context, functionId: ObjectId, input: any) {
+export async function runFunction(cn: Context, functionId: ID, input: any) {
     let func = findEntity(functionId) as Function;
     if (!func) throw StatusCode.NotFound;
 
@@ -1893,17 +1892,17 @@ export async function runFunction(cn: Context, functionId: ObjectId, input: any)
     //done(err, result, func);
 }
 
-export function isObjectId(value: any): boolean {
+export function isID(value: any): boolean {
     if (!value) return false;
-    return value._bsontype == "ObjectID";
+    return value._bsontype;
 }
 
 export function throwError(code: StatusCode, message?: string) {
     throw new ErrorObject(code, message);
 }
 
-export function getReference(id?: string): Reference {
-    return new ObjectId(id);
+export function getReference(id?: string): ID {
+    return newID(id);
 }
 
 export function clientLog(cn: Context, message: string, type: LogType = LogType.Debug, ref?: string) {
@@ -1930,7 +1929,7 @@ export async function clientQuestion(cn: Context, message: string, optionsEnum: 
     return new Promise(resolve => {
         let items = getEnumItems(cn, optionsEnum);
         let waitFn = answer => resolve(answer);
-        let questionID = new ObjectId().toString();
+        let questionID = newID().toString();
         glob.clientQuestionCallbacks[cn["httpReq"].session.id + ":" + questionID] = waitFn;
         glob.postClientCommandCallback(cn, ClientCommand.Question, questionID, message, items);
     });

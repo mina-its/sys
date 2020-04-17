@@ -1,1 +1,0 @@
-{"_id":{"$oid":"5e4fa09ee1f2d015486dc8e5"},"changes":[{"op":1,"data":"[{\"query\":{\"_id\":{\"$oid\":\"5d78ecdf7b7c752a18d096b6\"}},\"update\":{\"$unset\":{\"comment\":\"\"}}}]","ns":"menus","_id":{"$oid":"5e4fa09ee1f2d015486dc8e6"}}],"filename":"5e4fa09ee1f2d015486dc8e5.migration","node":"Farhad","commitDate":{"$date":"2020-02-21T09:19:26.072Z"},"state":0}
