@@ -20,8 +20,10 @@ class Global {
     constructor() {
         this.dbs = {};
         this.packages = {};
-        this.packageConfigs = {};
+        this.packageInfo = {};
+        this.packageConfig = {};
         this.clientQuestionCallbacks = {};
+        this.apps = [];
     }
 }
 exports.Global = Global;
@@ -38,7 +40,7 @@ class Form extends Entity {
     constructor(pack) {
         super();
         this.elems = [];
-        this._ = { pack };
+        this._ = { db: pack };
     }
 }
 exports.Form = Form;
@@ -144,6 +146,13 @@ exports.EmailAccount = EmailAccount;
 class PackageConfig {
 }
 exports.PackageConfig = PackageConfig;
+class PackageInfo {
+}
+exports.PackageInfo = PackageInfo;
+var PackageType;
+(function (PackageType) {
+    PackageType["StaticWebsite"] = "static-website";
+})(PackageType = exports.PackageType || (exports.PackageType = {}));
 class PackageAddressRule {
 }
 exports.PackageAddressRule = PackageAddressRule;
@@ -471,7 +480,7 @@ var GridRowHeaderStyle;
 })(GridRowHeaderStyle = exports.GridRowHeaderStyle || (exports.GridRowHeaderStyle = {}));
 exports.Constants = {
     urlPortionApi: "api",
-    sysPackage: "sys",
+    sysDb: "sys",
     defaultAddress: "_default",
     indexProperty: "_z",
     defaultLoginUri: 'login',

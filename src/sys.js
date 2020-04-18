@@ -1,5 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+let index = {
+    "Load Packages package.json file                  ": loadPackagesInfo,
+};
 const logger = require("winston");
 const mongodb = require("mongodb");
 const _ = require("lodash");
@@ -21,15 +24,40 @@ const { EJSON } = require('bson');
 const { exec } = require("child_process");
 exports.glob = new types_1.Global();
 const fsPromises = fs.promises;
+async function initHosts() {
+    for (const host of exports.glob.sysConfig.hosts) {
+        host._ = {};
+        if (host.drive) {
+            let drive = exports.glob.drives.find(d => d._id.equals(host.drive));
+            if (drive) {
+                drive._.uri = host.address;
+                host._.drive = drive;
+            }
+            else
+                error(`drive for host '${host.address}' not found!`);
+        }
+        else if (host.app) {
+            let app = exports.glob.apps.find(d => d._id.equals(host.app));
+            if (app) {
+                host._.app = app;
+            }
+            else
+                error(`app for host '${host.address}' not found!`);
+        }
+    }
+}
 async function reload(cn) {
     let startTime = moment();
     log(`reload ...`);
     await loadSysConfig();
+    await loadPackagesInfo();
+    await applyAmazonConfig();
     await loadSystemCollections();
-    await loadGeneralCollections();
+    await loadTimeZones();
     await loadAuditTypes();
     await initializeEnums();
     await initializePackages();
+    await initHosts();
     await initializeRoles();
     await initializeEntities();
     let period = moment().diff(startTime, 'ms', true);
@@ -89,7 +117,7 @@ async function audit(auditType, args) {
         }
         if (type && type.disabled)
             return;
-        await put({ pack: args.pack || types_1.Constants.sysPackage }, types_1.SysCollection.audits, args);
+        await put({ db: args.pack || types_1.Constants.sysDb }, types_1.SysCollection.audits, args);
     }
     catch (e) {
         error(`Audit '${auditType}' error: ${e.stack}`);
@@ -149,7 +177,7 @@ async function makeObjectReady(cn, properties, data) {
             if (prop._ && prop._.isRef && !prop._.enum && prop.viewMode != types_1.PropertyViewMode.Hidden && isID(val)) {
                 let refObj = findEntity(prop.type);
                 if (!refObj)
-                    throwError(types_1.StatusCode.UnprocessableEntity, `referred object for property '${cn.pack}.${prop.name}' not found!`);
+                    throwError(types_1.StatusCode.UnprocessableEntity, `referred object for property '${cn.db}.${prop.name}' not found!`);
                 if (refObj.entityType == types_1.EntityType.Object)
                     item[prop.name] = await get(cn, refObj.name, { itemId: val, rawData: true });
                 else if (refObj.entityType == types_1.EntityType.Function) {
@@ -276,9 +304,9 @@ async function extractRefPortions(cn, ref, _default) {
         }
         let entity = exports.glob.entities.find(entity => entity._id.toString() === portions[0].value);
         if (!entity)
-            entity = exports.glob.entities.find(en => en._.pack == cn.pack && en.name == portions[0].value);
+            entity = exports.glob.entities.find(en => en._.db == cn.db && en.name == portions[0].value);
         if (!entity)
-            entity = exports.glob.entities.find(en => en.name === portions[0].value && cn["app"].dependencies.indexOf(en._.pack) > -1);
+            entity = exports.glob.entities.find(en => en.name === portions[0].value && cn["app"].dependencies.indexOf(en._.db) > -1);
         if (entity) {
             portions[0].entity = entity;
             portions[0].type = types_1.RefPortionType.entity;
@@ -457,7 +485,7 @@ async function getFile(drive, filePath) {
             let _path = path.join(getAbsolutePath(drive.address), filePath);
             return await fs.readFile(_path);
         case types_1.SourceType.Db:
-            let db = await dbConnection({ pack: drive._.pack });
+            let db = await dbConnection({ db: drive._.db });
             let bucket = new mongodb.GridFSBucket(db);
             let stream = bucket.openDownloadStreamByName(filePath);
             let data;
@@ -501,11 +529,11 @@ async function putFile(drive, relativePath, file) {
             await fs.writeFile(_path, file);
             break;
         case types_1.SourceType.Db:
-            let db = await dbConnection({ pack: drive._.pack });
+            let db = await dbConnection({ db: drive._.db });
             ;
             let bucket = new mongodb.GridFSBucket(db);
             let stream = bucket.openUploadStream(relativePath);
-            await delFile(drive._.pack, drive, relativePath);
+            await delFile(drive._.db, drive, relativePath);
             stream.on("error", function (err) {
                 error("putFile error", err);
             }).end(file);
@@ -612,11 +640,11 @@ function getS3DriveSdk(drive) {
         return drive.s3._sdk;
     const sdk = require('aws-sdk');
     if (!drive.s3.accessKeyId)
-        throwError(types_1.StatusCode.ConfigurationProblem, `s3 accessKeyId for drive package '${drive._.pack}' must be configured.`);
+        throwError(types_1.StatusCode.ConfigurationProblem, `s3 accessKeyId for drive package '${drive._.db}' must be configured.`);
     else
         sdk.config.accessKeyId = drive.s3.accessKeyId;
     if (!drive.s3.secretAccessKey)
-        throwError(types_1.StatusCode.ConfigurationProblem, `s3 secretAccessKey for drive package '${drive._.pack}' must be configured.`);
+        throwError(types_1.StatusCode.ConfigurationProblem, `s3 secretAccessKey for drive package '${drive._.db}' must be configured.`);
     else
         sdk.config.secretAccessKey = drive.s3.secretAccessKey;
     drive.s3._sdk = sdk;
@@ -660,10 +688,10 @@ function isRtl(lang) {
     return lang === types_1.Locale.fa || lang === types_1.Locale.ar;
 }
 exports.isRtl = isRtl;
-async function loadGeneralCollections() {
+async function loadTimeZones() {
     log('loadGeneralCollections ...');
-    exports.glob.timeZones = await get({ pack: types_1.Constants.sysPackage }, types_1.Constants.timeZonesCollection);
-    let result = await get({ pack: types_1.Constants.sysPackage }, types_1.SysCollection.objects, {
+    exports.glob.timeZones = await get({ db: types_1.Constants.sysDb }, types_1.Constants.timeZonesCollection);
+    let result = await get({ db: types_1.Constants.sysDb }, types_1.SysCollection.objects, {
         query: { name: types_1.Constants.systemPropertiesObjectName },
         count: 1, rawData: true
     });
@@ -675,99 +703,81 @@ async function loadGeneralCollections() {
 }
 async function loadAuditTypes() {
     log('loadAuditTypes ...');
-    exports.glob.auditTypes = await get({ pack: types_1.Constants.sysPackage }, types_1.SysCollection.auditTypes, { rawData: true });
+    exports.glob.auditTypes = await get({ db: types_1.Constants.sysDb }, types_1.SysCollection.auditTypes, { rawData: true });
 }
 function getEnabledPackages() {
     return exports.glob.sysConfig.packages.filter(pack => pack.enabled);
 }
-async function loadSysConfig() {
-    let collection = await getCollection({ pack: types_1.Constants.sysPackage }, types_1.SysCollection.systemConfig);
-    exports.glob.sysConfig = await collection.findOne({});
+async function loadPackagesInfo() {
     for (const pack of getEnabledPackages()) {
         try {
-            exports.glob.packages[pack.name] = require(getAbsolutePath('./' + pack.name));
-            if (exports.glob.packages[pack.name] == null)
-                error(`Error loading package ${pack.name}!`);
+            exports.glob.packageInfo[pack.name] = require(getAbsolutePath('./' + pack.name, `package.json`));
         }
         catch (ex) {
-            error("loadSysConfig", ex);
+            error(`Loading package.json for package '${pack}' failed!`, ex);
             pack.enabled = false;
         }
     }
-    exports.glob.packageConfigs["web"] = { _: require(getAbsolutePath("./web", `package.json`)) };
-    for (const pack of exports.glob.sysConfig.staticPackages) {
-        try {
-            exports.glob.packageConfigs[pack.name] = { _: require(getAbsolutePath("./" + pack.name, `package.json`)) };
-        }
-        catch (ex) {
-            error("load staticPackages package.json file failed!", ex);
-        }
-    }
-    applyAmazonConfig();
+}
+async function loadSysConfig() {
+    let collection = await getCollection({ db: types_1.Constants.sysDb }, types_1.SysCollection.systemConfig);
+    exports.glob.sysConfig = await collection.findOne({});
 }
 function applyAmazonConfig() {
-    if (exports.glob.sysConfig.amazon) {
-        if (!exports.glob.sysConfig.amazon.accessKeyId)
-            warn('s3 accessKeyId, secretAccessKey is required in sysConfig!');
-        else
-            AWS.config.accessKeyId = exports.glob.sysConfig.amazon.accessKeyId;
-        if (!exports.glob.sysConfig.amazon.secretAccessKey)
-            warn('s3 secretAccessKe, secretAccessKey is required in sysConfig!');
-        else
-            AWS.config.secretAccessKey = exports.glob.sysConfig.amazon.secretAccessKey;
-    }
+    AWS.config.accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+    AWS.config.secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
 }
-async function loadPackageSystemCollections(packConfig) {
-    let pack = packConfig.name;
-    log(`Loading system collections package '${pack}' ...`);
-    let cn = { pack };
+async function loadPackageSystemCollections(db) {
+    log(`Loading system collections db '${db}' ...`);
+    let cn = { db };
     let objects = await get(cn, types_1.SysCollection.objects, { rawData: true });
     for (const object of objects) {
-        object._ = { pack };
+        object._ = { db };
         object.entityType = types_1.EntityType.Object;
         exports.glob.entities.push(object);
     }
     let functions = await get(cn, types_1.SysCollection.functions, { rawData: true });
     for (const func of functions) {
-        func._ = { pack };
+        func._ = { db };
         func.entityType = types_1.EntityType.Function;
         exports.glob.entities.push(func);
     }
     let config = await getOne(cn, types_1.SysCollection.packageConfig, true);
-    if (!config) {
-        packConfig.enabled = false;
-        error(`Config for package '${pack}' not found!`);
-    }
-    else {
-        exports.glob.packageConfigs[pack] = config;
-        exports.glob.packageConfigs[pack]._ = require(getAbsolutePath('./' + pack, `package.json`));
-        log(`package '${pack}' loaded. version: ${exports.glob.packageConfigs[pack]._.version}`);
-    }
+    if (config)
+        exports.glob.packageConfig[db] = config;
     let forms = await get(cn, types_1.SysCollection.forms, { rawData: true });
     for (const form of forms) {
-        form._ = { pack };
+        form._ = { db };
         form.entityType = types_1.EntityType.Form;
         exports.glob.entities.push(form);
     }
     let texts = await get(cn, types_1.SysCollection.dictionary, { rawData: true });
     for (const item of texts) {
-        exports.glob.dictionary[pack + "." + item.name] = item.text;
+        exports.glob.dictionary[db + "." + item.name] = item.text;
     }
     let menus = await get(cn, types_1.SysCollection.menus, { rawData: true });
     for (const menu of menus) {
-        menu._ = { pack };
+        menu._ = { db };
         exports.glob.menus.push(menu);
     }
     let roles = await get(cn, types_1.SysCollection.roles, { rawData: true });
     for (const role of roles) {
-        role._ = { pack };
+        role._ = { db };
         exports.glob.roles.push(role);
     }
     let drives = await get(cn, types_1.SysCollection.drives, { rawData: true });
     for (const drive of drives) {
-        drive._ = { pack };
+        drive._ = { db };
         exports.glob.drives.push(drive);
     }
+}
+function onlyUnique(value, index, self) {
+    return self.indexOf(value) === index;
+}
+exports.onlyUnique = onlyUnique;
+function enabledDbs() {
+    let dbs = exports.glob.sysConfig.packages.filter(pack => pack.enabled && exports.glob.packageInfo[pack.name].mina).map(pack => exports.glob.packageInfo[pack.name].mina.db).filter(onlyUnique);
+    return dbs;
 }
 async function loadSystemCollections() {
     exports.glob.entities = [];
@@ -775,13 +785,13 @@ async function loadSystemCollections() {
     exports.glob.menus = [];
     exports.glob.roles = [];
     exports.glob.drives = [];
-    for (const packConfig of getEnabledPackages()) {
+    exports.glob.apps = [];
+    for (const db of enabledDbs()) {
         try {
-            await loadPackageSystemCollections(packConfig);
+            await loadPackageSystemCollections(db);
         }
         catch (err) {
             error("loadSystemCollections", err);
-            packConfig.enabled = false;
         }
     }
 }
@@ -848,7 +858,7 @@ function initializeRoles() {
 exports.initializeRoles = initializeRoles;
 function checkAppMenu(app) {
     if (!app.menu)
-        app.menu = exports.glob.menus.find(menu => menu._.pack == app._.pack);
+        app.menu = exports.glob.menus.find(menu => menu._.db == app._.db);
     if (!app.menu)
         warn(`Menu for app '${app.title}' not found!`);
 }
@@ -865,24 +875,21 @@ function templateRender(pack, template) {
 }
 function initializePackages() {
     log(`initializePackages: ${exports.glob.sysConfig.packages.map(p => p.name).join(' , ')}`);
-    exports.glob.apps = [];
-    let sysTemplate = exports.glob.packageConfigs[types_1.Constants.sysPackage].apps[0].template;
-    let sysTemplateRender = templateRender(types_1.Constants.sysPackage, sysTemplate);
-    for (const pack of getEnabledPackages()) {
-        let config = exports.glob.packageConfigs[pack.name];
+    let sysTemplate = exports.glob.packageConfig[types_1.Constants.sysDb].apps[0].template;
+    let sysTemplateRender = templateRender(types_1.Constants.sysDb, sysTemplate);
+    for (const db of enabledDbs()) {
+        let config = exports.glob.packageConfig[db];
         for (const app of (config.apps || [])) {
-            app._ = { pack: pack.name };
+            app._ = { db };
             app.dependencies = app.dependencies || [];
-            app.dependencies.push(types_1.Constants.sysPackage);
+            app.dependencies.push(types_1.Constants.sysDb);
             if (app.template)
-                app._.templateRender = templateRender(pack, app.template);
+                app._.templateRender = templateRender(db, app.template);
             else
                 app._.templateRender = sysTemplateRender;
             checkAppMenu(app);
-            if (validateApp(pack.name, app)) {
+            if (validateApp(db, app)) {
                 exports.glob.apps.push(app);
-                let hosts = exports.glob.sysConfig.hosts.filter(host => host.app && app._id.equals(host.app));
-                hosts.forEach(host => host.app = app);
             }
         }
     }
@@ -894,7 +901,7 @@ function checkPropertyGtype(prop, entity) {
             return;
         }
         else {
-            warn(`property '${entity._.pack}.${entity.name}.${prop.name}' type is empty!`);
+            warn(`property '${entity._.db}.${entity.name}.${prop.name}' type is empty!`);
             return;
         }
     }
@@ -964,7 +971,7 @@ function checkPropertyGtype(prop, entity) {
     }
 }
 async function dbConnection(cn, connectionString) {
-    let key = cn.pack + ":" + connectionString;
+    let key = cn.db + ":" + connectionString;
     if (exports.glob.dbs[key])
         return exports.glob.dbs[key];
     connectionString = connectionString || process.env.DB_ADDRESS;
@@ -978,12 +985,12 @@ async function dbConnection(cn, connectionString) {
         });
         if (!dbc)
             return null;
-        return exports.glob.dbs[key] = dbc.db(cn.pack);
+        return exports.glob.dbs[key] = dbc.db(cn.db);
     }
     catch (e) {
         error(e.stack);
-        error(`db '${cn.pack}' connection failed [${connectionString}]`);
-        throw `connecting to db '${cn.pack}' failed`;
+        error(`db '${cn.db}' connection failed [${connectionString}]`);
+        throw `connecting to db '${cn.db}' failed`;
     }
 }
 exports.dbConnection = dbConnection;
@@ -999,10 +1006,10 @@ function findEntity(id) {
     return exports.glob.entities.find(a => a._id.equals(id));
 }
 exports.findEntity = findEntity;
-function findObject(pack, objectName) {
-    if (typeof pack != "string")
-        pack = pack.pack;
-    return exports.glob.entities.find(a => a._.pack == pack && a.name == objectName && a.entityType == types_1.EntityType.Object);
+function findObject(db, objectName) {
+    if (typeof db != "string")
+        db = db.db;
+    return exports.glob.entities.find(a => a._.db == db && a.name == objectName && a.entityType == types_1.EntityType.Object);
 }
 exports.findObject = findObject;
 async function initializeEnums() {
@@ -1010,9 +1017,9 @@ async function initializeEnums() {
     exports.glob.enums = [];
     exports.glob.enumTexts = {};
     for (const pack of getEnabledPackages()) {
-        let enums = await get({ pack: pack.name }, types_1.SysCollection.enums, { rawData: true });
+        let enums = await get({ db: pack.name }, types_1.SysCollection.enums, { rawData: true });
         for (const theEnum of enums) {
-            theEnum._ = { pack: pack.name };
+            theEnum._ = { db: pack.name };
             exports.glob.enums.push(theEnum);
             let texts = {};
             _.sortBy(theEnum.items, types_1.Constants.indexProperty).forEach(item => texts[item.value] = item.title || item.name);
@@ -1023,11 +1030,11 @@ async function initializeEnums() {
 exports.initializeEnums = initializeEnums;
 function allObjects(cn) {
     let ss = exports.glob.entities.filter(en => !en._);
-    return exports.glob.entities.filter(en => en.entityType == types_1.EntityType.Object && (!cn || containsPack(cn, en._.pack)));
+    return exports.glob.entities.filter(en => en.entityType == types_1.EntityType.Object && (!cn || containsPack(cn, en._.db)));
 }
 exports.allObjects = allObjects;
 function allFunctions(cn) {
-    return exports.glob.entities.filter(en => en.entityType == types_1.EntityType.Function && (!cn || containsPack(cn, en._.pack)));
+    return exports.glob.entities.filter(en => en.entityType == types_1.EntityType.Function && (!cn || containsPack(cn, en._.db)));
 }
 exports.allFunctions = allFunctions;
 async function initializeEntities() {
@@ -1039,10 +1046,10 @@ async function initializeEntities() {
     for (const obj of allObjs) {
         initObject(obj);
     }
-    for (const pack of getEnabledPackages()) {
-        let config = exports.glob.packageConfigs[pack.name];
-        let obj = findObject(pack.name, types_1.SysCollection.packageConfig);
-        await makeObjectReady({ pack: pack.name }, obj.properties, config);
+    for (const db of enabledDbs()) {
+        let config = exports.glob.packageConfig[db];
+        let obj = findObject(db, types_1.SysCollection.packageConfig);
+        await makeObjectReady({ db }, obj.properties, config);
         for (const app of config.apps) {
             app._.loginForm = types_1.Constants.defaultLoginUri;
             if (app.loginForm) {
@@ -1056,11 +1063,11 @@ async function initializeEntities() {
     for (const func of allFunctions(null)) {
         try {
             func._.access = {};
-            func._.access[func._.pack] = func.access;
+            func._.access[func._.db] = func.access;
             initProperties(func.properties, func, func.title);
         }
         catch (ex) {
-            error("Init functions, Module: " + func._.pack + ", Action: " + func.name, ex);
+            error("Init functions, Module: " + func._.db + ", Action: " + func.name, ex);
         }
     }
 }
@@ -1069,10 +1076,10 @@ function checkFileProperty(prop, entity) {
         if (prop.file && prop.file.drive) {
             prop.file.drive = exports.glob.drives.find(d => d._id.equals(prop.file.drive));
             if (!prop.file.drive)
-                error(`drive for property file '${entity._.pack}.${entity.name}.${prop.name}' not found.`);
+                error(`drive for property file '${entity._.db}.${entity.name}.${prop.name}' not found.`);
         }
         else if (entity.entityType == types_1.EntityType.Object)
-            error(`drive for property file '${entity._.pack}.${entity.name}.${prop.name}' must be set.`);
+            error(`drive for property file '${entity._.db}.${entity.name}.${prop.name}' must be set.`);
     }
 }
 function checkForSystemProperty(prop) {
@@ -1104,12 +1111,12 @@ function initObject(obj) {
         obj.properties = obj.properties || [];
         obj._.autoSetInsertTime = _.some(obj.properties, { name: types_1.SystemProperty.time });
         obj._.access = {};
-        obj._.access[obj._.pack] = obj.access;
+        obj._.access[obj._.db] = obj.access;
         initProperties(obj.properties, obj);
         if (obj.reference) {
             let referenceObj = findEntity(obj.reference);
             if (!referenceObj)
-                return warn(`SimilarObject in service '${obj._.pack}' not found for object: '${obj.title}', SimilarReference:${obj.reference}`);
+                return warn(`SimilarObject in service '${obj._.db}' not found for object: '${obj.title}', SimilarReference:${obj.reference}`);
             initObject(referenceObj);
             _.defaultsDeep(obj, referenceObj);
             compareParentProperties(obj.properties, referenceObj.properties, obj);
@@ -1121,7 +1128,7 @@ function initObject(obj) {
         }
     }
     catch (ex) {
-        error(`initObject, Error in object ${obj._.pack}.${obj.name}`, ex);
+        error(`initObject, Error in object ${obj._.db}.${obj.name}`, ex);
     }
 }
 exports.initObject = initObject;
@@ -1131,7 +1138,7 @@ function checkPropertyReference(property, entity) {
         if (!propertyParentObject) {
             if (property._.gtype == types_1.GlobalType.object)
                 return;
-            return error(`Property '${entity._.pack}.${entity.name}.${property.name}' type '${property.type}' not found.`);
+            return error(`Property '${entity._.db}.${entity.name}.${property.name}' type '${property.type}' not found.`);
         }
         initObject(propertyParentObject);
         property.properties = property.properties || [];
@@ -1196,7 +1203,7 @@ function getText(cn, text, useDictionary) {
     if (!text)
         return "";
     if (typeof text == "string" && useDictionary)
-        text = exports.glob.dictionary[cn.pack + "." + text] || exports.glob.dictionary["sys." + text] || text;
+        text = exports.glob.dictionary[cn.db + "." + text] || exports.glob.dictionary["sys." + text] || text;
     if (typeof text == "string")
         return text;
     let localeName = types_1.Locale[cn.locale];
@@ -1267,14 +1274,14 @@ function getAllFiles(path) {
     }));
 }
 exports.getAllFiles = getAllFiles;
-function getPackageConfig(pack) {
-    let config = exports.glob.packageConfigs[pack];
+function getPackageInfo(pack) {
+    let config = exports.glob.packageInfo[pack];
     if (!config)
         throw `config for package '${pack}' not found.`;
-    config._ = require(getAbsolutePath('./' + pack, `package.json`));
+    config = require(getAbsolutePath('./' + pack, `package.json`));
     return config;
 }
-exports.getPackageConfig = getPackageConfig;
+exports.getPackageInfo = getPackageInfo;
 function getPathSize(path) {
     let files = getAllFiles(path);
     let totalSize = 0;
@@ -1366,15 +1373,15 @@ function parseDate(loc, date) {
 exports.parseDate = parseDate;
 async function getTypes(cn) {
     let objects = allObjects(cn).map(ent => {
-        let title = getText(cn, ent.title) + (cn.pack == ent._.pack ? "" : " (" + ent._.pack + ")");
+        let title = getText(cn, ent.title) + (cn.db == ent._.db ? "" : " (" + ent._.db + ")");
         return Object.assign(Object.assign({}, ent), { title });
     });
     let functions = allFunctions(cn).map(ent => {
-        let title = getText(cn, ent.title) + (cn.pack == ent._.pack ? "" : " (" + ent._.pack + ")");
+        let title = getText(cn, ent.title) + (cn.db == ent._.db ? "" : " (" + ent._.db + ")");
         return Object.assign(Object.assign({}, ent), { title });
     });
-    let enums = exports.glob.enums.filter(en => containsPack(cn, en._.pack)).map(ent => {
-        let title = getText(cn, ent.title) + (cn.pack == ent._.pack ? "" : " (" + ent._.pack + ")");
+    let enums = exports.glob.enums.filter(en => containsPack(cn, en._.db)).map(ent => {
+        let title = getText(cn, ent.title) + (cn.db == ent._.db ? "" : " (" + ent._.db + ")");
         return Object.assign(Object.assign({}, ent), { title });
     });
     let types = objects.concat(functions, enums);
@@ -1389,13 +1396,13 @@ async function getTypes(cn) {
 }
 exports.getTypes = getTypes;
 function containsPack(cn, pack) {
-    return pack == cn.pack || cn["app"].dependencies.indexOf(pack) > -1;
+    return pack == cn.db || cn["app"].dependencies.indexOf(pack) > -1;
 }
 exports.containsPack = containsPack;
 async function getAllEntities(cn) {
-    let entities = exports.glob.entities.filter(en => containsPack(cn, en._.pack));
+    let entities = exports.glob.entities.filter(en => containsPack(cn, en._.db));
     entities = entities.map(ent => {
-        let title = getText(cn, ent.title) + (cn.pack == ent._.pack ? "" : " (" + ent._.pack + ")");
+        let title = getText(cn, ent.title) + (cn.db == ent._.db ? "" : " (" + ent._.db + ")");
         return Object.assign(Object.assign({}, ent), { title });
     });
     entities = _.orderBy(entities, ['title']);
@@ -1404,7 +1411,7 @@ async function getAllEntities(cn) {
 exports.getAllEntities = getAllEntities;
 async function getDataEntities(cn) {
     let entities = exports.glob.entities.filter(e => e.entityType == types_1.EntityType.Function || e.entityType == types_1.EntityType.Object).map(ent => {
-        let title = getText(cn, ent.title) + (cn.pack == ent._.pack ? "" : " (" + ent._.pack + ")");
+        let title = getText(cn, ent.title) + (cn.db == ent._.db ? "" : " (" + ent._.db + ")");
         return Object.assign(Object.assign({}, ent), { title });
     });
     entities = _.orderBy(entities, ['title']);
@@ -1524,7 +1531,7 @@ async function getPropertyReferenceValues(cn, prop, instance) {
         throw types_1.StatusCode.NotFound;
     }
     if (entity.entityType == types_1.EntityType.Object) {
-        let result = await get({ pack: cn.pack }, entity.name, { count: 10, rawData: true });
+        let result = await get({ db: cn.db }, entity.name, { count: 10, rawData: true });
         if (result) {
             return result.map(item => {
                 return { ref: item._id, title: getText(cn, item.title) };
@@ -1562,7 +1569,7 @@ function mockCheckMatchInput(cn, func, args, sample) {
     return true;
 }
 async function mock(cn, func, args) {
-    log(`mocking function '${cn.pack}.${func.name}' ...`);
+    log(`mocking function '${cn.db}.${func.name}' ...`);
     if (!func.test.samples || !func.test.samples.length)
         return { code: types_1.StatusCode.Ok, message: "No sample data!" };
     let withInputs = func.test.samples.filter(sample => sample.input);
@@ -1620,9 +1627,9 @@ async function invokeFuncMakeArgsReady(cn, func, action, args) {
         if (prop._.isRef && !prop._.enum && prop.viewMode != types_1.PropertyViewMode.Hidden && isID(val)) {
             let refObj = findEntity(prop.type);
             if (!refObj)
-                throwError(types_1.StatusCode.UnprocessableEntity, `referred object for property '${cn.pack}.${prop.name}' not found!`);
+                throwError(types_1.StatusCode.UnprocessableEntity, `referred object for property '${cn.db}.${prop.name}' not found!`);
             if (refObj.entityType == types_1.EntityType.Object)
-                argData[prop.name] = await get({ pack: cn.pack }, refObj.name, { itemId: val, rawData: true });
+                argData[prop.name] = await get({ db: cn.db }, refObj.name, { itemId: val, rawData: true });
             else if (refObj.entityType == types_1.EntityType.Function) {
             }
         }
@@ -1633,13 +1640,13 @@ async function invoke(cn, func, args) {
     if (func.test && func.test.mock && process.env.NODE_ENV == types_1.EnvMode.Development && cn.url.pathname != "/functionTest") {
         return await mock(cn, func, args);
     }
-    let pathPath = getAbsolutePath('./' + func._.pack);
+    let pathPath = getAbsolutePath('./' + func._.db);
     let action = require(pathPath)[func.name];
     if (!action) {
-        if (func._.pack == types_1.Constants.sysPackage)
+        if (func._.db == types_1.Constants.sysDb)
             action = require(getAbsolutePath(`./web/src/web`))[func.name];
         if (!action) {
-            let app = exports.glob.apps.find(app => app._.pack == cn.pack);
+            let app = exports.glob.apps.find(app => app._.db == cn.db);
             for (const pack of app.dependencies) {
                 action = require(pathPath)[func.name];
                 if (action)
