@@ -58,9 +58,8 @@ export class AuditType {
 
 export class Global {
     postClientCommandCallback: (cn: Context, ...args: any[]) => void;
-    sysConfig: SystemConfig;
     dbs: { [packAndCs: string]: any } = {}; // any not mongodb.Db because of client side reference
-    packages: { [pack: string]: any } = {};
+    packages: Package[];
     packageInfo: { [pack: string]: PackageInfo; } = {};
     packageConfig: { [db: string]: PackageConfig; } = {};
     clientQuestionCallbacks: { [sessionId: string]: (answer: number | null) => void; } = {};
@@ -71,7 +70,8 @@ export class Global {
     timeZones: TimeZone[];
     dictionary: { [id: string]: string | MultilangText };
     menus: Menu[];
-    apps: App[] = [];
+    apps: App[];
+    hosts: Host[];
     enums: Enum[];
     enumTexts: { [id: string]: any; };
     systemProperties: Property[];
@@ -110,7 +110,7 @@ export class mObject extends Entity implements IProperties {
     detailsViewType: ObjectDetailsViewType;
     listsViewType: ObjectListsViewType;
     _: {
-        access?: { [id: string]: Access; };
+        access?: { [db: string]: Access; };
         db: string;
         autoSetInsertTime?: boolean;
         inited?: boolean;
@@ -449,7 +449,7 @@ export class App {
     }
 }
 
-export class SystemConfigPackage {
+export class Package {
     name: string;
     enabled: boolean;
 }
@@ -467,14 +467,10 @@ export class Host {
     drive?: ID;
     vars: { name: string, value: string }[];
     _: {
+        db: string;
         app?: App;
         drive?: Drive;
     }
-}
-
-export class SystemConfig {
-    packages: SystemConfigPackage[];
-    hosts: Host[];
 }
 
 export class Enum {
@@ -838,7 +834,8 @@ export enum SysCollection {
     functions = "functions",
     roles = "roles",
     packageConfig = "packageConfig",
-    systemConfig = "systemConfig",
+    packages = "packages",
+    hosts = "hosts",
     menus = "menus",
     drives = "drives",
     forms = "forms",

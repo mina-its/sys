@@ -25,8 +25,7 @@ const { exec } = require("child_process");
 exports.glob = new types_1.Global();
 const fsPromises = fs.promises;
 async function initHosts() {
-    for (const host of exports.glob.sysConfig.hosts) {
-        host._ = {};
+    for (const host of exports.glob.hosts) {
         if (host.drive) {
             let drive = exports.glob.drives.find(d => d._id.equals(host.drive));
             if (drive) {
@@ -49,7 +48,7 @@ async function initHosts() {
 async function reload(cn) {
     let startTime = moment();
     log(`reload ...`);
-    await loadSysConfig();
+    await loadPackagesList();
     await loadPackagesInfo();
     await applyAmazonConfig();
     await loadSystemCollections();
@@ -706,7 +705,7 @@ async function loadAuditTypes() {
     exports.glob.auditTypes = await get({ db: types_1.Constants.sysDb }, types_1.SysCollection.auditTypes, { rawData: true });
 }
 function getEnabledPackages() {
-    return exports.glob.sysConfig.packages.filter(pack => pack.enabled);
+    return exports.glob.packages.filter(pack => pack.enabled);
 }
 async function loadPackagesInfo() {
     for (const pack of getEnabledPackages()) {
@@ -719,9 +718,9 @@ async function loadPackagesInfo() {
         }
     }
 }
-async function loadSysConfig() {
-    let collection = await getCollection({ db: types_1.Constants.sysDb }, types_1.SysCollection.systemConfig);
-    exports.glob.sysConfig = await collection.findOne({});
+async function loadPackagesList() {
+    let collection = await getCollection({ db: types_1.Constants.sysDb }, types_1.SysCollection.packages);
+    exports.glob.packages = await collection.find().toArray();
 }
 function applyAmazonConfig() {
     AWS.config.accessKeyId = process.env.AWS_ACCESS_KEY_ID;
@@ -730,6 +729,11 @@ function applyAmazonConfig() {
 async function loadPackageSystemCollections(db) {
     log(`Loading system collections db '${db}' ...`);
     let cn = { db };
+    let hosts = await get(cn, types_1.SysCollection.hosts, { rawData: true });
+    for (const host of hosts) {
+        host._ = { db };
+        exports.glob.hosts.push(host);
+    }
     let objects = await get(cn, types_1.SysCollection.objects, { rawData: true });
     for (const object of objects) {
         object._ = { db };
@@ -776,7 +780,7 @@ function onlyUnique(value, index, self) {
 }
 exports.onlyUnique = onlyUnique;
 function enabledDbs() {
-    let dbs = exports.glob.sysConfig.packages.filter(pack => pack.enabled && exports.glob.packageInfo[pack.name].mina).map(pack => exports.glob.packageInfo[pack.name].mina.db).filter(onlyUnique);
+    let dbs = exports.glob.packages.filter(pack => pack.enabled && exports.glob.packageInfo[pack.name].mina).map(pack => exports.glob.packageInfo[pack.name].mina.db).filter(onlyUnique);
     return dbs;
 }
 async function loadSystemCollections() {
@@ -786,6 +790,7 @@ async function loadSystemCollections() {
     exports.glob.roles = [];
     exports.glob.drives = [];
     exports.glob.apps = [];
+    exports.glob.hosts = [];
     for (const db of enabledDbs()) {
         try {
             await loadPackageSystemCollections(db);
@@ -874,7 +879,7 @@ function templateRender(pack, template) {
     }
 }
 function initializePackages() {
-    log(`initializePackages: ${exports.glob.sysConfig.packages.map(p => p.name).join(' , ')}`);
+    log(`initializePackages: ${exports.glob.packages.map(p => p.name).join(' , ')}`);
     let sysTemplate = exports.glob.packageConfig[types_1.Constants.sysDb].apps[0].template;
     let sysTemplateRender = templateRender(types_1.Constants.sysDb, sysTemplate);
     for (const db of enabledDbs()) {
@@ -1640,11 +1645,9 @@ async function invoke(cn, func, args) {
     if (func.test && func.test.mock && process.env.NODE_ENV == types_1.EnvMode.Development && cn.url.pathname != "/functionTest") {
         return await mock(cn, func, args);
     }
-    let pathPath = getAbsolutePath('./' + func._.db);
+    let pathPath = getAbsolutePath('./' + (func.pack == "web" ? "web/src/web" : func.pack));
     let action = require(pathPath)[func.name];
     if (!action) {
-        if (func._.db == types_1.Constants.sysDb)
-            action = require(getAbsolutePath(`./web/src/web`))[func.name];
         if (!action) {
             let app = exports.glob.apps.find(app => app._.db == cn.db);
             for (const pack of app.dependencies) {

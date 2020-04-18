@@ -62,11 +62,11 @@ import {
     StatusCode,
     SysAuditTypes,
     SysCollection,
-    SystemConfigPackage,
+    Package,
     SystemProperty,
     Text,
     UploadedFile,
-    PackageConfig,
+    PackageConfig, Host,
 } from './types';
 
 const assert = require('assert').strict;
@@ -76,8 +76,7 @@ export let glob = new Global();
 const fsPromises = fs.promises;
 
 async function initHosts() {
-    for (const host of glob.sysConfig.hosts) {
-        host._ = {};
+    for (const host of glob.hosts) {
         if (host.drive) {
             let drive = glob.drives.find(d => d._id.equals(host.drive));
             if (drive) {
@@ -99,7 +98,7 @@ export async function reload(cn?: Context) {
     let startTime = moment();
     log(`reload ...`);
 
-    await loadSysConfig();
+    await loadPackagesList();
     await loadPackagesInfo();
     await applyAmazonConfig();
     await loadSystemCollections();
@@ -815,8 +814,8 @@ async function loadAuditTypes() {
     glob.auditTypes = await get({db: Constants.sysDb} as Context, SysCollection.auditTypes, {rawData: true});
 }
 
-function getEnabledPackages(): SystemConfigPackage[] {
-    return glob.sysConfig.packages.filter(pack => pack.enabled);
+function getEnabledPackages(): Package[] {
+    return glob.packages.filter(pack => pack.enabled);
 }
 
 async function loadPackagesInfo() {
@@ -833,9 +832,9 @@ async function loadPackagesInfo() {
     }
 }
 
-async function loadSysConfig() {
-    let collection = await getCollection({db: Constants.sysDb} as Context, SysCollection.systemConfig);
-    glob.sysConfig = await collection.findOne({});
+async function loadPackagesList() {
+    let collection = await getCollection({db: Constants.sysDb} as Context, SysCollection.packages);
+    glob.packages = await collection.find().toArray();
 }
 
 function applyAmazonConfig() {
@@ -846,6 +845,12 @@ function applyAmazonConfig() {
 async function loadPackageSystemCollections(db: string) {
     log(`Loading system collections db '${db}' ...`);
     let cn = {db} as Context;
+
+    let hosts: Host[] = await get(cn, SysCollection.hosts, {rawData: true});
+    for (const host of hosts) {
+        host._ = {db};
+        glob.hosts.push(host);
+    }
 
     let objects: mObject[] = await get(cn, SysCollection.objects, {rawData: true});
     for (const object of objects) {
@@ -901,7 +906,7 @@ export function onlyUnique(value, index, self) {
 }
 
 function enabledDbs() {
-    let dbs = glob.sysConfig.packages.filter(pack => pack.enabled && glob.packageInfo[pack.name].mina).map(pack => glob.packageInfo[pack.name].mina.db).filter(onlyUnique);
+    let dbs = glob.packages.filter(pack => pack.enabled && glob.packageInfo[pack.name].mina).map(pack => glob.packageInfo[pack.name].mina.db).filter(onlyUnique);
     return dbs;
 }
 
@@ -912,6 +917,7 @@ async function loadSystemCollections() {
     glob.roles = [];
     glob.drives = [];
     glob.apps = [];
+    glob.hosts = [];
 
     for (const db of enabledDbs()) {
         try {
@@ -1011,7 +1017,7 @@ function templateRender(pack, template) {
 }
 
 function initializePackages() {
-    log(`initializePackages: ${glob.sysConfig.packages.map(p => p.name).join(' , ')}`);
+    log(`initializePackages: ${glob.packages.map(p => p.name).join(' , ')}`);
 
     let sysTemplate = glob.packageConfig[Constants.sysDb].apps[0].template;
     let sysTemplateRender = templateRender(Constants.sysDb, sysTemplate);
@@ -1847,11 +1853,9 @@ export async function invoke(cn: Context, func: Function, args: any[]) {
         return await mock(cn, func, args);
     }
 
-    let pathPath = getAbsolutePath('./' + func._.db);
+    let pathPath = getAbsolutePath('./' + (func.pack == "web" ? "web/src/web" : func.pack));
     let action = require(pathPath)[func.name];
     if (!action) {
-        if (func._.db == Constants.sysDb)
-            action = require(getAbsolutePath(`./web/src/web`))[func.name];
         if (!action) {
             let app = glob.apps.find(app => app._.db == cn.db);
             for (const pack of app.dependencies) {

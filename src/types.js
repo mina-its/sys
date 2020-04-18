@@ -18,12 +18,10 @@ class AuditType {
 exports.AuditType = AuditType;
 class Global {
     constructor() {
-        this.dbs = {};
-        this.packages = {};
+        this.dbs = {}; // any not mongodb.Db because of client side reference
         this.packageInfo = {};
         this.packageConfig = {};
         this.clientQuestionCallbacks = {};
-        this.apps = [];
     }
 }
 exports.Global = Global;
@@ -116,18 +114,15 @@ exports.Pair = Pair;
 class App {
 }
 exports.App = App;
-class SystemConfigPackage {
+class Package {
 }
-exports.SystemConfigPackage = SystemConfigPackage;
+exports.Package = Package;
 class SystemConfigStaticPackage {
 }
 exports.SystemConfigStaticPackage = SystemConfigStaticPackage;
 class Host {
 }
 exports.Host = Host;
-class SystemConfig {
-}
-exports.SystemConfig = SystemConfig;
 class Enum {
 }
 exports.Enum = Enum;
@@ -235,6 +230,7 @@ var PanelType;
 (function (PanelType) {
     PanelType[PanelType["Stack"] = 1] = "Stack";
     PanelType[PanelType["Dock"] = 2] = "Dock";
+    // Grid = 3,
     PanelType[PanelType["Wrap"] = 4] = "Wrap";
     PanelType[PanelType["Flex"] = 5] = "Flex";
     PanelType[PanelType["Modal"] = 6] = "Modal";
@@ -431,7 +427,8 @@ var SysCollection;
     SysCollection["functions"] = "functions";
     SysCollection["roles"] = "roles";
     SysCollection["packageConfig"] = "packageConfig";
-    SysCollection["systemConfig"] = "systemConfig";
+    SysCollection["packages"] = "packages";
+    SysCollection["hosts"] = "hosts";
     SysCollection["menus"] = "menus";
     SysCollection["drives"] = "drives";
     SysCollection["forms"] = "forms";
