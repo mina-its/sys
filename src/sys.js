@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 let index = {
-    "Load Packages package.json file                  ": loadPackagesInfo,
+    "Start                                              ": reload,
+    "Load Packages package.json file                    ": loadPackagesInfo,
 };
 const logger = require("winston");
 const mongodb = require("mongodb");
@@ -48,7 +49,7 @@ async function initHosts() {
 async function reload(cn) {
     let startTime = moment();
     log(`reload ...`);
-    await loadPackagesList();
+    await loadSystemConfig();
     await loadPackagesInfo();
     await applyAmazonConfig();
     await loadSystemCollections();
@@ -705,22 +706,22 @@ async function loadAuditTypes() {
     exports.glob.auditTypes = await get({ db: types_1.Constants.sysDb }, types_1.SysCollection.auditTypes, { rawData: true });
 }
 function getEnabledPackages() {
-    return exports.glob.packages.filter(pack => pack.enabled);
+    return exports.glob.systemConfig.packages.filter(pack => pack.enabled).map(pack => pack.name);
 }
 async function loadPackagesInfo() {
     for (const pack of getEnabledPackages()) {
         try {
-            exports.glob.packageInfo[pack.name] = require(getAbsolutePath('./' + pack.name, `package.json`));
+            exports.glob.packageInfo[pack] = require(getAbsolutePath('./' + pack, `package.json`));
         }
         catch (ex) {
             error(`Loading package.json for package '${pack}' failed!`, ex);
-            pack.enabled = false;
+            exports.glob.systemConfig.packages.find(p => p.name == pack).enabled = false;
         }
     }
 }
-async function loadPackagesList() {
-    let collection = await getCollection({ db: types_1.Constants.sysDb }, types_1.SysCollection.packages);
-    exports.glob.packages = await collection.find().toArray();
+async function loadSystemConfig() {
+    let collection = await getCollection({ db: types_1.Constants.sysDb }, types_1.SysCollection.systemConfig);
+    exports.glob.systemConfig = await collection.findOne({});
 }
 function applyAmazonConfig() {
     AWS.config.accessKeyId = process.env.AWS_ACCESS_KEY_ID;
@@ -780,8 +781,7 @@ function onlyUnique(value, index, self) {
 }
 exports.onlyUnique = onlyUnique;
 function enabledDbs() {
-    let dbs = exports.glob.packages.filter(pack => pack.enabled && exports.glob.packageInfo[pack.name].mina).map(pack => exports.glob.packageInfo[pack.name].mina.db).filter(onlyUnique);
-    return dbs;
+    return exports.glob.systemConfig.dbs.filter(db => db.enabled).map(db => db.name);
 }
 async function loadSystemCollections() {
     exports.glob.entities = [];
@@ -879,7 +879,7 @@ function templateRender(pack, template) {
     }
 }
 function initializePackages() {
-    log(`initializePackages: ${exports.glob.packages.map(p => p.name).join(' , ')}`);
+    log(`initializePackages: ${exports.glob.systemConfig.packages.map(p => p.name).join(' , ')}`);
     let sysTemplate = exports.glob.packageConfig[types_1.Constants.sysDb].apps[0].template;
     let sysTemplateRender = templateRender(types_1.Constants.sysDb, sysTemplate);
     for (const db of enabledDbs()) {
@@ -1021,14 +1021,14 @@ async function initializeEnums() {
     log('initializeEnums ...');
     exports.glob.enums = [];
     exports.glob.enumTexts = {};
-    for (const pack of getEnabledPackages()) {
-        let enums = await get({ db: pack.name }, types_1.SysCollection.enums, { rawData: true });
+    for (const db of enabledDbs()) {
+        let enums = await get({ db }, types_1.SysCollection.enums, { rawData: true });
         for (const theEnum of enums) {
-            theEnum._ = { db: pack.name };
+            theEnum._ = { db };
             exports.glob.enums.push(theEnum);
             let texts = {};
             _.sortBy(theEnum.items, types_1.Constants.indexProperty).forEach(item => texts[item.value] = item.title || item.name);
-            exports.glob.enumTexts[pack.name + "." + theEnum.name] = texts;
+            exports.glob.enumTexts[db + "." + theEnum.name] = texts;
         }
     }
 }

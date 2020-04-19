@@ -114,9 +114,6 @@ exports.Pair = Pair;
 class App {
 }
 exports.App = App;
-class Package {
-}
-exports.Package = Package;
 class SystemConfigStaticPackage {
 }
 exports.SystemConfigStaticPackage = SystemConfigStaticPackage;
@@ -141,6 +138,9 @@ exports.EmailAccount = EmailAccount;
 class PackageConfig {
 }
 exports.PackageConfig = PackageConfig;
+class SystemConfig {
+}
+exports.SystemConfig = SystemConfig;
 class PackageInfo {
 }
 exports.PackageInfo = PackageInfo;
@@ -427,7 +427,7 @@ var SysCollection;
     SysCollection["functions"] = "functions";
     SysCollection["roles"] = "roles";
     SysCollection["packageConfig"] = "packageConfig";
-    SysCollection["packages"] = "packages";
+    SysCollection["systemConfig"] = "systemConfig";
     SysCollection["hosts"] = "hosts";
     SysCollection["menus"] = "menus";
     SysCollection["drives"] = "drives";

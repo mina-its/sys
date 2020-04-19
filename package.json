@@ -53,6 +53,5 @@
     "xmlbuilder": "^13.0.2"
   },
   "mina": {
-    "db": "sys"
   }
 }

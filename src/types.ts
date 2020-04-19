@@ -59,7 +59,7 @@ export class AuditType {
 export class Global {
     postClientCommandCallback: (cn: Context, ...args: any[]) => void;
     dbs: { [packAndCs: string]: any } = {}; // any not mongodb.Db because of client side reference
-    packages: Package[];
+    systemConfig: SystemConfig;
     packageInfo: { [pack: string]: PackageInfo; } = {};
     packageConfig: { [db: string]: PackageConfig; } = {};
     clientQuestionCallbacks: { [sessionId: string]: (answer: number | null) => void; } = {};
@@ -449,11 +449,6 @@ export class App {
     }
 }
 
-export class Package {
-    name: string;
-    enabled: boolean;
-}
-
 export class SystemConfigStaticPackage {
     _id: ID;
     name: string;
@@ -524,6 +519,17 @@ export class PackageConfig {
     addressRules: PackageAddressRule[];
 }
 
+export class SystemConfig {
+    dbs: {
+        name: string;
+        enabled: boolean;
+    }[];
+    packages: {
+        name: string;
+        enabled: boolean;
+    }[];
+}
+
 export class PackageInfo {
     version: string;
     repository: string;
@@ -531,7 +537,6 @@ export class PackageInfo {
         dependencies: [(pack: string) => string];
         packageType: PackageType;
         version: string;
-        db: string;
     }
 }
 
@@ -835,7 +840,7 @@ export enum SysCollection {
     functions = "functions",
     roles = "roles",
     packageConfig = "packageConfig",
-    packages = "packages",
+    systemConfig = "systemConfig",
     hosts = "hosts",
     menus = "menus",
     drives = "drives",

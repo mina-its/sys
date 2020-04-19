@@ -1,5 +1,6 @@
 let index = {
-    "Load Packages package.json file                  ": loadPackagesInfo,
+    "Start                                              ": reload,
+    "Load Packages package.json file                    ": loadPackagesInfo,
 };
 
 
@@ -62,7 +63,6 @@ import {
     StatusCode,
     SysAuditTypes,
     SysCollection,
-    Package,
     SystemProperty,
     Text,
     UploadedFile,
@@ -98,7 +98,7 @@ export async function reload(cn?: Context) {
     let startTime = moment();
     log(`reload ...`);
 
-    await loadPackagesList();
+    await loadSystemConfig();
     await loadPackagesInfo();
     await applyAmazonConfig();
     await loadSystemCollections();
@@ -814,27 +814,27 @@ async function loadAuditTypes() {
     glob.auditTypes = await get({db: Constants.sysDb} as Context, SysCollection.auditTypes, {rawData: true});
 }
 
-function getEnabledPackages(): Package[] {
-    return glob.packages.filter(pack => pack.enabled);
+function getEnabledPackages(): string[] {
+    return glob.systemConfig.packages.filter(pack => pack.enabled).map(pack => pack.name);
 }
 
 async function loadPackagesInfo() {
     for (const pack of getEnabledPackages()) {
         try {
-            glob.packageInfo[pack.name] = require(getAbsolutePath('./' + pack.name, `package.json`));
+            glob.packageInfo[pack] = require(getAbsolutePath('./' + pack, `package.json`));
             // glob.packages[pack.name] = require(getAbsolutePath('./' + pack.name));
             // if (glob.packages[pack.name] == null)
             //     error(`Error loading package ${pack.name}!`);
         } catch (ex) {
             error(`Loading package.json for package '${pack}' failed!`, ex);
-            pack.enabled = false;
+            glob.systemConfig.packages.find(p => p.name == pack).enabled = false;
         }
     }
 }
 
-async function loadPackagesList() {
-    let collection = await getCollection({db: Constants.sysDb} as Context, SysCollection.packages);
-    glob.packages = await collection.find().toArray();
+async function loadSystemConfig() {
+    let collection = await getCollection({db: Constants.sysDb} as Context, SysCollection.systemConfig);
+    glob.systemConfig = await collection.findOne({});
 }
 
 function applyAmazonConfig() {
@@ -906,8 +906,7 @@ export function onlyUnique(value, index, self) {
 }
 
 function enabledDbs() {
-    let dbs = glob.packages.filter(pack => pack.enabled && glob.packageInfo[pack.name].mina).map(pack => glob.packageInfo[pack.name].mina.db).filter(onlyUnique);
-    return dbs;
+    return glob.systemConfig.dbs.filter(db => db.enabled).map(db => db.name);
 }
 
 async function loadSystemCollections() {
@@ -1017,7 +1016,7 @@ function templateRender(pack, template) {
 }
 
 function initializePackages() {
-    log(`initializePackages: ${glob.packages.map(p => p.name).join(' , ')}`);
+    log(`initializePackages: ${glob.systemConfig.packages.map(p => p.name).join(' , ')}`);
 
     let sysTemplate = glob.packageConfig[Constants.sysDb].apps[0].template;
     let sysTemplateRender = templateRender(Constants.sysDb, sysTemplate);
@@ -1176,15 +1175,15 @@ export async function initializeEnums() {
     glob.enums = [];
     glob.enumTexts = {};
 
-    for (const pack of getEnabledPackages()) {
-        let enums: Enum[] = await get({db: pack.name} as Context, SysCollection.enums, {rawData: true});
+    for (const db of enabledDbs()) {
+        let enums: Enum[] = await get({db} as Context, SysCollection.enums, {rawData: true});
         for (const theEnum of enums) {
-            theEnum._ = {db: pack.name};
+            theEnum._ = {db};
             glob.enums.push(theEnum);
 
             let texts = {};
             _.sortBy(theEnum.items, Constants.indexProperty).forEach(item => texts[item.value] = item.title || item.name);
-            glob.enumTexts[pack.name + "." + theEnum.name] = texts;
+            glob.enumTexts[db + "." + theEnum.name] = texts;
         }
     }
 }
