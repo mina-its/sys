@@ -636,6 +636,7 @@ function joinUri(...parts) {
 }
 exports.joinUri = joinUri;
 function getS3DriveSdk(drive) {
+    assert(drive.s3, `S3 for drive '${drive.name}' must be configured!`);
     if (drive.s3._sdk)
         return drive.s3._sdk;
     const sdk = require('aws-sdk');
@@ -1069,6 +1070,8 @@ async function initializeEntities() {
         try {
             func._.access = {};
             func._.access[func._.db] = func.access;
+            func.pack = func.pack || exports.glob.packageConfig[func._.db].defaultPack;
+            assert(func.pack, `Function needs unknown pack, or default pack in PackageConfig needed!`);
             initProperties(func.properties, func, func.title);
         }
         catch (ex) {

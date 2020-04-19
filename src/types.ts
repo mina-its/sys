@@ -515,6 +515,7 @@ export class EmailAccount {
 
 export class PackageConfig {
     _id: ID;
+    defaultPack: string;
     apps: App[];
     addressRules: PackageAddressRule[];
 }
