@@ -22,7 +22,7 @@ export class AuditArgs {
 export class Role {
     _id: ID;
     title: string | MultilangText;
-    name: string;
+    // name: string;
     roles: ID[];
     comment: string | MultilangText;
     _: {
