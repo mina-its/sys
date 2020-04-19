@@ -537,6 +537,7 @@ export class PackageInfo {
 
 export enum PackageType {
     StaticWebsite = "static-website",
+    Code = "code"
 }
 
 export class PackageAddressRule {
