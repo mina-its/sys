@@ -1722,8 +1722,7 @@ export async function getPropertyReferenceValues(cn: Context, prop: Property, in
 
     let entity = findEntity(prop.type);
     if (!entity) {
-        error(`Property '${prop.name}' type '${prop.type}' not found.`);
-        throw StatusCode.NotFound;
+        throwError(StatusCode.ServerError, `Property '${prop.name}' type '${prop.type}' not found.`);
     }
 
     if (entity.entityType == EntityType.Object) {

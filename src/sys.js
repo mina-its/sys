@@ -1535,8 +1535,7 @@ async function getPropertyReferenceValues(cn, prop, instance) {
     }
     let entity = findEntity(prop.type);
     if (!entity) {
-        error(`Property '${prop.name}' type '${prop.type}' not found.`);
-        throw types_1.StatusCode.NotFound;
+        throwError(types_1.StatusCode.ServerError, `Property '${prop.name}' type '${prop.type}' not found.`);
     }
     if (entity.entityType == types_1.EntityType.Object) {
         let result = await get({ db: cn.db }, entity.name, { count: 10, rawData: true });
