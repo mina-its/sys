@@ -62,7 +62,7 @@ export class Global {
     dbs: { [packAndCs: string]: any } = {}; // any not mongodb.Db because of client side reference
     systemConfig: SystemConfig;
     packageInfo: { [pack: string]: PackageInfo; } = {};
-    packageConfig: { [db: string]: PackageConfig; } = {};
+    appConfig: { [db: string]: PackageConfig; } = {};
     clientQuestionCallbacks: { [sessionId: string]: (answer: number | null) => void; } = {};
     rootDir: string;
     entities: Entity[];
@@ -841,7 +841,7 @@ export enum SysCollection {
     objects = "objects",
     functions = "functions",
     roles = "roles",
-    packageConfig = "packageConfig",
+    appConfig = "appConfig",
     systemConfig = "systemConfig",
     hosts = "hosts",
     menus = "menus",

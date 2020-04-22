@@ -748,9 +748,9 @@ async function loadPackageSystemCollections(db) {
         func.entityType = types_1.EntityType.Function;
         exports.glob.entities.push(func);
     }
-    let config = await getOne(cn, types_1.SysCollection.packageConfig, true);
+    let config = await getOne(cn, types_1.SysCollection.appConfig, true);
     if (config)
-        exports.glob.packageConfig[db] = config;
+        exports.glob.appConfig[db] = config;
     let forms = await get(cn, types_1.SysCollection.forms, { rawData: true });
     for (const form of forms) {
         form._ = { db };
@@ -881,10 +881,10 @@ function templateRender(pack, template) {
 }
 function initializePackages() {
     log(`initializePackages: ${exports.glob.systemConfig.packages.map(p => p.name).join(' , ')}`);
-    let sysTemplate = exports.glob.packageConfig[types_1.Constants.sysDb].apps[0].template;
+    let sysTemplate = exports.glob.appConfig[types_1.Constants.sysDb].apps[0].template;
     let sysTemplateRender = templateRender(types_1.Constants.sysDb, sysTemplate);
     for (const db of enabledDbs()) {
-        let config = exports.glob.packageConfig[db];
+        let config = exports.glob.appConfig[db];
         for (const app of (config.apps || [])) {
             app._ = { db };
             app.dependencies = app.dependencies || [];
@@ -1053,8 +1053,8 @@ async function initializeEntities() {
         initObject(obj);
     }
     for (const db of enabledDbs()) {
-        let config = exports.glob.packageConfig[db];
-        let obj = findObject(db, types_1.SysCollection.packageConfig);
+        let config = exports.glob.appConfig[db];
+        let obj = findObject(db, types_1.SysCollection.appConfig);
         await makeObjectReady({ db }, obj.properties, config);
         for (const app of config.apps) {
             app._.loginForm = types_1.Constants.defaultLoginUri;
@@ -1070,7 +1070,7 @@ async function initializeEntities() {
         try {
             func._.access = {};
             func._.access[func._.db] = func.access;
-            func.pack = func.pack || exports.glob.packageConfig[func._.db].defaultPack;
+            func.pack = func.pack || exports.glob.appConfig[func._.db].defaultPack;
             assert(func.pack, `Function needs unknown pack, or default pack in PackageConfig needed!`);
             initProperties(func.properties, func, func.title);
         }

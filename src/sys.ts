@@ -867,9 +867,9 @@ async function loadPackageSystemCollections(db: string) {
         glob.entities.push(func as Entity);
     }
 
-    let config: PackageConfig = await getOne(cn, SysCollection.packageConfig, true);
+    let config: PackageConfig = await getOne(cn, SysCollection.appConfig, true);
     if (config)
-        glob.packageConfig[db] = config;
+        glob.appConfig[db] = config;
 
     let forms: Form[] = await get(cn, SysCollection.forms, {rawData: true});
     for (const form of forms) {
@@ -1019,11 +1019,11 @@ function templateRender(pack, template) {
 function initializePackages() {
     log(`initializePackages: ${glob.systemConfig.packages.map(p => p.name).join(' , ')}`);
 
-    let sysTemplate = glob.packageConfig[Constants.sysDb].apps[0].template;
+    let sysTemplate = glob.appConfig[Constants.sysDb].apps[0].template;
     let sysTemplateRender = templateRender(Constants.sysDb, sysTemplate);
 
     for (const db of enabledDbs()) {
-        let config = glob.packageConfig[db];
+        let config = glob.appConfig[db];
         for (const app of (config.apps || [])) {
             app._ = {db};
             app.dependencies = app.dependencies || [];
@@ -1210,8 +1210,8 @@ async function initializeEntities() {
     }
 
     for (const db of enabledDbs()) {
-        let config = glob.packageConfig[db];
-        let obj = findObject(db, SysCollection.packageConfig);
+        let config = glob.appConfig[db];
+        let obj = findObject(db, SysCollection.appConfig);
         await makeObjectReady({db} as Context, obj.properties, config);
         for (const app of config.apps) {
             app._.loginForm = Constants.defaultLoginUri;
@@ -1227,7 +1227,7 @@ async function initializeEntities() {
         try {
             func._.access = {};
             func._.access[func._.db] = func.access;
-            func.pack = func.pack || glob.packageConfig[func._.db].defaultPack;
+            func.pack = func.pack || glob.appConfig[func._.db].defaultPack;
             assert(func.pack, `Function needs unknown pack, or default pack in PackageConfig needed!`);
             initProperties(func.properties, func, func.title);
         } catch (ex) {
