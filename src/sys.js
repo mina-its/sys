@@ -366,10 +366,15 @@ async function patch(cn, objectName, patchData, options) {
     if (!options)
         options = { portions: [] };
     let portions = options.portions;
-    if (!portions)
+    if (!portions || !portions.length)
         portions = [{ type: types_1.RefPortionType.entity, value: objectName }];
-    if (portions.length == 1)
-        throw types_1.StatusCode.BadRequest;
+    if (portions.length == 1) {
+        portions.push({
+            type: types_1.RefPortionType.item,
+            value: patchData._id.toString(),
+            itemId: patchData._id
+        });
+    }
     let theRootId = portions.length < 2 ? patchData._id : portions[1].itemId;
     let path = await portionsToMongoPath(cn, theRootId, portions, portions.length);
     let command = { $set: {}, $unset: {} };

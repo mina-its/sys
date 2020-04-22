@@ -384,9 +384,9 @@ export class ChartSeries {
 }
 
 export class Access {
-    defaultPermission: DefaultPermission;
-    items: AccessItem[];
-    expose: boolean;
+    defaultPermission?: DefaultPermission;
+    items?: AccessItem[];
+    expose?: boolean;
 }
 
 export class AccessItem {

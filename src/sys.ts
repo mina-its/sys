@@ -421,11 +421,16 @@ export async function patch(cn: Context, objectName: string, patchData: any, opt
     if (!collection) throw StatusCode.BadRequest;
     if (!options) options = {portions: []};
     let portions = options.portions;
-    if (!portions)
+    if (!portions || !portions.length)
         portions = [{type: RefPortionType.entity, value: objectName} as RefPortion];
 
-    if (portions.length == 1)
-        throw StatusCode.BadRequest;
+    if (portions.length == 1) {
+        portions.push({
+            type: RefPortionType.item,
+            value: patchData._id.toString(),
+            itemId: patchData._id
+        } as RefPortion);
+    }
 
     let theRootId = portions.length < 2 ? patchData._id : portions[1].itemId;
     let path = await portionsToMongoPath(cn, theRootId, portions, portions.length);
