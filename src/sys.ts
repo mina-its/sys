@@ -228,22 +228,39 @@ export async function makeObjectReady(cn: Context, properties: Property[], data:
     for (const item of data) {
         for (const prop of properties) {
             let val = item[prop.name];
-            if (!val) continue;
-            if (prop._ && prop._.isRef && !prop._.enum && prop.viewMode != PropertyViewMode.Hidden && isID(val)) {
-                let refObj = findEntity(prop.type);
-                if (!refObj)
-                    throwError(StatusCode.UnprocessableEntity, `referred object for property '${cn.db}.${prop.name}' not found!`);
+            if (!val || !prop._) continue;
 
-                if (refObj.entityType == EntityType.Object)
-                    item[prop.name] = await get(cn, refObj.name, {itemId: val, rawData: true});
-                else if (refObj.entityType == EntityType.Function) {
-                    // todo: makeObjectReady for functions
+            switch (prop._.gtype) {
+                case GlobalType.object: {
+                    if (!prop._.enum && prop.viewMode != PropertyViewMode.Hidden && isID(val)) {
+                        let refObj = findEntity(prop.type);
+                        if (!refObj)
+                            throwError(StatusCode.UnprocessableEntity, `referred object for property '${cn.db}.${prop.name}' not found!`);
+
+                        if (refObj.entityType == EntityType.Object)
+                            item[prop.name] = await get(cn, refObj.name, {itemId: val, rawData: true});
+                        else if (refObj.entityType == EntityType.Function) {
+                            // todo: makeObjectReady for functions
+                        }
+                    }
                 }
+                    break;
+
+                case GlobalType.file:
+                    val._ = {uri: getFileUri(cn, prop, val)};
+                    break;
             }
+
             if (prop.properties)
                 await makeObjectReady(cn, prop.properties, val);
         }
     }
+}
+
+export function getFileUri(cn: Context, prop: Property, file: mFile): string {
+    if (!file || !prop.file.drive) return null;
+    let uri = joinUri(prop.file.drive._.uri, file.path, file.name).replace(/\\/g, '/');
+    return `${cn.url.protocol}//${encodeURI(uri)}`;
 }
 
 export async function getOne(cn: Context, objectName: string, rawData: boolean = false) {

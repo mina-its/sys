@@ -172,16 +172,25 @@ async function makeObjectReady(cn, properties, data) {
     for (const item of data) {
         for (const prop of properties) {
             let val = item[prop.name];
-            if (!val)
+            if (!val || !prop._)
                 continue;
-            if (prop._ && prop._.isRef && !prop._.enum && prop.viewMode != types_1.PropertyViewMode.Hidden && isID(val)) {
-                let refObj = findEntity(prop.type);
-                if (!refObj)
-                    throwError(types_1.StatusCode.UnprocessableEntity, `referred object for property '${cn.db}.${prop.name}' not found!`);
-                if (refObj.entityType == types_1.EntityType.Object)
-                    item[prop.name] = await get(cn, refObj.name, { itemId: val, rawData: true });
-                else if (refObj.entityType == types_1.EntityType.Function) {
-                }
+            switch (prop._.gtype) {
+                case types_1.GlobalType.object:
+                    {
+                        if (!prop._.enum && prop.viewMode != types_1.PropertyViewMode.Hidden && isID(val)) {
+                            let refObj = findEntity(prop.type);
+                            if (!refObj)
+                                throwError(types_1.StatusCode.UnprocessableEntity, `referred object for property '${cn.db}.${prop.name}' not found!`);
+                            if (refObj.entityType == types_1.EntityType.Object)
+                                item[prop.name] = await get(cn, refObj.name, { itemId: val, rawData: true });
+                            else if (refObj.entityType == types_1.EntityType.Function) {
+                            }
+                        }
+                    }
+                    break;
+                case types_1.GlobalType.file:
+                    val._ = { uri: getFileUri(cn, prop, val) };
+                    break;
             }
             if (prop.properties)
                 await makeObjectReady(cn, prop.properties, val);
@@ -189,6 +198,13 @@ async function makeObjectReady(cn, properties, data) {
     }
 }
 exports.makeObjectReady = makeObjectReady;
+function getFileUri(cn, prop, file) {
+    if (!file || !prop.file.drive)
+        return null;
+    let uri = joinUri(prop.file.drive._.uri, file.path, file.name).replace(/\\/g, '/');
+    return `${cn.url.protocol}//${encodeURI(uri)}`;
+}
+exports.getFileUri = getFileUri;
 async function getOne(cn, objectName, rawData = false) {
     return get(cn, objectName, { count: 1, rawData });
 }
