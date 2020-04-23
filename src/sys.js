@@ -867,13 +867,6 @@ function initializeRoles() {
     }
 }
 exports.initializeRoles = initializeRoles;
-function checkAppMenu(app) {
-    if (!app.menu)
-        app.menu = exports.glob.menus.find(menu => menu._.db == app._.db);
-    if (!app.menu)
-        warn(`Menu for app '${app.title}' not found!`);
-}
-exports.checkAppMenu = checkAppMenu;
 function templateRender(pack, template) {
     try {
         let render = ejs.compile(template);
@@ -898,7 +891,10 @@ function initializePackages() {
                 app._.templateRender = templateRender(db, app.template);
             else
                 app._.templateRender = sysTemplateRender;
-            checkAppMenu(app);
+            if (app.menu)
+                app._.menu = exports.glob.menus.find(menu => menu._id.equals(app.menu));
+            if (app.navmenu)
+                app._.navmenu = exports.glob.menus.find(menu => menu._id.equals(app.navmenu));
             if (validateApp(db, app)) {
                 exports.glob.apps.push(app);
             }

@@ -62,7 +62,7 @@ export class Global {
     dbs: { [packAndCs: string]: any } = {}; // any not mongodb.Db because of client side reference
     systemConfig: SystemConfig;
     packageInfo: { [pack: string]: PackageInfo; } = {};
-    appConfig: { [db: string]: PackageConfig; } = {};
+    appConfig: { [db: string]: AppConfig; } = {};
     clientQuestionCallbacks: { [sessionId: string]: (answer: number | null) => void; } = {};
     rootDir: string;
     entities: Entity[];
@@ -428,8 +428,8 @@ export class App {
     locales: Locale[];
     defaultLocale: Locale;
     redirect: RedirectType;
-    menu: Menu;
-    navmenu: Menu;
+    menu: ID;
+    navmenu: ID;
     title: string;
     gridPageSize: number;
     addressRules: PackageAddressRule[];
@@ -445,6 +445,8 @@ export class App {
     loginForm: ID;
     _: {
         db?: string;
+        menu?: Menu;
+        navmenu?: Menu;
         loginForm?: string;
         templateRender?: any;
     }
@@ -514,7 +516,7 @@ export class EmailAccount {
     Default: boolean;
 }
 
-export class PackageConfig {
+export class AppConfig {
     _id: ID;
     defaultPack: string;
     apps: App[];

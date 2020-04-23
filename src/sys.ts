@@ -66,7 +66,8 @@ import {
     SystemProperty,
     Text,
     UploadedFile,
-    PackageConfig, Host,
+    AppConfig,
+    Host,
 } from './types';
 
 const assert = require('assert').strict;
@@ -872,7 +873,7 @@ async function loadPackageSystemCollections(db: string) {
         glob.entities.push(func as Entity);
     }
 
-    let config: PackageConfig = await getOne(cn, SysCollection.appConfig, true);
+    let config: AppConfig = await getOne(cn, SysCollection.appConfig, true);
     if (config)
         glob.appConfig[db] = config;
 
@@ -1003,14 +1004,6 @@ export function initializeRoles() {
     }
 }
 
-export function checkAppMenu(app: App) {
-    if (!app.menu)
-        app.menu = glob.menus.find(menu => menu._.db == app._.db);
-
-    if (!app.menu)
-        warn(`Menu for app '${app.title}' not found!`);
-}
-
 function templateRender(pack, template) {
     try {
         let render = ejs.compile(template);
@@ -1039,7 +1032,9 @@ function initializePackages() {
             else
                 app._.templateRender = sysTemplateRender;
 
-            checkAppMenu(app);
+            if (app.menu) app._.menu = glob.menus.find(menu => menu._id.equals(app.menu));
+            if (app.navmenu) app._.navmenu = glob.menus.find(menu => menu._id.equals(app.navmenu));
+
             if (validateApp(db, app)) {
                 glob.apps.push(app);
             }
