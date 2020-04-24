@@ -952,6 +952,7 @@ export class AppStateConfig {
     brandingLogo: string = "";
     locale: string = null;
     defaultLocale?: string = null;
+    rtl: boolean = false;
     appLocales: Pair[] = [];
     loginRef: string = "";
     loginTitle: string = "";
