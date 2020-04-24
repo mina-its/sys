@@ -40,6 +40,7 @@ export class User {
     password: string;
     title: string;
     passwordExpireTime: Date;
+    image: mFile;
     mobile: string;
     lastOnline: Date;
     lastOffline: Date;
@@ -954,8 +955,14 @@ export class AppStateConfig {
     defaultLocale?: string = null;
     rtl: boolean = false;
     appLocales: Pair[] = [];
-    loginRef: string = "";
-    loginTitle: string = "";
+    user: {
+        loginTitle?: string;
+        loginUrl?: string;
+        photoUrl?: string;
+        title?: string;
+        email?: string;
+        profileUrl?: string;
+    };
     interactive: boolean = false;
     menu: MenuItem[] = [];
     navmenu: MenuItem[] = [];
@@ -1145,4 +1152,11 @@ export class ApiDoc {
     blocks: ApiDocBlock[] = [];
     schemas: ApiDocSchema[] = [];
     enums: ApiDocEnum[] = [];
+}
+
+export class SysDashboardInfo {
+    objectsCount: number;
+    functionsCount: number;
+    usersCount: number;
+    cpuUsage: number;
 }

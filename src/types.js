@@ -18,7 +18,7 @@ class AuditType {
 exports.AuditType = AuditType;
 class Global {
     constructor() {
-        this.dbs = {}; // any not mongodb.Db because of client side reference
+        this.dbs = {};
         this.packageInfo = {};
         this.appConfig = {};
         this.clientQuestionCallbacks = {};
@@ -231,7 +231,6 @@ var PanelType;
 (function (PanelType) {
     PanelType[PanelType["Stack"] = 1] = "Stack";
     PanelType[PanelType["Dock"] = 2] = "Dock";
-    // Grid = 3,
     PanelType[PanelType["Wrap"] = 4] = "Wrap";
     PanelType[PanelType["Flex"] = 5] = "Flex";
     PanelType[PanelType["Modal"] = 6] = "Modal";
@@ -523,8 +522,6 @@ class AppStateConfig {
         this.defaultLocale = null;
         this.rtl = false;
         this.appLocales = [];
-        this.loginRef = "";
-        this.loginTitle = "";
         this.interactive = false;
         this.menu = [];
         this.navmenu = [];
@@ -640,4 +637,7 @@ class ApiDoc {
     }
 }
 exports.ApiDoc = ApiDoc;
+class SysDashboardInfo {
+}
+exports.SysDashboardInfo = SysDashboardInfo;
 //# sourceMappingURL=types.js.map

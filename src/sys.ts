@@ -127,7 +127,7 @@ export async function start() {
         process.on('unhandledRejection', async (err: any) => {
             await audit(SysAuditTypes.unhandledRejection, {
                 level: LogType.Fatal,
-                comment: err.message + ". " + err.stack
+                comment: typeof err == "number" ? err.toString() : err.message + ". " + err.stack
             });
         });
 
@@ -260,7 +260,7 @@ export async function makeObjectReady(cn: Context, properties: Property[], data:
 export function getFileUri(cn: Context, prop: Property, file: mFile): string {
     if (!file || !prop.file.drive) return null;
     let uri = joinUri(prop.file.drive._.uri, file.path, file.name).replace(/\\/g, '/');
-    return `${cn.url.protocol}//${encodeURI(uri)}`;
+    return `${cn.url ? cn.url.protocol : 'http:'}//${encodeURI(uri)}`; // in user login context is not completed!
 }
 
 export async function getOne(cn: Context, objectName: string, rawData: boolean = false) {

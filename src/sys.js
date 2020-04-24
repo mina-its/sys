@@ -73,7 +73,7 @@ async function start() {
         process.on('unhandledRejection', async (err) => {
             await audit(types_1.SysAuditTypes.unhandledRejection, {
                 level: types_1.LogType.Fatal,
-                comment: err.message + ". " + err.stack
+                comment: typeof err == "number" ? err.toString() : err.message + ". " + err.stack
             });
         });
         sourceMapSupport.install({ handleUncaughtExceptions: true });
@@ -202,7 +202,7 @@ function getFileUri(cn, prop, file) {
     if (!file || !prop.file.drive)
         return null;
     let uri = joinUri(prop.file.drive._.uri, file.path, file.name).replace(/\\/g, '/');
-    return `${cn.url.protocol}//${encodeURI(uri)}`;
+    return `${cn.url ? cn.url.protocol : 'http:'}//${encodeURI(uri)}`;
 }
 exports.getFileUri = getFileUri;
 async function getOne(cn, objectName, rawData = false) {
