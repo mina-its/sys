@@ -228,6 +228,7 @@ export class Property implements IProperties {
     };
     time: {
         format: TimeFormat;
+        customFormat: string;
         iSODate: boolean;
     };
     number: {
@@ -820,10 +821,10 @@ export enum RefPortionType {
 }
 
 export enum TimeFormat {
-    yearMonthDayHourMinute = 1,
-    hourMinute = 2,
-    dateWithDayOfWeek = 3,
-    friendlyDate = 4,
+    YearMonthDayHourMinute = 1,
+    HourMinute = 2,
+    DateWithDayOfWeek = 3,
+    FriendlyDate = 4,
 }
 
 export enum ObjectReferType {

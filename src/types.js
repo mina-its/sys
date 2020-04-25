@@ -403,10 +403,10 @@ var RefPortionType;
 })(RefPortionType = exports.RefPortionType || (exports.RefPortionType = {}));
 var TimeFormat;
 (function (TimeFormat) {
-    TimeFormat[TimeFormat["yearMonthDayHourMinute"] = 1] = "yearMonthDayHourMinute";
-    TimeFormat[TimeFormat["hourMinute"] = 2] = "hourMinute";
-    TimeFormat[TimeFormat["dateWithDayOfWeek"] = 3] = "dateWithDayOfWeek";
-    TimeFormat[TimeFormat["friendlyDate"] = 4] = "friendlyDate";
+    TimeFormat[TimeFormat["YearMonthDayHourMinute"] = 1] = "YearMonthDayHourMinute";
+    TimeFormat[TimeFormat["HourMinute"] = 2] = "HourMinute";
+    TimeFormat[TimeFormat["DateWithDayOfWeek"] = 3] = "DateWithDayOfWeek";
+    TimeFormat[TimeFormat["FriendlyDate"] = 4] = "FriendlyDate";
 })(TimeFormat = exports.TimeFormat || (exports.TimeFormat = {}));
 var ObjectReferType;
 (function (ObjectReferType) {
