@@ -203,6 +203,8 @@ export class Property implements IProperties {
     isList: boolean;
     locale: Locale;
     formula: string;
+    detailsViewType: ObjectDetailsViewType;
+    listsViewType: ObjectListsViewType;
     referType: PropertyReferType;
     dependsOn: string;
     condition: string;
