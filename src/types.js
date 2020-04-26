@@ -570,6 +570,7 @@ var ObjectDetailsViewType;
     ObjectDetailsViewType[ObjectDetailsViewType["Tabular"] = 2] = "Tabular";
     ObjectDetailsViewType[ObjectDetailsViewType["Simple"] = 3] = "Simple";
     ObjectDetailsViewType[ObjectDetailsViewType["Wizard"] = 4] = "Wizard";
+    ObjectDetailsViewType[ObjectDetailsViewType["Tree"] = 5] = "Tree";
 })(ObjectDetailsViewType = exports.ObjectDetailsViewType || (exports.ObjectDetailsViewType = {}));
 var ObjectListsViewType;
 (function (ObjectListsViewType) {

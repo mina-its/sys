@@ -189,6 +189,10 @@ export function run(cn, func: string, ...args) {
     }
 }
 
+export async function getByID(cn: Context, objectName: string, id: ID) {
+    return get(cn, objectName, {itemId: id});
+}
+
 export async function get(cn: Context, objectName: string, options?: GetOptions) {
     let collection = await getCollection(cn, objectName);
     options = options || {} as GetOptions;
@@ -1996,4 +2000,18 @@ export async function execShellCommand(cmd, std?: (message: string) => void): Pr
             resolve(message);
         });
     });
+}
+
+export function sort(array: any[], prop: string): void {
+    function compare(a, b) {
+        if (a[prop] < b[prop]) {
+            return -1;
+        }
+        if (a[prop] > b[prop]) {
+            return 1;
+        }
+        return 0;
+    }
+
+    array.sort(compare);
 }

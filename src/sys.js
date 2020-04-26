@@ -134,6 +134,10 @@ function run(cn, func, ...args) {
     }
 }
 exports.run = run;
+async function getByID(cn, objectName, id) {
+    return get(cn, objectName, { itemId: id });
+}
+exports.getByID = getByID;
 async function get(cn, objectName, options) {
     let collection = await getCollection(cn, objectName);
     options = options || {};
@@ -1791,4 +1795,17 @@ async function execShellCommand(cmd, std) {
     });
 }
 exports.execShellCommand = execShellCommand;
+function sort(array, prop) {
+    function compare(a, b) {
+        if (a[prop] < b[prop]) {
+            return -1;
+        }
+        if (a[prop] > b[prop]) {
+            return 1;
+        }
+        return 0;
+    }
+    array.sort(compare);
+}
+exports.sort = sort;
 //# sourceMappingURL=sys.js.map

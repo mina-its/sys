@@ -325,10 +325,10 @@ export class Elem {
     };
     obj?: {
         ref: string;
-        type?: ObjectViewType;
+        // type?: ObjectViewType;
         props?: {
             name: string;
-            viewType: ObjectViewType;
+            // viewType: ObjectViewType;
             entityRef: string;
         }[];
     };
@@ -1034,6 +1034,7 @@ export enum ObjectDetailsViewType {
     Tabular = 2,
     Simple = 3,
     Wizard = 4,
+    Tree = 5,
 }
 
 export enum ObjectListsViewType {
