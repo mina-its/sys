@@ -619,7 +619,8 @@ export class GetOptions {
     skip?: number;
     sort?: any;
     last?: boolean;
-    rawData?: boolean;
+    linkIDs?: boolean;
+    lazyLink?: boolean;
 }
 
 export enum StatusCode {

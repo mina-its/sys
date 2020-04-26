@@ -207,7 +207,7 @@ export async function get(cn: Context, objectName: string, options?: GetOptions)
             result = result[0];
     }
 
-    if (options && options.rawData)
+    if (!options || !options.linkIDs)
         return result;
 
     let obj = findObject(cn, objectName);
@@ -217,11 +217,11 @@ export async function get(cn: Context, objectName: string, options?: GetOptions)
     if (!obj.isList && Array.isArray(result))
         result = result[0];
 
-    await makeObjectReady(cn, obj.properties, result);
+    await makeObjectReady(cn, obj.properties, result, options);
     return result;
 }
 
-export async function makeObjectReady(cn: Context, properties: Property[], data: any) {
+export async function makeObjectReady(cn: Context, properties: Property[], data: any, options: GetOptions = null) {
     if (!data) return;
 
     data = Array.isArray(data) ? data : [data];
@@ -230,29 +230,27 @@ export async function makeObjectReady(cn: Context, properties: Property[], data:
             let val = item[prop.name];
             if (!val || !prop._) continue;
 
-            switch (prop._.gtype) {
-                case GlobalType.object: {
-                    if (!prop._.enum && prop.viewMode != PropertyViewMode.Hidden && isID(val)) {
-                        let refObj = findEntity(prop.type);
-                        if (!refObj)
-                            throwError(StatusCode.UnprocessableEntity, `referred object for property '${cn.db}.${prop.name}' not found!`);
+            if (prop._.isRef && !prop._.enum && prop.viewMode != PropertyViewMode.Hidden && isID(val)) {
+                let refObj = findEntity(prop.type);
+                if (!refObj)
+                    throwError(StatusCode.UnprocessableEntity, `referred object for property '${cn.db}.${prop.name}' not found!`);
 
-                        if (refObj.entityType == EntityType.Object)
-                            item[prop.name] = await get(cn, refObj.name, {itemId: val, rawData: true});
-                        else if (refObj.entityType == EntityType.Function) {
-                            // todo: makeObjectReady for functions
-                        }
-                    }
+                if (refObj.entityType == EntityType.Object) {
+                    item._ = item._ || {};
+                    item._[prop.name] = await get(cn, refObj.name, {itemId: val});
+                } else if (refObj.entityType == EntityType.Function) {
+                    // todo: makeObjectReady for functions
                 }
-                    break;
+            }
 
+            switch (prop._.gtype) {
                 case GlobalType.file:
                     val._ = {uri: getFileUri(cn, prop, val)};
                     break;
             }
 
             if (prop.properties)
-                await makeObjectReady(cn, prop.properties, val);
+                await makeObjectReady(cn, prop.properties, val, options);
         }
     }
 }
@@ -263,8 +261,8 @@ export function getFileUri(cn: Context, prop: Property, file: mFile): string {
     return `${cn.url ? cn.url.protocol : 'http:'}//${encodeURI(uri)}`; // in user login context is not completed!
 }
 
-export async function getOne(cn: Context, objectName: string, rawData: boolean = false) {
-    return get(cn, objectName, {count: 1, rawData});
+export async function getOne(cn: Context, objectName: string) {
+    return get(cn, objectName, {count: 1});
 }
 
 async function getCollection(cn: Context, objectName: string) {
@@ -392,7 +390,7 @@ export async function extractRefPortions(cn: Context, ref: string, _default?: st
             return null;
 
         if (entity.entityType == EntityType.Object && !(entity as mObject).isList && portions.length == 1) { // e.g. systemConfig
-            let item: any = await get(cn, entity.name, {count: 1, rawData: true});
+            let item: any = await get(cn, entity.name, {count: 1});
             let portion = {type: RefPortionType.item, pre: portions[0]} as RefPortion;
             portions.push(portion);
             if (item) {
@@ -824,7 +822,7 @@ async function loadTimeZones() {
     glob.timeZones = await get({db: Constants.sysDb} as Context, Constants.timeZonesCollection);
     let result: mObject = await get({db: Constants.sysDb} as Context, SysCollection.objects, {
         query: {name: Constants.systemPropertiesObjectName},
-        count: 1, rawData: true
+        count: 1
     });
     if (!result) {
         logger.error("loadGeneralCollections failed terminating process ...");
@@ -835,7 +833,7 @@ async function loadTimeZones() {
 
 async function loadAuditTypes() {
     log('loadAuditTypes ...');
-    glob.auditTypes = await get({db: Constants.sysDb} as Context, SysCollection.auditTypes, {rawData: true});
+    glob.auditTypes = await get({db: Constants.sysDb} as Context, SysCollection.auditTypes);
 }
 
 function getEnabledPackages(): string[] {
@@ -870,55 +868,55 @@ async function loadPackageSystemCollections(db: string) {
     log(`Loading system collections db '${db}' ...`);
     let cn = {db} as Context;
 
-    let hosts: Host[] = await get(cn, SysCollection.hosts, {rawData: true});
+    let hosts: Host[] = await get(cn, SysCollection.hosts);
     for (const host of hosts) {
         host._ = {db};
         glob.hosts.push(host);
     }
 
-    let objects: mObject[] = await get(cn, SysCollection.objects, {rawData: true});
+    let objects: mObject[] = await get(cn, SysCollection.objects);
     for (const object of objects) {
         object._ = {db};
         object.entityType = EntityType.Object;
         glob.entities.push(object as Entity);
     }
 
-    let functions: Function[] = await get(cn, SysCollection.functions, {rawData: true});
+    let functions: Function[] = await get(cn, SysCollection.functions);
     for (const func of functions) {
         func._ = {db};
         func.entityType = EntityType.Function;
         glob.entities.push(func as Entity);
     }
 
-    let config: AppConfig = await getOne(cn, SysCollection.appConfig, true);
+    let config: AppConfig = await getOne(cn, SysCollection.appConfig);
     if (config)
         glob.appConfig[db] = config;
 
-    let forms: Form[] = await get(cn, SysCollection.forms, {rawData: true});
+    let forms: Form[] = await get(cn, SysCollection.forms);
     for (const form of forms) {
         form._ = {db};
         form.entityType = EntityType.Form;
         glob.entities.push(form as Entity);
     }
 
-    let texts: Text[] = await get(cn, SysCollection.dictionary, {rawData: true});
+    let texts: Text[] = await get(cn, SysCollection.dictionary);
     for (const item of texts) {
         glob.dictionary[db + "." + item.name] = item.text;
     }
 
-    let menus: Menu[] = await get(cn, SysCollection.menus, {rawData: true});
+    let menus: Menu[] = await get(cn, SysCollection.menus);
     for (const menu of menus) {
         menu._ = {db};
         glob.menus.push(menu);
     }
 
-    let roles: Role[] = await get(cn, SysCollection.roles, {rawData: true});
+    let roles: Role[] = await get(cn, SysCollection.roles);
     for (const role of roles) {
         role._ = {db};
         glob.roles.push(role);
     }
 
-    let drives: Drive[] = await get(cn, SysCollection.drives, {rawData: true});
+    let drives: Drive[] = await get(cn, SysCollection.drives);
     for (const drive of drives) {
         drive._ = {db};
         glob.drives.push(drive);
@@ -1194,7 +1192,7 @@ export async function initializeEnums() {
     glob.enumTexts = {};
 
     for (const db of enabledDbs()) {
-        let enums: Enum[] = await get({db} as Context, SysCollection.enums, {rawData: true});
+        let enums: Enum[] = await get({db} as Context, SysCollection.enums);
         for (const theEnum of enums) {
             theEnum._ = {db};
             glob.enums.push(theEnum);
@@ -1743,7 +1741,7 @@ export async function getPropertyReferenceValues(cn: Context, prop: Property, in
     }
 
     if (entity.entityType == EntityType.Object) {
-        let result = await get({db: cn.db} as Context, entity.name, {count: 10, rawData: true});
+        let result = await get({db: cn.db} as Context, entity.name, {count: 10});
         if (result) {
             return result.map(item => {
                 return {ref: item._id, title: getText(cn, item.title)} as Pair;
@@ -1856,7 +1854,7 @@ async function invokeFuncMakeArgsReady(cn: Context, func: Function, action, args
                 throwError(StatusCode.UnprocessableEntity, `referred object for property '${cn.db}.${prop.name}' not found!`);
 
             if (refObj.entityType == EntityType.Object)
-                argData[prop.name] = await get({db: cn.db} as Context, refObj.name, {itemId: val, rawData: true});
+                argData[prop.name] = await get({db: cn.db} as Context, refObj.name, {itemId: val});
             else if (refObj.entityType == EntityType.Function) {
                 // todo: makeObjectReady for functions
             }
