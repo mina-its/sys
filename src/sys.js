@@ -94,6 +94,10 @@ function newID(id) {
     return new mongodb_1.ObjectId(id);
 }
 exports.newID = newID;
+function ID(id) {
+    return new mongodb_1.ObjectId(id);
+}
+exports.ID = ID;
 async function audit(auditType, args) {
     try {
         args.type = args.type || newID(auditType);
@@ -143,7 +147,7 @@ async function get(cn, objectName, options) {
     options = options || {};
     let result;
     if (options.itemId)
-        result = collection.findOne(options.itemId);
+        result = await collection.findOne(options.itemId);
     else {
         let find = collection.find(options.query);
         if (options.sort)
@@ -1224,6 +1228,10 @@ function getEntityName(id) {
     return obj ? obj.name : null;
 }
 exports.getEntityName = getEntityName;
+function $t(cn, text, useDictionary) {
+    return getText(cn, text, useDictionary);
+}
+exports.$t = $t;
 function getText(cn, text, useDictionary) {
     if (cn == null || !cn.locale)
         return (text || "").toString();

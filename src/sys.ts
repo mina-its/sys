@@ -150,6 +150,10 @@ export function newID(id?: string): ID {
     return new ObjectId(id) as any;
 }
 
+export function ID(id?: string): ID {
+    return new ObjectId(id) as any;
+}
+
 export async function audit(auditType: string, args: AuditArgs) {
     try {
         args.type = args.type || newID(auditType);
@@ -199,7 +203,7 @@ export async function get(cn: Context, objectName: string, options?: GetOptions)
 
     let result;
     if (options.itemId)
-        result = collection.findOne(options.itemId);
+        result = await collection.findOne(options.itemId);
     else {
         let find = collection.find(options.query);
         if (options.sort) find = find.sort(options.sort);
@@ -1389,6 +1393,10 @@ function compareParentProperties(properties: Property[], parentProperties: Prope
 export function getEntityName(id) {
     let obj = findEntity(id);
     return obj ? obj.name : null;
+}
+
+export function $t(cn: Context, text, useDictionary?: boolean): string {
+    return getText(cn, text, useDictionary);
 }
 
 export function getText(cn: Context, text, useDictionary?: boolean): string {
