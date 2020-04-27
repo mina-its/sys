@@ -878,12 +878,6 @@ export enum SystemProperty {
     comment = "comment",
 }
 
-export class EmbeddedInfo {
-    txt: string;
-    val: any;
-    err: string;
-}
-
 export enum PType {
     text = "589f2d8bb16c7523543ae1b0",
     number = "589f2d8bb16c7523543ae1b3",
