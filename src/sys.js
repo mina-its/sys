@@ -610,8 +610,12 @@ async function listDir(drive, dir) {
             return new Promise((resolve, reject) => {
                 let regex = new RegExp("^" + s3params.Prefix);
                 s3.listObjectsV2(s3params, (err, data) => {
-                    if (err)
-                        reject(err);
+                    if (err) {
+                        if (err.code == "InvalidAccessKeyId")
+                            reject(`Invalid AccessKeyId '${drive.s3.accessKeyId}': ${err.message}`);
+                        else
+                            reject(err);
+                    }
                     else {
                         let folders = data.CommonPrefixes.map(item => {
                             return {
@@ -666,7 +670,7 @@ function getS3DriveSdk(drive) {
     assert(drive.s3, `S3 for drive '${drive.name}' must be configured!`);
     if (drive.s3._sdk)
         return drive.s3._sdk;
-    const sdk = require('aws-sdk');
+    let sdk = require('aws-sdk');
     if (!drive.s3.accessKeyId)
         throwError(types_1.StatusCode.ConfigurationProblem, `s3 accessKeyId for drive package '${drive._.db}' must be configured.`);
     else
