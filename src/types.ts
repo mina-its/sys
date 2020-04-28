@@ -1,6 +1,7 @@
 export interface Context {
     locale: Locale;
     user?: User;
+    sessionID: string;
     db?: string;
     req?: any;
     url?: URL;
