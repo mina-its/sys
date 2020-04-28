@@ -1105,7 +1105,7 @@ function checkPropertyGtype(prop: Property, entity: Entity) {
             prop._.gtype = GlobalType.file;
             return;
 
-        case PType.reference:
+        case PType.id:
             prop._.gtype = GlobalType.object;
             return;
 

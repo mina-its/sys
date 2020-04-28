@@ -18,7 +18,7 @@ class AuditType {
 exports.AuditType = AuditType;
 class Global {
     constructor() {
-        this.dbs = {}; // any not mongodb.Db because of client side reference
+        this.dbs = {};
         this.packageInfo = {};
         this.appConfig = {};
         this.clientQuestionCallbacks = {};
@@ -231,7 +231,6 @@ var PanelType;
 (function (PanelType) {
     PanelType[PanelType["Stack"] = 1] = "Stack";
     PanelType[PanelType["Dock"] = 2] = "Dock";
-    // Grid = 3,
     PanelType[PanelType["Wrap"] = 4] = "Wrap";
     PanelType[PanelType["Flex"] = 5] = "Flex";
     PanelType[PanelType["Modal"] = 6] = "Modal";
@@ -462,7 +461,7 @@ var PType;
     PType["number"] = "589f2d8bb16c7523543ae1b3";
     PType["boolean"] = "589f2d8bb16c7523543ae1b9";
     PType["time"] = "589f2d8bb16c7523543ae1b6";
-    PType["reference"] = "589f2d8bb16c7523543ae1cb";
+    PType["id"] = "589f2d8bb16c7523543ae1cb";
     PType["location"] = "58a18d9c70c25e0c30930287";
     PType["file"] = "589f2d8bb16c7523543ae1c2";
     PType["obj"] = "5e2562d9a3c257129832b75f";
