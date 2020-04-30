@@ -423,6 +423,7 @@ export class MenuItem {
 export class Pair {
     ref: any;
     title: string;
+    _cs?: string;
 }
 
 export class App {
@@ -903,6 +904,9 @@ export const Constants = {
     indexProperty: "_z",
     defaultLoginUri: 'login',
     amazonS3ApiVersion: "2006-03-01",
+    ClassStyle_Object : "cs-obj",
+    ClassStyle_Function : "cs-func",
+    ClassStyle_Form : "cs-form",
     mongodbPoolSize: 10,
     mainDbSourceName: "db",
     systemPropertiesObjectName: "systemProperties",

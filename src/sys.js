@@ -1440,12 +1440,23 @@ function containsPack(cn, pack) {
 exports.containsPack = containsPack;
 async function getAllEntities(cn) {
     let entities = exports.glob.entities.filter(en => containsPack(cn, en._.db));
-    entities = entities.map(ent => {
+    let items = entities.map(ent => {
         let title = getText(cn, ent.title) + (cn.db == ent._.db ? "" : " (" + ent._.db + ")");
-        return Object.assign(Object.assign({}, ent), { title });
+        let _cs = null;
+        switch (ent.entityType) {
+            case types_1.EntityType.Object:
+                _cs = types_1.Constants.ClassStyle_Object;
+                break;
+            case types_1.EntityType.Function:
+                _cs = types_1.Constants.ClassStyle_Function;
+                break;
+            case types_1.EntityType.Form:
+                _cs = types_1.Constants.ClassStyle_Form;
+                break;
+        }
+        return { _id: ent._id, title, _cs };
     });
-    entities = _.orderBy(entities, ['title']);
-    return entities;
+    return _.orderBy(items, ['title']);
 }
 exports.getAllEntities = getAllEntities;
 async function getDataEntities(cn) {

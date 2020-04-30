@@ -686,11 +686,10 @@ export async function listDir(drive: Drive, dir: string): Promise<DirFile[]> {
                 s3.listObjectsV2(s3params, (err, data) => {
                     if (err) {
                         if (err.code == "InvalidAccessKeyId")
-                            reject(`Invalid AccessKeyId '${drive.s3.accessKeyId}': ${err.message}` );
+                            reject(`Invalid AccessKeyId '${drive.s3.accessKeyId}': ${err.message}`);
                         else
                             reject(err);
-                    }
-                    else {
+                    } else {
                         let folders: DirFile[] = data.CommonPrefixes.map(item => {
                             return {
                                 name: _.trim(item.Prefix.replace(regex, ""), '/'),
@@ -1619,12 +1618,23 @@ export function containsPack(cn: Context, pack: string): boolean {
 
 export async function getAllEntities(cn: Context) {
     let entities = glob.entities.filter(en => containsPack(cn, en._.db));
-    entities = entities.map(ent => {
+    let items = entities.map(ent => {
         let title = getText(cn, ent.title) + (cn.db == ent._.db ? "" : " (" + ent._.db + ")");
-        return {...ent, title}
+        let _cs = null;
+        switch (ent.entityType) {
+            case EntityType.Object:
+                _cs = Constants.ClassStyle_Object;
+                break;
+            case EntityType.Function:
+                _cs = Constants.ClassStyle_Function;
+                break;
+            case EntityType.Form:
+                _cs = Constants.ClassStyle_Form;
+                break;
+        }
+        return {_id: ent._id, title, _cs};
     });
-    entities = _.orderBy(entities, ['title']);
-    return entities;
+    return _.orderBy(items, ['title']);
 }
 
 export async function getDataEntities(cn: Context) {
