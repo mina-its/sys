@@ -12,6 +12,7 @@ import fs = require('fs-extra');
 import path = require('path');
 import moment = require('moment');
 import graphlib = require('graphlib');
+import marked = require('marked');
 import Jalali = require('jalali-moment');
 import sourceMapSupport = require('source-map-support');
 import ejs = require('ejs');
@@ -140,6 +141,10 @@ export async function start() {
         error("sys.main error:", ex.stack || ex.message || ex);
         return null;
     }
+}
+
+export function markDown(text: string) {
+    return marked(text);
 }
 
 function isWindows() {
@@ -1616,8 +1621,17 @@ export function containsPack(cn: Context, pack: string): boolean {
     return pack == cn.db || cn["app"].dependencies.indexOf(pack) > -1;
 }
 
-export async function getAllEntities(cn: Context) {
+export async function getDataEntities(cn: Context) {
+    let entities = glob.entities.filter(e => e.entityType == EntityType.Function || e.entityType == EntityType.Object);
+    return makeEntityList(cn, entities);
+}
+
+export function getAllEntities(cn: Context) {
     let entities = glob.entities.filter(en => containsPack(cn, en._.db));
+    return makeEntityList(cn, entities);
+}
+
+export function makeEntityList(cn: Context, entities: Entity[]) {
     let items = entities.map(ent => {
         let title = getText(cn, ent.title) + (cn.db == ent._.db ? "" : " (" + ent._.db + ")");
         let _cs = null;
@@ -1635,15 +1649,6 @@ export async function getAllEntities(cn: Context) {
         return {_id: ent._id, title, _cs};
     });
     return _.orderBy(items, ['title']);
-}
-
-export async function getDataEntities(cn: Context) {
-    let entities = glob.entities.filter(e => e.entityType == EntityType.Function || e.entityType == EntityType.Object).map(ent => {
-        let title = getText(cn, ent.title) + (cn.db == ent._.db ? "" : " (" + ent._.db + ")");
-        return {...ent, title}
-    });
-    entities = _.orderBy(entities, ['title']);
-    return entities;
 }
 
 export function json2bson(doc: any): any {

@@ -12,6 +12,7 @@ const fs = require("fs-extra");
 const path = require("path");
 const moment = require("moment");
 const graphlib = require("graphlib");
+const marked = require("marked");
 const Jalali = require("jalali-moment");
 const sourceMapSupport = require("source-map-support");
 const ejs = require("ejs");
@@ -87,6 +88,10 @@ async function start() {
     }
 }
 exports.start = start;
+function markDown(text) {
+    return marked(text);
+}
+exports.markDown = markDown;
 function isWindows() {
     return /^win/.test(process.platform);
 }
@@ -1438,8 +1443,17 @@ function containsPack(cn, pack) {
     return pack == cn.db || cn["app"].dependencies.indexOf(pack) > -1;
 }
 exports.containsPack = containsPack;
-async function getAllEntities(cn) {
+async function getDataEntities(cn) {
+    let entities = exports.glob.entities.filter(e => e.entityType == types_1.EntityType.Function || e.entityType == types_1.EntityType.Object);
+    return makeEntityList(cn, entities);
+}
+exports.getDataEntities = getDataEntities;
+function getAllEntities(cn) {
     let entities = exports.glob.entities.filter(en => containsPack(cn, en._.db));
+    return makeEntityList(cn, entities);
+}
+exports.getAllEntities = getAllEntities;
+function makeEntityList(cn, entities) {
     let items = entities.map(ent => {
         let title = getText(cn, ent.title) + (cn.db == ent._.db ? "" : " (" + ent._.db + ")");
         let _cs = null;
@@ -1458,16 +1472,7 @@ async function getAllEntities(cn) {
     });
     return _.orderBy(items, ['title']);
 }
-exports.getAllEntities = getAllEntities;
-async function getDataEntities(cn) {
-    let entities = exports.glob.entities.filter(e => e.entityType == types_1.EntityType.Function || e.entityType == types_1.EntityType.Object).map(ent => {
-        let title = getText(cn, ent.title) + (cn.db == ent._.db ? "" : " (" + ent._.db + ")");
-        return Object.assign(Object.assign({}, ent), { title });
-    });
-    entities = _.orderBy(entities, ['title']);
-    return entities;
-}
-exports.getDataEntities = getDataEntities;
+exports.makeEntityList = makeEntityList;
 function json2bson(doc) {
     return EJSON.deserialize(doc);
 }
