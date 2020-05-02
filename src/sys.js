@@ -1158,7 +1158,7 @@ function initObject(obj) {
             if (!referenceObj)
                 return warn(`SimilarObject in service '${obj._.db}' not found for object: '${obj.title}', SimilarReference:${obj.reference}`);
             initObject(referenceObj);
-            _.defaultsDeep(obj, referenceObj);
+            applyAttrsFromReferencedObject(obj, referenceObj);
             compareParentProperties(obj.properties, referenceObj.properties, obj);
         }
         else if (obj.properties) {
@@ -1172,6 +1172,19 @@ function initObject(obj) {
     }
 }
 exports.initObject = initObject;
+function applyAttrsFromReferencedObject(obj, referenceObj) {
+    let newProps = obj.properties;
+    delete obj.properties;
+    _.defaultsDeep(obj, referenceObj);
+    for (let newProp of newProps) {
+        let changedProp = obj.properties.find(p => p.name == newProp.name);
+        if (!changedProp)
+            obj.properties.push(newProp);
+        else {
+            _.assign(changedProp, newProp);
+        }
+    }
+}
 function checkPropertyReference(property, entity) {
     if (property._.gtype == types_1.GlobalType.object && (!property.properties || !property.properties.length)) {
         let propertyParentObject = findEntity(property.type);

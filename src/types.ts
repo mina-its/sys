@@ -722,10 +722,10 @@ export enum EntityType {
 export enum AccessPermission {
     None = 0,
     View = 1,
-    NewItem = 2,
-    DeleteItem = 3,
-    Edit = 4,
-    Full = 8,
+    Edit = 2,
+    NewItem = 4,
+    DeleteItem = 8,
+    Full = 255,
 }
 
 export enum PropertyViewMode {
@@ -904,9 +904,9 @@ export const Constants = {
     indexProperty: "_z",
     defaultLoginUri: 'login',
     amazonS3ApiVersion: "2006-03-01",
-    ClassStyle_Object : "cs-obj",
-    ClassStyle_Function : "cs-func",
-    ClassStyle_Form : "cs-form",
+    ClassStyle_Object: "cs-obj",
+    ClassStyle_Function: "cs-func",
+    ClassStyle_Form: "cs-form",
     mongodbPoolSize: 10,
     mainDbSourceName: "db",
     systemPropertiesObjectName: "systemProperties",
@@ -1082,6 +1082,7 @@ export class ObjectDec {
     listsViewType: ObjectListsViewType;
     pageLinks: any[];
     properties: Property[];
+    access: AccessPermission;
     pages: number;
     page: number;
     links: EntityLink[];

@@ -1317,8 +1317,7 @@ export function initObject(obj: mObject) {
                 return warn(`SimilarObject in service '${obj._.db}' not found for object: '${obj.title}', SimilarReference:${obj.reference}`);
 
             initObject(referenceObj);
-
-            _.defaultsDeep(obj, referenceObj);
+            applyAttrsFromReferencedObject(obj, referenceObj);
             compareParentProperties(obj.properties, referenceObj.properties, obj);
         } else if (obj.properties) {
             for (const prop of obj.properties) {
@@ -1327,6 +1326,21 @@ export function initObject(obj: mObject) {
         }
     } catch (ex) {
         error(`initObject, Error in object ${obj._.db}.${obj.name}`, ex);
+    }
+}
+
+function applyAttrsFromReferencedObject(obj: mObject, referenceObj: mObject) {
+    let newProps = obj.properties;
+    delete obj.properties;
+
+    _.defaultsDeep(obj, referenceObj);
+    for (let newProp of newProps) {
+        let changedProp = obj.properties.find(p => p.name == newProp.name);
+        if (!changedProp)
+            obj.properties.push(newProp);
+        else {
+            _.assign(changedProp, newProp);
+        }
     }
 }
 

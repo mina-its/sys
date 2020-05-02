@@ -18,7 +18,7 @@ class AuditType {
 exports.AuditType = AuditType;
 class Global {
     constructor() {
-        this.dbs = {}; // any not mongodb.Db because of client side reference
+        this.dbs = {};
         this.packageInfo = {};
         this.appConfig = {};
         this.clientQuestionCallbacks = {};
@@ -231,7 +231,6 @@ var PanelType;
 (function (PanelType) {
     PanelType[PanelType["Stack"] = 1] = "Stack";
     PanelType[PanelType["Dock"] = 2] = "Dock";
-    // Grid = 3,
     PanelType[PanelType["Wrap"] = 4] = "Wrap";
     PanelType[PanelType["Flex"] = 5] = "Flex";
     PanelType[PanelType["Modal"] = 6] = "Modal";
@@ -268,10 +267,10 @@ var AccessPermission;
 (function (AccessPermission) {
     AccessPermission[AccessPermission["None"] = 0] = "None";
     AccessPermission[AccessPermission["View"] = 1] = "View";
-    AccessPermission[AccessPermission["NewItem"] = 2] = "NewItem";
-    AccessPermission[AccessPermission["DeleteItem"] = 3] = "DeleteItem";
-    AccessPermission[AccessPermission["Edit"] = 4] = "Edit";
-    AccessPermission[AccessPermission["Full"] = 8] = "Full";
+    AccessPermission[AccessPermission["Edit"] = 2] = "Edit";
+    AccessPermission[AccessPermission["NewItem"] = 4] = "NewItem";
+    AccessPermission[AccessPermission["DeleteItem"] = 8] = "DeleteItem";
+    AccessPermission[AccessPermission["Full"] = 255] = "Full";
 })(AccessPermission = exports.AccessPermission || (exports.AccessPermission = {}));
 var PropertyViewMode;
 (function (PropertyViewMode) {
