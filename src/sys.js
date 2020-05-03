@@ -67,12 +67,12 @@ async function reload(cn) {
 exports.reload = reload;
 async function start() {
     try {
-        process.on('uncaughtException', async (err) => await audit(types_1.SysAuditTypes.uncaughtException, {
+        process.on('uncaughtException', async (err) => await audit({ db: types_1.Constants.sysDb }, types_1.SysAuditTypes.uncaughtException, {
             level: types_1.LogType.Fatal,
             comment: err.message + ". " + err.stack
         }));
         process.on('unhandledRejection', async (err) => {
-            await audit(types_1.SysAuditTypes.unhandledRejection, {
+            await audit({ db: types_1.Constants.sysDb }, types_1.SysAuditTypes.unhandledRejection, {
                 level: types_1.LogType.Fatal,
                 comment: typeof err == "number" ? err.toString() : err.message + ". " + err.stack
             });
@@ -103,7 +103,7 @@ function ID(id) {
     return new mongodb_1.ObjectId(id);
 }
 exports.ID = ID;
-async function audit(auditType, args) {
+async function audit(cn, auditType, args) {
     try {
         args.type = args.type || newID(auditType);
         args.time = new Date();
@@ -126,7 +126,7 @@ async function audit(auditType, args) {
         }
         if (type && type.disabled)
             return;
-        await put({ db: args.pack || types_1.Constants.sysDb }, types_1.SysCollection.audits, args);
+        await put(cn, types_1.SysCollection.audits, args);
     }
     catch (e) {
         error(`Audit '${auditType}' error: ${e.stack}`);

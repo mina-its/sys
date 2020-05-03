@@ -119,14 +119,14 @@ export async function reload(cn?: Context) {
 export async function start() {
     try {
         process.on('uncaughtException', async err =>
-            await audit(SysAuditTypes.uncaughtException, {
+            await audit({db: Constants.sysDb} as Context, SysAuditTypes.uncaughtException, {
                 level: LogType.Fatal,
                 comment: err.message + ". " + err.stack
             })
         );
 
         process.on('unhandledRejection', async (err: any) => {
-            await audit(SysAuditTypes.unhandledRejection, {
+            await audit({db: Constants.sysDb} as Context, SysAuditTypes.unhandledRejection, {
                 level: LogType.Fatal,
                 comment: typeof err == "number" ? err.toString() : err.message + ". " + err.stack
             });
@@ -159,7 +159,7 @@ export function ID(id?: string): ID {
     return new ObjectId(id) as any;
 }
 
-export async function audit(auditType: string, args: AuditArgs) {
+export async function audit(cn: Context, auditType: string, args: AuditArgs) {
     try {
         args.type = args.type || newID(auditType);
         args.time = new Date();
@@ -183,7 +183,7 @@ export async function audit(auditType: string, args: AuditArgs) {
         }
 
         if (type && type.disabled) return;
-        await put({db: args.pack || Constants.sysDb} as Context, SysCollection.audits, args);
+        await put(cn, SysCollection.audits, args);
     } catch (e) {
         error(`Audit '${auditType}' error: ${e.stack}`);
     }
