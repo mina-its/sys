@@ -99,10 +99,6 @@ function newID(id) {
     return new mongodb_1.ObjectId(id);
 }
 exports.newID = newID;
-function ID(id) {
-    return new mongodb_1.ObjectId(id);
-}
-exports.ID = ID;
 async function audit(cn, auditType, args) {
     try {
         args.type = args.type || newID(auditType);

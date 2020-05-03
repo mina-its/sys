@@ -155,10 +155,6 @@ export function newID(id?: string): ID {
     return new ObjectId(id) as any;
 }
 
-export function ID(id?: string): ID {
-    return new ObjectId(id) as any;
-}
-
 export async function audit(cn: Context, auditType: string, args: AuditArgs) {
     try {
         args.type = args.type || newID(auditType);
