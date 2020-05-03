@@ -7,6 +7,7 @@ let index = {
 const logger = require("winston");
 const mongodb = require("mongodb");
 const _ = require("lodash");
+const archiver = require("archiver");
 const xmlBuilder = require("xmlbuilder");
 const fs = require("fs-extra");
 const path = require("path");
@@ -15,6 +16,7 @@ const graphlib = require("graphlib");
 const marked = require("marked");
 const Jalali = require("jalali-moment");
 const sourceMapSupport = require("source-map-support");
+const fs_1 = require("fs");
 const ejs = require("ejs");
 const AWS = require("aws-sdk");
 const rimraf = require("rimraf");
@@ -835,8 +837,6 @@ async function loadSystemCollections() {
 }
 function configureLogger(silent) {
     let logDir = getAbsolutePath('./logs');
-    const infoLogFileName = 'info.log';
-    const errorLogFileName = 'error.log';
     const logLevels = {
         levels: {
             fatal: 0,
@@ -859,14 +859,14 @@ function configureLogger(silent) {
     };
     let transports = [
         new logger.transports.File({
-            filename: path.join(logDir, errorLogFileName),
+            filename: path.join(logDir, types_1.Constants.ErrorLogFile),
             level: 'error',
-            format: logger.format.printf(info => `${moment().format('HH:mm:ss.SS')}  ${info.level}\t${info.message}`),
+            format: logger.format.printf(info => `${moment().format('DD-HH:mm:ss.SS')}  ${info.level}\t${info.message}`),
         }),
         new logger.transports.File({
-            filename: path.join(logDir, infoLogFileName),
+            filename: path.join(logDir, types_1.Constants.InfoLogFile),
             level: 'debug',
-            format: logger.format.printf(info => `${moment().format('HH:mm:ss.SS')}  ${info.level}\t${info.message}`),
+            format: logger.format.printf(info => `${moment().format('DD-HH:mm:ss.SS')}  ${info.level}\t${info.message}`),
         })
     ];
     if (!silent)
@@ -877,6 +877,26 @@ function configureLogger(silent) {
     logger.addColors(logLevels.colors);
 }
 exports.configureLogger = configureLogger;
+async function downloadLogFiles(cn) {
+    let logDir = getAbsolutePath('./logs');
+    let fileName = `log-files-${Math.ceil(Math.random() * 10000000)}.zip`;
+    let tempPath = getAbsolutePath('./drive-default/temp');
+    try {
+        await fs_1.promises.mkdir(tempPath);
+    }
+    catch (e) {
+    }
+    let stream = fs.createWriteStream(path.join(tempPath, fileName));
+    let archive = archiver('zip', {
+        zlib: { level: 9 }
+    });
+    archive.directory(logDir, false);
+    archive.finalize();
+    await new Promise(resolve => archive.pipe(stream).on("finish", resolve));
+    cn.res = cn.res || {};
+    cn.res.redirect = `/@default/temp/${fileName}`;
+}
+exports.downloadLogFiles = downloadLogFiles;
 function validateApp(pack, app) {
     return true;
 }

@@ -270,6 +270,7 @@ var AccessPermission;
     AccessPermission[AccessPermission["Edit"] = 2] = "Edit";
     AccessPermission[AccessPermission["NewItem"] = 4] = "NewItem";
     AccessPermission[AccessPermission["DeleteItem"] = 8] = "DeleteItem";
+    AccessPermission[AccessPermission["Execute"] = 16] = "Execute";
     AccessPermission[AccessPermission["Full"] = 255] = "Full";
 })(AccessPermission = exports.AccessPermission || (exports.AccessPermission = {}));
 var PropertyViewMode;
@@ -482,6 +483,8 @@ exports.Constants = {
     ClassStyle_Object: "cs-obj",
     ClassStyle_Function: "cs-func",
     ClassStyle_Form: "cs-form",
+    InfoLogFile: 'info.log',
+    ErrorLogFile: 'error.log',
     mongodbPoolSize: 10,
     mainDbSourceName: "db",
     systemPropertiesObjectName: "systemProperties",
@@ -492,12 +495,6 @@ var PropertyConditionBehavior;
     PropertyConditionBehavior[PropertyConditionBehavior["Visible"] = 1] = "Visible";
     PropertyConditionBehavior[PropertyConditionBehavior["Enable"] = 2] = "Enable";
 })(PropertyConditionBehavior = exports.PropertyConditionBehavior || (exports.PropertyConditionBehavior = {}));
-var DefaultPermission;
-(function (DefaultPermission) {
-    DefaultPermission[DefaultPermission["None"] = 0] = "None";
-    DefaultPermission[DefaultPermission["View"] = 1] = "View";
-    DefaultPermission[DefaultPermission["Full"] = 8] = "Full";
-})(DefaultPermission = exports.DefaultPermission || (exports.DefaultPermission = {}));
 var EnvMode;
 (function (EnvMode) {
     EnvMode["Development"] = "development";

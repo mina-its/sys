@@ -1,6 +1,6 @@
 {
   "name": "mina-sys",
-  "version": "5.2.27",
+  "version": "5.2.29",
   "description": "mina sys package",
   "main": "index.d.js",
   "types": "index.d.ts",
@@ -28,10 +28,10 @@
     "jest": "^25.1.0"
   },
   "dependencies": {
+    "archiver": "^4.0.1",
     "async": "^2.6.2",
     "aws-sdk": "^2.611.0",
     "bson": "^4.0.2",
-    "marked": "^0.7.0",
     "docxtemplater": "^3.14.0",
     "ejs": "^3.0.2",
     "expect": "^25.1.0",
@@ -40,6 +40,7 @@
     "jalali-moment": "^3.3.3",
     "jszip": "^3.2.2",
     "lodash": "^4.17.14",
+    "marked": "^0.7.0",
     "moment": "^2.24.0",
     "mongodb": "^3.3.2",
     "numeral": "^2.0.6",

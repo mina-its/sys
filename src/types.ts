@@ -4,6 +4,9 @@ export interface Context {
     sessionID?: string;
     db?: string;
     req?: any;
+    res?:{
+      redirect?: string;
+    };
     url?: URL;
 }
 
@@ -389,7 +392,7 @@ export class ChartSeries {
 }
 
 export class Access {
-    defaultPermission?: DefaultPermission;
+    defaultPermission?: AccessPermission;
     items?: AccessItem[];
     expose?: boolean;
 }
@@ -538,6 +541,7 @@ export class SystemConfig {
         name: string;
         enabled: boolean;
     }[];
+    sessionsPath: string;
 }
 
 export class PackageInfo {
@@ -725,6 +729,7 @@ export enum AccessPermission {
     Edit = 2,
     NewItem = 4,
     DeleteItem = 8,
+    Execute = 16,
     Full = 255,
 }
 
@@ -907,6 +912,8 @@ export const Constants = {
     ClassStyle_Object: "cs-obj",
     ClassStyle_Function: "cs-func",
     ClassStyle_Form: "cs-form",
+    InfoLogFile: 'info.log',
+    ErrorLogFile: 'error.log',
     mongodbPoolSize: 10,
     mainDbSourceName: "db",
     systemPropertiesObjectName: "systemProperties",
@@ -916,12 +923,6 @@ export const Constants = {
 export enum PropertyConditionBehavior {
     Visible = 1,
     Enable = 2,
-}
-
-export enum DefaultPermission {
-    None = 0,
-    View = 1,
-    Full = 8,
 }
 
 export enum EnvMode {

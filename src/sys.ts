@@ -7,6 +7,7 @@ let index = {
 import logger = require('winston');
 import mongodb = require('mongodb');
 import _ = require('lodash');
+import archiver = require('archiver');
 import xmlBuilder = require('xmlbuilder');
 import fs = require('fs-extra');
 import path = require('path');
@@ -15,6 +16,7 @@ import graphlib = require('graphlib');
 import marked = require('marked');
 import Jalali = require('jalali-moment');
 import sourceMapSupport = require('source-map-support');
+import {promises as fsAsync} from "fs";
 import ejs = require('ejs');
 import AWS = require('aws-sdk');
 import rimraf = require("rimraf");
@@ -963,8 +965,6 @@ async function loadSystemCollections() {
 
 export function configureLogger(silent: boolean) {
     let logDir = getAbsolutePath('./logs');
-    const infoLogFileName = 'info.log';
-    const errorLogFileName = 'error.log';
     const logLevels = {
         levels: {
             fatal: 0,
@@ -989,17 +989,17 @@ export function configureLogger(silent: boolean) {
     let transports: any[] = [
         new logger.transports.File(
             {
-                filename: path.join(logDir, errorLogFileName),
+                filename: path.join(logDir, Constants.ErrorLogFile),
                 // maxsize: mem.sysConfig.log.maxSize,
                 level: 'error',
-                format: logger.format.printf(info => `${moment().format('HH:mm:ss.SS')}  ${info.level}\t${info.message}`),
+                format: logger.format.printf(info => `${moment().format('DD-HH:mm:ss.SS')}  ${info.level}\t${info.message}`),
             }),
         new logger.transports.File(
             {
-                filename: path.join(logDir, infoLogFileName),
+                filename: path.join(logDir, Constants.InfoLogFile),
                 // maxsize: mem.sysConfig.log.maxSize,
                 level: 'debug',
-                format: logger.format.printf(info => `${moment().format('HH:mm:ss.SS')}  ${info.level}\t${info.message}`),
+                format: logger.format.printf(info => `${moment().format('DD-HH:mm:ss.SS')}  ${info.level}\t${info.message}`),
             })
     ];
     if (!silent)
@@ -1010,6 +1010,27 @@ export function configureLogger(silent: boolean) {
         }));
     logger.configure(<logger.LoggerOptions>{levels: logLevels.levels, exitOnError: false, transports});
     logger.addColors(logLevels.colors);
+}
+
+export async function downloadLogFiles(cn: Context) {
+    let logDir = getAbsolutePath('./logs');
+    let fileName = `log-files-${Math.ceil(Math.random() * 10000000)}.zip`;
+
+    let tempPath = getAbsolutePath('./drive-default/temp');
+    try {
+        await fsAsync.mkdir(tempPath);
+    } catch (e) {
+
+    }
+    let stream = fs.createWriteStream(path.join(tempPath, fileName));
+    let archive = archiver('zip', {
+        zlib: {level: 9} // Sets the compression level.
+    });
+    archive.directory(logDir, false);
+    archive.finalize();
+    await new Promise(resolve => archive.pipe(stream).on("finish", resolve));
+    cn.res = cn.res || {};
+    cn.res.redirect = `/@default/temp/${fileName}`;
 }
 
 function validateApp(pack: string, app: App): boolean {
