@@ -420,6 +420,7 @@ export class MenuItem {
     ref: string;
     entity: ID;
     hotkey: Keys;
+    _cs?: string;
     items: MenuItem[];
 }
 
@@ -956,6 +957,7 @@ export class AppStateConfig {
     appTitle: string = "";
     brandingLogo: string = "";
     locale: string = null;
+    localeTitle: string = null;
     defaultLocale?: string = null;
     rtl: boolean = false;
     appLocales: Pair[] = [];

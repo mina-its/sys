@@ -516,6 +516,7 @@ class AppStateConfig {
         this.appTitle = "";
         this.brandingLogo = "";
         this.locale = null;
+        this.localeTitle = null;
         this.defaultLocale = null;
         this.rtl = false;
         this.appLocales = [];
