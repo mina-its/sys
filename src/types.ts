@@ -330,11 +330,13 @@ export class Elem {
         entityRef: string;
     };
     obj?: {
-        ref: string;
-        // type?: ObjectViewType;
+        data?: ID;
+        _?: {
+            ref?: string;
+            data?: any;
+        }
         props?: {
             name: string;
-            // viewType: ObjectViewType;
             entityRef: string;
         }[];
     };
