@@ -639,4 +639,7 @@ exports.ApiDoc = ApiDoc;
 class SysDashboardInfo {
 }
 exports.SysDashboardInfo = SysDashboardInfo;
+class UserProfile {
+}
+exports.UserProfile = UserProfile;
 //# sourceMappingURL=types.js.map

@@ -4,8 +4,8 @@ export interface Context {
     sessionID?: string;
     db?: string;
     req?: any;
-    res?:{
-      redirect?: string;
+    res?: {
+        redirect?: string;
     };
     url?: URL;
 }
@@ -1167,4 +1167,8 @@ export class SysDashboardInfo {
     functionsCount: number;
     usersCount: number;
     cpuUsage: number;
+}
+
+export class UserProfile {
+    email: string;
 }
