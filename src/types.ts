@@ -202,6 +202,7 @@ export class Property implements IProperties {
     viewMode: PropertyViewMode;
     defaultValue: string;
     editMode: PropertyEditMode;
+    commentStyle: string;
     required: boolean;
     type: ID;
     access: Access;
@@ -922,6 +923,7 @@ export const Constants = {
     mainDbSourceName: "db",
     systemPropertiesObjectName: "systemProperties",
     timeZonesCollection: "timeZones",
+    PASSWORD_EXPIRE_AGE: 180, // days
 };
 
 export enum PropertyConditionBehavior {

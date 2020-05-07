@@ -23,6 +23,7 @@ const rimraf = require("rimraf");
 const mongodb_1 = require("mongodb");
 const universalify_1 = require("universalify");
 const types_1 = require("./types");
+const bcrypt = require('bcrypt');
 const assert = require('assert').strict;
 const { EJSON } = require('bson');
 const { exec } = require("child_process");
@@ -1761,6 +1762,29 @@ async function getUploadedFiles(cn, readBuffer) {
     return files;
 }
 exports.getUploadedFiles = getUploadedFiles;
+async function comparePassword(password, hash) {
+    return new Promise((resolve, reject) => {
+        bcrypt.compare(password, hash, function (err, result) {
+            if (err)
+                reject(err);
+            else
+                resolve(result);
+        });
+    });
+}
+exports.comparePassword = comparePassword;
+async function hashPassword(password) {
+    return new Promise((resolve, reject) => {
+        const saltRounds = 10;
+        bcrypt.hash(password, saltRounds, function (err, hash) {
+            if (err)
+                reject(err);
+            else
+                resolve(hash);
+        });
+    });
+}
+exports.hashPassword = hashPassword;
 async function runFunction(cn, functionId, input) {
     let func = findEntity(functionId);
     if (!func)
@@ -1774,6 +1798,23 @@ async function runFunction(cn, functionId, input) {
     return invoke(cn, func, args);
 }
 exports.runFunction = runFunction;
+async function resetPassword(cn, newPassword, confirm) {
+    if (!cn.user)
+        throw types_1.StatusCode.Unauthorized;
+    if (newPassword != confirm)
+        throwError(types_1.StatusCode.BadRequest, "Password confirm error!");
+    let hash = await hashPassword(newPassword);
+    let date = new Date();
+    date.setDate(date.getDate() + types_1.Constants.PASSWORD_EXPIRE_AGE);
+    await patch(cn, types_1.SysCollection.users, { _id: cn.user._id, password: hash, passwordExpireTime: date });
+}
+exports.resetPassword = resetPassword;
+async function changePassword(cn, oldPassword, newPassword, confirm) {
+    if (!await comparePassword(oldPassword, cn.user.password))
+        throwError(types_1.StatusCode.BadRequest, "Invalid old password!");
+    await resetPassword(cn, newPassword, confirm);
+}
+exports.changePassword = changePassword;
 function isID(value) {
     if (!value)
         return false;

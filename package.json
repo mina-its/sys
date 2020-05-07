@@ -31,6 +31,7 @@
     "archiver": "^4.0.1",
     "async": "^2.6.2",
     "aws-sdk": "^2.611.0",
+    "bcrypt": "^4.0.1",
     "bson": "^4.0.2",
     "docxtemplater": "^3.14.0",
     "ejs": "^3.0.2",
