@@ -157,6 +157,7 @@ export class Form extends Entity {
 export class FormDto {
     title: string;
     breadcrumb: Pair[] = [];
+    breadcrumbLast: string;
     toolbar?: boolean = false;
     elems: Elem[] = [];
     declarations?: { [ref: string]: ObjectDec | FunctionDec; } = {};
@@ -333,7 +334,7 @@ export class Elem {
         data?: ID;
         _?: {
             ref?: string;
-            data?: any;
+            data?: any; // For future, Not used yet
         }
         props?: {
             name: string;

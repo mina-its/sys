@@ -1981,7 +1981,6 @@ export async function runFunction(cn: Context, functionId: ID, input: any) {
         }
 
     return invoke(cn, func, args);
-    //done(err, result, func);
 }
 
 export function isID(value: any): boolean {
