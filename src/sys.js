@@ -16,13 +16,14 @@ const graphlib = require("graphlib");
 const marked = require("marked");
 const Jalali = require("jalali-moment");
 const sourceMapSupport = require("source-map-support");
-const fs_1 = require("fs");
 const ejs = require("ejs");
 const AWS = require("aws-sdk");
 const rimraf = require("rimraf");
+const fs_1 = require("fs");
 const mongodb_1 = require("mongodb");
 const universalify_1 = require("universalify");
 const types_1 = require("./types");
+const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
 const assert = require('assert').strict;
 const { EJSON } = require('bson');
@@ -1287,6 +1288,65 @@ function getText(cn, text, useDictionary) {
         return _.values(text)[0];
 }
 exports.getText = getText;
+async function verifyEmailAccounts(cn) {
+    assert(exports.glob.appConfig[cn.db].emailAccounts, `Email accounts is empty`);
+    for (const account of exports.glob.appConfig[cn.db].emailAccounts) {
+        const transporter = nodemailer.createTransport({
+            host: account.smtpServer,
+            port: account.smtpPort,
+            secure: account.secure,
+            auth: { user: account.username, pass: account.password }
+        });
+        await new Promise((resolve, reject) => {
+            transporter.verify(function (err) {
+                if (err) {
+                    reject(err);
+                }
+                else {
+                    info(`Account '${account.username}' is verified!`);
+                    resolve();
+                }
+            });
+        });
+    }
+}
+exports.verifyEmailAccounts = verifyEmailAccounts;
+async function sendEmail(cn, from, to, subject, text, params) {
+    assert(exports.glob.appConfig[cn.db].emailAccounts, `Email accounts is empty`);
+    const account = exports.glob.appConfig[cn.db].emailAccounts.find(account => account.username == from);
+    assert(account, `Email account for account '${from}' not found!`);
+    const smtpTransport = require('nodemailer-smtp-transport');
+    const transporter = nodemailer.createTransport(smtpTransport({
+        service: 'gmail',
+        auth: { user: account.username, pass: account.password }
+    }));
+    const mailOptions = { from, to, subject, text };
+    return new Promise((resolve, reject) => {
+        transporter.sendMail(mailOptions, function (err, info) {
+            if (err) {
+                error(`Sending email from '${from}' to '${to} failed`);
+                reject(err);
+            }
+            else {
+                resolve(info.response);
+            }
+        });
+    });
+}
+exports.sendEmail = sendEmail;
+async function sendSms(cn, number, target, message, params) {
+    assert(exports.glob.appConfig[cn.db].smsAccounts, `Sms accounts is empty`);
+    let account = exports.glob.appConfig[cn.db].smsAccounts.find(account => account.number == number);
+    assert(account, `Sms account for number '${number}' not found!`);
+    switch (account.provider) {
+        case types_1.SmsProvider.Infobip:
+            throwError(types_1.StatusCode.NotImplemented);
+            break;
+        default:
+            throwError(types_1.StatusCode.NotImplemented);
+    }
+}
+exports.sendSms = sendSms;
 function getEnumText(thePackage, dependencies, enumType, value, locale) {
     if (value == null)
         return "";

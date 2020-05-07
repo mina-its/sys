@@ -16,14 +16,15 @@ import graphlib = require('graphlib');
 import marked = require('marked');
 import Jalali = require('jalali-moment');
 import sourceMapSupport = require('source-map-support');
-import {promises as fsAsync} from "fs";
 import ejs = require('ejs');
 import AWS = require('aws-sdk');
 import rimraf = require("rimraf");
+import {promises as fsAsync} from "fs";
 import {MongoClient, ObjectId} from 'mongodb';
 import {fromCallback} from 'universalify';
 import {
     App,
+    AppConfig,
     AuditArgs,
     ClientCommand,
     Constants,
@@ -37,16 +38,18 @@ import {
     Enum,
     EnvMode,
     ErrorObject,
-    mFile,
     Form,
     Function,
     FunctionTestSample,
     GetOptions,
     Global,
     GlobalType,
+    Host,
+    ID,
     Locale,
     LogType,
     Menu,
+    mFile,
     mObject,
     ObjectModifyState,
     ObjectModifyType,
@@ -57,11 +60,13 @@ import {
     PropertyViewMode,
     PType,
     PutOptions,
-    ID,
     RefPortion,
     RefPortionType,
     RequestMode,
     Role,
+    SendEmailParams,
+    SendSmsParams,
+    SmsProvider,
     SourceType,
     StatusCode,
     SysAuditTypes,
@@ -69,10 +74,10 @@ import {
     SystemProperty,
     Text,
     UploadedFile,
-    AppConfig,
-    Host, User,
+    User,
 } from './types';
 
+const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
 const assert = require('assert').strict;
 const {EJSON} = require('bson');
@@ -1454,6 +1459,76 @@ export function getText(cn: Context, text, useDictionary?: boolean): string {
         return text[localeName];
     else
         return _.values(text)[0];
+}
+
+export async function verifyEmailAccounts(cn: Context) {
+    assert(glob.appConfig[cn.db].emailAccounts, `Email accounts is empty`);
+
+    for (const account of glob.appConfig[cn.db].emailAccounts) {
+        const transporter = nodemailer.createTransport({
+            //service: 'gmail',
+            host: account.smtpServer,
+            port: account.smtpPort,
+            secure: account.secure,
+            auth: {user: account.username, pass: account.password}
+        });
+
+        await new Promise((resolve, reject) => {
+            transporter.verify(function (err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    info(`Account '${account.username}' is verified!`);
+                    resolve();
+                }
+            });
+        });
+    }
+}
+
+export async function sendEmail(cn: Context, from: string, to: string, subject: string, text: string, params?: SendEmailParams) {
+    assert(glob.appConfig[cn.db].emailAccounts, `Email accounts is empty`);
+
+    const account = glob.appConfig[cn.db].emailAccounts.find(account => account.username == from);
+    assert(account, `Email account for account '${from}' not found!`);
+
+    const smtpTransport = require('nodemailer-smtp-transport');
+
+    const transporter = nodemailer.createTransport(smtpTransport({
+        service: 'gmail',
+        // host: account.smtpServer,
+        // port: account.smtpPort,
+        // secure: account.secure,
+        auth: {user: account.username, pass: account.password}
+    }));
+
+    const mailOptions = {from, to, subject, text};
+    return new Promise((resolve, reject) => {
+        transporter.sendMail(mailOptions, function (err, info) {
+            if (err) {
+                error(`Sending email from '${from}' to '${to} failed`);
+                reject(err);
+            } else {
+                resolve(info.response);
+            }
+        });
+    });
+}
+
+export async function sendSms(cn: Context, number: string, target: string, message: string, params?: SendSmsParams) {
+    assert(glob.appConfig[cn.db].smsAccounts, `Sms accounts is empty`);
+
+    let account = glob.appConfig[cn.db].smsAccounts.find(account => account.number == number);
+    assert(account, `Sms account for number '${number}' not found!`);
+
+    switch (account.provider) {
+        case SmsProvider.Infobip:
+            throwError(StatusCode.NotImplemented);
+            break;
+
+        default:
+            throwError(StatusCode.NotImplemented);
+    }
 }
 
 export function getEnumText(thePackage: string, dependencies: string[], enumType: string, value: number, locale?: Locale) {

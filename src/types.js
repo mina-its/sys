@@ -16,6 +16,10 @@ exports.User = User;
 class AuditType {
 }
 exports.AuditType = AuditType;
+var SmsProvider;
+(function (SmsProvider) {
+    SmsProvider["Infobip"] = "infobip";
+})(SmsProvider = exports.SmsProvider || (exports.SmsProvider = {}));
 class Global {
     constructor() {
         this.dbs = {};
@@ -54,6 +58,15 @@ exports.FormDto = FormDto;
 class ObjectModifyState {
 }
 exports.ObjectModifyState = ObjectModifyState;
+class EmailTemplateConfig {
+}
+exports.EmailTemplateConfig = EmailTemplateConfig;
+class SendEmailParams {
+}
+exports.SendEmailParams = SendEmailParams;
+class SendSmsParams {
+}
+exports.SendSmsParams = SendSmsParams;
 var ObjectModifyType;
 (function (ObjectModifyType) {
     ObjectModifyType[ObjectModifyType["Update"] = 1] = "Update";

@@ -62,6 +62,10 @@ export class AuditType {
     disabled: boolean
 }
 
+export enum SmsProvider {
+    Infobip = "infobip",
+}
+
 export class Global {
     postClientCommandCallback: (cn: Context, ...args: any[]) => void;
     dbs: { [packAndCs: string]: any } = {}; // any not mongodb.Db because of client side reference
@@ -167,6 +171,22 @@ export class ObjectModifyState {
     type: ObjectModifyType;
     itemId?: ID;
     item?: any;
+}
+
+export class EmailTemplateConfig {
+    from: string;
+    title: string | MultilangText;
+    subject: string | MultilangText;
+    template: string | MultilangText;
+}
+
+export class SendEmailParams {
+    isHtml: boolean;
+    attachments: mFile[];
+}
+
+export class SendSmsParams {
+    delivery: boolean;
 }
 
 export enum ObjectModifyType {
@@ -510,30 +530,33 @@ export class MultilangText {
 }
 
 export class SmsAccount {
-    address: string;
-    serviceType: number;
+    number: string;
     username: string;
     password: string;
-    number: string;
+    uri: string;
+    provider: string;
+    enabled: boolean;
 }
 
 export class EmailAccount {
     _id: ID;
-    Title: string;
-    Email: string;
-    IncommingMailServer: string;
-    Username: string;
-    Password: string;
-    SmtpServer: string;
-    SmtpServerPort: number;
-    SecuredSmtp: boolean;
-    Default: boolean;
+    username: string;
+    password: string;
+    smtpServer: string;
+    smtpPort: number;
+    secure: boolean;
+    enabled: boolean;
 }
 
 export class AppConfig {
     _id: ID;
     defaultPack: string;
     apps: App[];
+    emailAccounts: EmailAccount[];
+    smsAccounts: SmsAccount[];
+    emailVerificationTemplate: EmailTemplateConfig;
+    welcomeEmailTemplate: EmailTemplateConfig;
+    resetPasswordTemplate: EmailTemplateConfig;
     addressRules: PackageAddressRule[];
 }
 
