@@ -1253,6 +1253,10 @@ export function allFunctions(cn: Context): Function[] {
     return glob.entities.filter(en => en.entityType == EntityType.Function && (!cn || containsPack(cn, en._.db))) as Function[];
 }
 
+export function allForms(cn: Context): Form[] {
+    return glob.entities.filter(en => en.entityType == EntityType.Form && (!cn || containsPack(cn, en._.db))) as Form[];
+}
+
 async function initializeEntities() {
     log(`Initializing '${allObjects(null).length}' Objects ...`);
     let allObjs = allObjects(null);
@@ -1288,6 +1292,12 @@ async function initializeEntities() {
         } catch (ex) {
             error("Init functions, Module: " + func._.db + ", Action: " + func.name, ex);
         }
+    }
+
+    log(`Initializing forms ...`);
+    for (const form of allForms(null)) {
+        form._.access = {};
+        form._.access[form._.db] = form.access;
     }
 }
 

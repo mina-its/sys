@@ -39,10 +39,11 @@ export class User {
     _id: ID;
     roles: ID[] = [];
     disabled = false;
-
     email: string;
     password: string;
     title: string;
+    firstName: string;
+    lastName: string;
     passwordExpireTime: Date;
     image: mFile;
     mobile: string;

@@ -1094,6 +1094,10 @@ function allFunctions(cn) {
     return exports.glob.entities.filter(en => en.entityType == types_1.EntityType.Function && (!cn || containsPack(cn, en._.db)));
 }
 exports.allFunctions = allFunctions;
+function allForms(cn) {
+    return exports.glob.entities.filter(en => en.entityType == types_1.EntityType.Form && (!cn || containsPack(cn, en._.db)));
+}
+exports.allForms = allForms;
 async function initializeEntities() {
     log(`Initializing '${allObjects(null).length}' Objects ...`);
     let allObjs = allObjects(null);
@@ -1128,6 +1132,11 @@ async function initializeEntities() {
         catch (ex) {
             error("Init functions, Module: " + func._.db + ", Action: " + func.name, ex);
         }
+    }
+    log(`Initializing forms ...`);
+    for (const form of allForms(null)) {
+        form._.access = {};
+        form._.access[form._.db] = form.access;
     }
 }
 function checkFileProperty(prop, entity) {
