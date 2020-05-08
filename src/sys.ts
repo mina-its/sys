@@ -5,6 +5,7 @@ let index = {
 
 
 import logger = require('winston');
+import https = require('https');
 import mongodb = require('mongodb');
 import _ = require('lodash');
 import archiver = require('archiver');
@@ -1520,20 +1521,39 @@ export async function sendEmail(cn: Context, from: string, to: string, subject: 
     });
 }
 
-export async function sendSms(cn: Context, number: string, target: string, message: string, params?: SendSmsParams) {
+export async function sendSms(cn: Context, provider, from: string, to: string, text: string, params?: SendSmsParams): Promise<StatusCode> {
     assert(glob.appConfig[cn.db].smsAccounts, `Sms accounts is empty`);
+    const account = glob.appConfig[cn.db].smsAccounts.find(account => account.provider.toLowerCase().trim() == provider.toLowerCase().trim())
 
-    let account = glob.appConfig[cn.db].smsAccounts.find(account => account.number == number);
-    assert(account, `Sms account for number '${number}' not found!`);
+    return new Promise((resolve, reject) => {
+        switch (provider) {
+            case SmsProvider.Infobip:
+                // set options
+                const auth = 'Basic ' + Buffer.from(account.username + ':' + account.password).toString('base64');
+                const url = new URL(account.uri);
+                const data = JSON.stringify({from, to, text});
+                const options = {
+                    hostname: url.hostname,
+                    path: url.pathname,
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': auth
+                    }
+                };
 
-    switch (account.provider) {
-        case SmsProvider.Infobip:
-            throwError(StatusCode.NotImplemented);
-            break;
+                // Send https request
+                const req = https.request(options, res => resolve(res.statusCode));
+                req.on('error', reject);
+                req.write(data);
+                req.end();
+                break;
 
-        default:
-            throwError(StatusCode.NotImplemented);
-    }
+            default:
+                throwError(StatusCode.NotImplemented);
+        }
+    });
 }
 
 export function getEnumText(thePackage: string, dependencies: string[], enumType: string, value: number, locale?: Locale) {
