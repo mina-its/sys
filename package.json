@@ -45,7 +45,6 @@
     "moment": "^2.24.0",
     "mongodb": "^3.3.2",
     "nodemailer": "^6.4.6",
-    "nodemailer-smtp-transport": "^2.7.4",
     "numeral": "^2.0.6",
     "rimraf": "^3.0.2",
     "saslprep": "^1.0.3",

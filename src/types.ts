@@ -177,12 +177,13 @@ export class EmailTemplateConfig {
     from: string;
     title: string | MultilangText;
     subject: string | MultilangText;
-    template: string | MultilangText;
+    content: string | MultilangText;
 }
 
 export class SendEmailParams {
-    isHtml: boolean;
-    attachments: mFile[];
+    fromName?: string;
+    isHtml?: boolean;
+    attachments?: mFile[];
 }
 
 export class SendSmsParams {
@@ -540,6 +541,7 @@ export class SmsAccount {
 
 export class EmailAccount {
     _id: ID;
+    email: string;
     username: string;
     password: string;
     smtpServer: string;

@@ -1486,23 +1486,28 @@ export async function verifyEmailAccounts(cn: Context) {
     }
 }
 
-export async function sendEmail(cn: Context, from: string, to: string, subject: string, text: string, params?: SendEmailParams) {
+export async function sendEmail(cn: Context, from: string, to: string, subject: string, content: string, params?: SendEmailParams) {
     assert(glob.appConfig[cn.db].emailAccounts, `Email accounts is empty`);
 
-    const account = glob.appConfig[cn.db].emailAccounts.find(account => account.username == from);
+    const account = glob.appConfig[cn.db].emailAccounts.find(account => account.email == from);
     assert(account, `Email account for account '${from}' not found!`);
 
-    const smtpTransport = require('nodemailer-smtp-transport');
-
-    const transporter = nodemailer.createTransport(smtpTransport({
-        service: 'gmail',
-        // host: account.smtpServer,
-        // port: account.smtpPort,
-        // secure: account.secure,
+    const transporter = nodemailer.createTransport({
+        host: account.smtpServer,
+        port: account.smtpPort,
+        secure: account.secure,
         auth: {user: account.username, pass: account.password}
-    }));
+    });
 
-    const mailOptions = {from, to, subject, text};
+    if (params && params.fromName)
+        from = `"${params.fromName}" <${from}>`;
+
+    let mailOptions = {from, to, subject} as any;
+    if (params && params.isHtml)
+        mailOptions.html = content;
+    else
+        mailOptions.text = content;
+
     return new Promise((resolve, reject) => {
         transporter.sendMail(mailOptions, function (err, info) {
             if (err) {
