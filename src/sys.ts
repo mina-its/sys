@@ -22,6 +22,7 @@ import AWS = require('aws-sdk');
 import rimraf = require("rimraf");
 import {promises as fsAsync} from "fs";
 import {MongoClient, ObjectId} from 'mongodb';
+import maxmind, {CountryResponse} from 'maxmind';
 import {fromCallback} from 'universalify';
 import {
     App,
@@ -2215,4 +2216,10 @@ export function sort(array: any[], prop: string): void {
     }
 
     array.sort(compare);
+}
+
+export async function countryLookup(ip: string) {
+    const lookup = await maxmind.open<CountryResponse>('./assets/GeoLite2-Country.mmdb');
+    let result = lookup.get(ip);
+    return result.country.iso_code; // inferred type maxmind.CityResponse
 }
