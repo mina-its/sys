@@ -22,6 +22,7 @@ const AWS = require("aws-sdk");
 const rimraf = require("rimraf");
 const fs_1 = require("fs");
 const mongodb_1 = require("mongodb");
+const maxmind_1 = require("maxmind");
 const universalify_1 = require("universalify");
 const types_1 = require("./types");
 const nodemailer = require('nodemailer');
@@ -2000,4 +2001,10 @@ function sort(array, prop) {
     array.sort(compare);
 }
 exports.sort = sort;
+async function countryLookup(ip) {
+    const lookup = await maxmind_1.default.open('../assets/GeoLite2-Country.mmdb');
+    let result = lookup.get(ip);
+    console.log(result.country.iso_code);
+}
+exports.countryLookup = countryLookup;
 //# sourceMappingURL=sys.js.map
