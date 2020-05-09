@@ -2219,7 +2219,7 @@ export function sort(array: any[], prop: string): void {
 }
 
 export async function countryLookup(ip: string) {
-    const lookup = await maxmind.open<CountryResponse>('../assets/GeoLite2-Country.mmdb');
+    const lookup = await maxmind.open<CountryResponse>('./assets/GeoLite2-Country.mmdb');
     let result = lookup.get(ip);
-    console.log(result.country.iso_code); // inferred type maxmind.CityResponse
+    return result.country.iso_code; // inferred type maxmind.CityResponse
 }

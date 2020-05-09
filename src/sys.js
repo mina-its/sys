@@ -2002,9 +2002,9 @@ function sort(array, prop) {
 }
 exports.sort = sort;
 async function countryLookup(ip) {
-    const lookup = await maxmind_1.default.open('../assets/GeoLite2-Country.mmdb');
+    const lookup = await maxmind_1.default.open('./assets/GeoLite2-Country.mmdb');
     let result = lookup.get(ip);
-    console.log(result.country.iso_code);
+    return result.country.iso_code;
 }
 exports.countryLookup = countryLookup;
 //# sourceMappingURL=sys.js.map
