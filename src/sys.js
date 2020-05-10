@@ -734,6 +734,10 @@ async function loadTimeZones() {
         query: { name: types_1.Constants.systemPropertiesObjectName },
         count: 1
     });
+    let countries = await get({ db: types_1.Constants.sysDb }, types_1.SysCollection.countries);
+    for (const country of countries) {
+        exports.glob.countries[country.code] = country;
+    }
     if (!result) {
         logger.error("loadGeneralCollections failed terminating process ...");
         process.exit();
@@ -2001,9 +2005,25 @@ function sort(array, prop) {
     array.sort(compare);
 }
 exports.sort = sort;
+async function countryNameLookup(ip) {
+    if (/^::/.test(ip))
+        return "[LOCAL]";
+    let countryCode = await countryLookup(ip);
+    let country = countryCode ? exports.glob.countries[countryCode] : null;
+    if (country)
+        return country.name;
+    else
+        return null;
+}
+exports.countryNameLookup = countryNameLookup;
 async function countryLookup(ip) {
-    const lookup = await maxmind_1.default.open('./assets/GeoLite2-Country.mmdb');
+    const file = getAbsolutePath('./sys/assets/GeoLite2-Country.mmdb');
+    const lookup = await maxmind_1.default.open(file);
     let result = lookup.get(ip);
+    if (!result || !result.country) {
+        error(`Country for ip '${ip}' not found.`);
+        return null;
+    }
     return result.country.iso_code;
 }
 exports.countryLookup = countryLookup;

@@ -30,7 +30,7 @@ import {
     AuditArgs,
     ClientCommand,
     Constants,
-    Context,
+    Context, Country,
     DelOptions,
     DirFile,
     DirFileType,
@@ -846,6 +846,12 @@ async function loadTimeZones() {
         query: {name: Constants.systemPropertiesObjectName},
         count: 1
     });
+
+    let countries: Country[] = await get({db: Constants.sysDb} as Context, SysCollection.countries);
+    for (const country of countries) {
+        glob.countries[country.code] = country;
+    }
+
     if (!result) {
         logger.error("loadGeneralCollections failed terminating process ...");
         process.exit();
@@ -2218,8 +2224,24 @@ export function sort(array: any[], prop: string): void {
     array.sort(compare);
 }
 
-export async function countryLookup(ip: string) {
-    const lookup = await maxmind.open<CountryResponse>('./assets/GeoLite2-Country.mmdb');
+export async function countryNameLookup(ip: string): Promise<string> {
+    if (/^::/.test(ip))
+        return "[LOCAL]";
+    let countryCode = await countryLookup(ip);
+    let country = countryCode ? glob.countries[countryCode] : null;
+    if (country)
+        return country.name;
+    else
+        return null;
+}
+
+export async function countryLookup(ip: string): Promise<string> {
+    const file = getAbsolutePath('./sys/assets/GeoLite2-Country.mmdb');
+    const lookup = await maxmind.open<CountryResponse>(file);
     let result = lookup.get(ip);
+    if (!result || !result.country) {
+        error(`Country for ip '${ip}' not found.`);
+        return null;
+    }
     return result.country.iso_code; // inferred type maxmind.CityResponse
 }

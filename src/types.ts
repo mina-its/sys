@@ -43,6 +43,7 @@ export class User {
     password: string;
     title: string;
     firstName: string;
+    country: ID;
     lastName: string;
     passwordExpireTime: Date;
     image: mFile;
@@ -67,10 +68,20 @@ export enum SmsProvider {
     Infobip = "infobip",
 }
 
+export class Country {
+    name: string;
+    code: string;
+    prefix: string;
+    population: number;
+    area: number;
+    gdp: string;
+}
+
 export class Global {
     postClientCommandCallback: (cn: Context, ...args: any[]) => void;
     dbs: { [packAndCs: string]: any } = {}; // any not mongodb.Db because of client side reference
     systemConfig: SystemConfig;
+    countries: { [code: string]: Country; } = {};
     packageInfo: { [pack: string]: PackageInfo; } = {};
     appConfig: { [db: string]: AppConfig; } = {};
     clientQuestionCallbacks: { [sessionId: string]: (answer: number | null) => void; } = {};
@@ -885,6 +896,7 @@ export enum SysCollection {
     audits = "audits",
     users = "users",
     dictionary = "dictionary",
+    countries = "countries",
     objects = "objects",
     functions = "functions",
     roles = "roles",
