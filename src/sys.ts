@@ -1825,7 +1825,10 @@ export function stringify(value): string {
                         if (val.constructor == ObjectId)
                             value[attr] = {"$oid": val.toString()};
 
-                        if (val instanceof Date)
+                        else if (val.constructor == RegExp)
+                            value[attr] = {"$reg": val.toString()};
+
+                        else if (val instanceof Date)
                             value[attr] = {"$date": val.toString()};
                     }
                 }
@@ -1884,8 +1887,11 @@ export function parse(str: string | any): any {
                 if (val.$oid) {
                     obj[key] = newID(val.$oid);
                     continue;
-                }
-                if (val.$date) {
+                } else if (val.$reg) {
+                    let match = val.$reg.match(/\/(.+)\/(.*)/);
+                    obj[key] = new RegExp(match[1], match[2]);
+                    continue;
+                } else if (val.$date) {
                     obj[key] = new Date(val.$date);
                     continue;
                 }

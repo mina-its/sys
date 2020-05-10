@@ -1624,7 +1624,9 @@ function stringify(value) {
                     if (val) {
                         if (val.constructor == mongodb_1.ObjectId)
                             value[attr] = { "$oid": val.toString() };
-                        if (val instanceof Date)
+                        else if (val.constructor == RegExp)
+                            value[attr] = { "$reg": val.toString() };
+                        else if (val instanceof Date)
                             value[attr] = { "$date": val.toString() };
                     }
                 }
@@ -1682,7 +1684,12 @@ function parse(str) {
                     obj[key] = newID(val.$oid);
                     continue;
                 }
-                if (val.$date) {
+                else if (val.$reg) {
+                    let match = val.$reg.match(/\/(.+)\/(.*)/);
+                    obj[key] = new RegExp(match[1], match[2]);
+                    continue;
+                }
+                else if (val.$date) {
                     obj[key] = new Date(val.$date);
                     continue;
                 }
