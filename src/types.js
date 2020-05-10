@@ -22,7 +22,7 @@ var SmsProvider;
 })(SmsProvider = exports.SmsProvider || (exports.SmsProvider = {}));
 class Global {
     constructor() {
-        this.dbs = {};
+        this.dbs = {}; // any not mongodb.Db because of client side reference
         this.packageInfo = {};
         this.appConfig = {};
         this.clientQuestionCallbacks = {};
@@ -49,7 +49,6 @@ exports.Form = Form;
 class FormDto {
     constructor() {
         this.breadcrumb = [];
-        this.toolbar = false;
         this.elems = [];
         this.declarations = {};
     }
@@ -91,6 +90,7 @@ var ObjectViewType;
     ObjectViewType[ObjectViewType["GridView"] = 1] = "GridView";
     ObjectViewType[ObjectViewType["DetailsView"] = 2] = "DetailsView";
     ObjectViewType[ObjectViewType["TreeView"] = 3] = "TreeView";
+    ObjectViewType[ObjectViewType["Filter"] = 4] = "Filter";
 })(ObjectViewType = exports.ObjectViewType || (exports.ObjectViewType = {}));
 class Elem {
 }
@@ -244,6 +244,7 @@ var PanelType;
 (function (PanelType) {
     PanelType[PanelType["Stack"] = 1] = "Stack";
     PanelType[PanelType["Dock"] = 2] = "Dock";
+    // Grid = 3,
     PanelType[PanelType["Wrap"] = 4] = "Wrap";
     PanelType[PanelType["Flex"] = 5] = "Flex";
     PanelType[PanelType["Modal"] = 6] = "Modal";

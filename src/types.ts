@@ -163,7 +163,6 @@ export class FormDto {
     title: string;
     breadcrumb: Pair[] = [];
     breadcrumbLast: string;
-    toolbar?: boolean = false;
     elems: Elem[] = [];
     declarations?: { [ref: string]: ObjectDec | FunctionDec; } = {};
 }
@@ -327,12 +326,14 @@ export class EntityLink {
 export enum ObjectViewType {
     GridView = 1,
     DetailsView = 2,
-    TreeView = 3
+    TreeView = 3,
+    Filter = 4,
 }
 
 export class Elem {
     id: string;
     type: ElemType;
+    toolbar?: boolean;
     comment?: string;
     styles?: string;
     title?: string;
@@ -355,6 +356,7 @@ export class Elem {
     };
     obj?: {
         data?: ID;
+        toolbar?: boolean;
         _?: {
             ref?: string;
             data?: any; // For future, Not used yet
