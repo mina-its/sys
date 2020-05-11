@@ -1689,6 +1689,10 @@ function parse(str) {
                     obj[key] = new RegExp(match[1], match[2]);
                     continue;
                 }
+                else if (val.$null) {
+                    obj[key] = null;
+                    continue;
+                }
                 else if (val.$date) {
                     obj[key] = new Date(val.$date);
                     continue;
