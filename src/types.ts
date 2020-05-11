@@ -1131,6 +1131,7 @@ export class ObjectDec {
     pageLinks: any[];
     properties: Property[];
     access: AccessPermission;
+    count: number;
     pages: number;
     page: number;
     links: EntityLink[];
