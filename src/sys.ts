@@ -1330,6 +1330,11 @@ function checkForSystemProperty(prop: Property) {
 export function initProperties(properties: Property[], entity: Entity, parentTitle?) {
     if (!properties) return;
     for (const prop of properties) {
+        // if (prop._.inited)
+        //     return;
+        // else
+        //     obj._.inited = true;
+
         prop._ = {};
         checkForSystemProperty(prop);
         prop.group = prop.group || parentTitle;
