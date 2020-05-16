@@ -327,11 +327,13 @@ export class FunctionTestSample {
 
 export class EntityLink {
     _id: ID;
-    address: ID;
+    address: string;
     title: string | MultilangText;
     comment: string | MultilangText;
     condition: string;
+    single: boolean;
     type: LinkType;
+    style: string;
 }
 
 export enum ObjectViewType {
