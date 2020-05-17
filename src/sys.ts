@@ -1619,10 +1619,9 @@ export function getEnumItems(cn: Context, enumName: string): Pair[] {
     });
 }
 
-export function getEnumByName(thePackage: string, dependencies: string[], enumType: string) {
+export function getEnumByName(thePackage: string, dependencies: string[], enumType: string): any {
     let theEnum = glob.enumTexts[thePackage + "." + enumType];
-
-    if (dependencies)
+    if (!theEnum && dependencies)
         for (let i = 0; !theEnum && i < dependencies.length; i++) {
             theEnum = glob.enumTexts[dependencies[i] + "." + enumType];
         }

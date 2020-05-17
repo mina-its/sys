@@ -1425,7 +1425,7 @@ function getEnumItems(cn, enumName) {
 exports.getEnumItems = getEnumItems;
 function getEnumByName(thePackage, dependencies, enumType) {
     let theEnum = exports.glob.enumTexts[thePackage + "." + enumType];
-    if (dependencies)
+    if (!theEnum && dependencies)
         for (let i = 0; !theEnum && i < dependencies.length; i++) {
             theEnum = exports.glob.enumTexts[dependencies[i] + "." + enumType];
         }
