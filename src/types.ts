@@ -654,7 +654,8 @@ export class GeoLocation {
 }
 
 export class PutOptions {
-    portions: RefPortion[];
+    filter?: any;
+    portions?: RefPortion[];
 }
 
 export class PatchOptions {

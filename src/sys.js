@@ -392,10 +392,27 @@ async function patch(cn, objectName, patchData, options) {
     let collection = db.collection(objectName);
     if (!collection)
         throw types_1.StatusCode.BadRequest;
+    if (options && options.filter && !options.portions) {
+        let command = {};
+        for (let key in patchData) {
+            if (patchData[key] == null) {
+                command.$unset = command.$unset || {};
+                command.$unset[key] = "";
+            }
+            else {
+                command.$set = command.$set || {};
+                command.$set[key] = patchData[key];
+            }
+        }
+        let result = await collection.updateOne(options.filter, command);
+        return {
+            type: types_1.ObjectModifyType.Patch,
+        };
+    }
     if (!options)
         options = { portions: [] };
     let portions = options.portions;
-    if (!portions || !portions.length)
+    if (!portions.length)
         portions = [{ type: types_1.RefPortionType.entity, value: objectName }];
     if (portions.length == 1) {
         portions.push({
@@ -420,7 +437,8 @@ async function patch(cn, objectName, patchData, options) {
     if (_.isEmpty(command.$set))
         delete command.$set;
     let rootId = portions[1].itemId;
-    let result = await collection.updateOne({ _id: rootId }, command);
+    let filter = (options && options.filter) ? options.filter : { _id: rootId };
+    let result = await collection.updateOne(filter, command);
     return {
         type: types_1.ObjectModifyType.Patch,
         item: patchData,
@@ -1386,14 +1404,14 @@ async function sendSms(cn, provider, from, to, text, params) {
     });
 }
 exports.sendSms = sendSms;
-function getEnumText(thePackage, dependencies, enumType, value, locale) {
+function getEnumText(cn, enumType, value) {
     if (value == null)
         return "";
-    let theEnum = getEnumByName(thePackage, dependencies, enumType);
+    let theEnum = getEnumByName(cn.db, cn["app"] ? cn["app"].dependencies : null, enumType);
     if (!theEnum)
         return value;
     let text = theEnum[value];
-    return getText({ locale }, text);
+    return getText(cn, text);
 }
 exports.getEnumText = getEnumText;
 function getEnumItems(cn, enumName) {
@@ -1407,9 +1425,10 @@ function getEnumItems(cn, enumName) {
 exports.getEnumItems = getEnumItems;
 function getEnumByName(thePackage, dependencies, enumType) {
     let theEnum = exports.glob.enumTexts[thePackage + "." + enumType];
-    for (let i = 0; !theEnum && i < dependencies.length; i++) {
-        theEnum = exports.glob.enumTexts[dependencies[i] + "." + enumType];
-    }
+    if (dependencies)
+        for (let i = 0; !theEnum && i < dependencies.length; i++) {
+            theEnum = exports.glob.enumTexts[dependencies[i] + "." + enumType];
+        }
     return theEnum;
 }
 exports.getEnumByName = getEnumByName;
