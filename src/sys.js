@@ -226,6 +226,12 @@ async function getCollection(cn, objectName) {
     let db = await dbConnection(cn);
     return db.collection(objectName);
 }
+async function insertMany(cn, objectName, items) {
+    let collection = await getCollection(cn, objectName);
+    items = items || [];
+    await collection.insertMany(items);
+}
+exports.insertMany = insertMany;
 async function put(cn, objectName, item, options) {
     let collection = await getCollection(cn, objectName);
     item = item || {};

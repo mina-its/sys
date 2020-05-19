@@ -30,7 +30,8 @@ import {
     AuditArgs,
     ClientCommand,
     Constants,
-    Context, Country,
+    Context,
+    Country,
     DelOptions,
     DirFile,
     DirFileType,
@@ -287,6 +288,12 @@ export async function getOne(cn: Context, objectName: string) {
 async function getCollection(cn: Context, objectName: string) {
     let db = await dbConnection(cn);
     return db.collection(objectName);
+}
+
+export async function insertMany(cn: Context, objectName: string, items: any[]) {
+    let collection = await getCollection(cn, objectName);
+    items = items || [];
+    await collection.insertMany(items);
 }
 
 export async function put(cn: Context, objectName: string, item: any, options?: PutOptions) {
