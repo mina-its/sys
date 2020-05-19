@@ -289,48 +289,65 @@ async function getCollection(cn: Context, objectName: string) {
     return db.collection(objectName);
 }
 
-export async function put(cn: Context, objectName: string, item: any, options?: PutOptions) {
+export async function put(cn: Context, objectName: string, data: any, options?: PutOptions) {
     let collection = await getCollection(cn, objectName);
-    item = item || {};
+    data = data || {};
     if (!options || !options.portions || options.portions.length == 1) {
-        if (item._id) {
-            await collection.replaceOne({_id: item._id}, item);
-            return {
-                type: ObjectModifyType.Update,
-                item: item,
-                itemId: item._id
-            } as ObjectModifyState;
-        } else {
-            await collection.insertOne(item);
+        if (Array.isArray(data)) {
+            await collection.insertMany(data);
             return {
                 type: ObjectModifyType.Insert,
-                item: item,
-                itemId: item._id
+                items: data
+            };
+        } else if (data._id) {
+            await collection.replaceOne({_id: data._id}, data);
+            return {
+                type: ObjectModifyType.Update,
+                item: data,
+                itemId: data._id
+            } as ObjectModifyState;
+        } else {
+            await collection.insertOne(data);
+            return {
+                type: ObjectModifyType.Insert,
+                item: data,
+                itemId: data._id
             };
         }
     }
     let portions = options.portions;
     switch (portions.length) {
         case 2: // Update new root item
-            await collection.save(item);
+            await collection.save(data);
             return ({
                 type: ObjectModifyType.Update,
-                item: item,
-                itemId: item._id
+                item: data,
+                itemId: data._id
             });
 
         default: // Insert / Update not root item
             let command = {$addToSet: {}};
-            item._id = item._id || newID();
+            data._id = data._id || newID();
             let rootId = portions[1].itemId;
             let pth: string = await portionsToMongoPath(cn, rootId, portions, portions.length);
-            command.$addToSet[pth] = item;
+            command.$addToSet[pth] = data;
             await collection.updateOne({_id: rootId}, command);
             return {
                 type: ObjectModifyType.Patch,
-                item: item,
+                item: data,
                 itemId: rootId
             };
+    }
+}
+
+export function evalExpression($this: any, expression: string): any {
+    try {
+        if (expression == null) {
+            return null;
+        }
+        return eval(expression.replace(/\bthis\b/g, '$this'));
+    } catch (ex) {
+        error(`Evaluating '${expression}' failed! this:` + ex.message);
     }
 }
 
@@ -517,9 +534,12 @@ export async function del(cn: Context, objectName: string, options?: DelOptions)
     if (!collection) throw StatusCode.BadRequest;
     if (!options) {
         await collection.deleteMany({});
-        return {
-            type: ObjectModifyType.Delete
-        };
+        return {type: ObjectModifyType.Delete};
+    }
+
+    if (options.query) {
+        await collection.deleteMany(options.query);
+        return {type: ObjectModifyType.Delete};
     }
 
     if (options.itemId) {

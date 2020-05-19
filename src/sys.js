@@ -226,51 +226,70 @@ async function getCollection(cn, objectName) {
     let db = await dbConnection(cn);
     return db.collection(objectName);
 }
-async function put(cn, objectName, item, options) {
+async function put(cn, objectName, data, options) {
     let collection = await getCollection(cn, objectName);
-    item = item || {};
+    data = data || {};
     if (!options || !options.portions || options.portions.length == 1) {
-        if (item._id) {
-            await collection.replaceOne({ _id: item._id }, item);
+        if (Array.isArray(data)) {
+            await collection.insertMany(data);
+            return {
+                type: types_1.ObjectModifyType.Insert,
+                items: data
+            };
+        }
+        else if (data._id) {
+            await collection.replaceOne({ _id: data._id }, data);
             return {
                 type: types_1.ObjectModifyType.Update,
-                item: item,
-                itemId: item._id
+                item: data,
+                itemId: data._id
             };
         }
         else {
-            await collection.insertOne(item);
+            await collection.insertOne(data);
             return {
                 type: types_1.ObjectModifyType.Insert,
-                item: item,
-                itemId: item._id
+                item: data,
+                itemId: data._id
             };
         }
     }
     let portions = options.portions;
     switch (portions.length) {
         case 2:
-            await collection.save(item);
+            await collection.save(data);
             return ({
                 type: types_1.ObjectModifyType.Update,
-                item: item,
-                itemId: item._id
+                item: data,
+                itemId: data._id
             });
         default:
             let command = { $addToSet: {} };
-            item._id = item._id || newID();
+            data._id = data._id || newID();
             let rootId = portions[1].itemId;
             let pth = await portionsToMongoPath(cn, rootId, portions, portions.length);
-            command.$addToSet[pth] = item;
+            command.$addToSet[pth] = data;
             await collection.updateOne({ _id: rootId }, command);
             return {
                 type: types_1.ObjectModifyType.Patch,
-                item: item,
+                item: data,
                 itemId: rootId
             };
     }
 }
 exports.put = put;
+function evalExpression($this, expression) {
+    try {
+        if (expression == null) {
+            return null;
+        }
+        return eval(expression.replace(/\bthis\b/g, '$this'));
+    }
+    catch (ex) {
+        error(`Evaluating '${expression}' failed! this:` + ex.message);
+    }
+}
+exports.evalExpression = evalExpression;
 async function portionsToMongoPath(cn, rootId, portions, endIndex) {
     if (endIndex == 3)
         return portions[2].property.name;
@@ -453,9 +472,11 @@ async function del(cn, objectName, options) {
         throw types_1.StatusCode.BadRequest;
     if (!options) {
         await collection.deleteMany({});
-        return {
-            type: types_1.ObjectModifyType.Delete
-        };
+        return { type: types_1.ObjectModifyType.Delete };
+    }
+    if (options.query) {
+        await collection.deleteMany(options.query);
+        return { type: types_1.ObjectModifyType.Delete };
     }
     if (options.itemId) {
         let result = await collection.deleteOne({ _id: options.itemId });

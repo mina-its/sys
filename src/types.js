@@ -25,7 +25,7 @@ class Country {
 exports.Country = Country;
 class Global {
     constructor() {
-        this.dbs = {}; // any not mongodb.Db because of client side reference
+        this.dbs = {};
         this.countries = {};
         this.packageInfo = {};
         this.appConfig = {};
@@ -184,6 +184,9 @@ exports.RefPortion = RefPortion;
 class GeoLocation {
 }
 exports.GeoLocation = GeoLocation;
+class Point {
+}
+exports.Point = Point;
 class PutOptions {
 }
 exports.PutOptions = PutOptions;
@@ -248,7 +251,6 @@ var PanelType;
 (function (PanelType) {
     PanelType[PanelType["Stack"] = 1] = "Stack";
     PanelType[PanelType["Dock"] = 2] = "Dock";
-    // Grid = 3,
     PanelType[PanelType["Wrap"] = 4] = "Wrap";
     PanelType[PanelType["Flex"] = 5] = "Flex";
     PanelType[PanelType["Modal"] = 6] = "Modal";
@@ -312,6 +314,7 @@ var Keys;
     Keys[Keys["esc"] = 27] = "esc";
     Keys[Keys["tab"] = 9] = "tab";
     Keys[Keys["del"] = 46] = "del";
+    Keys[Keys["ins"] = 45] = "ins";
     Keys[Keys["backspace"] = 8] = "backspace";
     Keys[Keys["shift"] = 16] = "shift";
     Keys[Keys["ctrl"] = 17] = "ctrl";

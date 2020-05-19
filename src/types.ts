@@ -332,6 +332,7 @@ export class EntityLink {
     comment: string | MultilangText;
     condition: string;
     single: boolean;
+    disable: boolean;
     type: LinkType;
     style: string;
 }
@@ -653,6 +654,11 @@ export class GeoLocation {
     z: number;
 }
 
+export class Point {
+    x: number;
+    y: number;
+}
+
 export class PutOptions {
     filter?: any;
     portions?: RefPortion[];
@@ -663,8 +669,9 @@ export class PatchOptions {
 }
 
 export class DelOptions {
-    portions: RefPortion[];
+    portions?: RefPortion[];
     itemId?: ID;
+    query?: any;
 }
 
 export class GetOptions {
@@ -793,7 +800,7 @@ export enum PropertyEditMode {
 
 export enum Keys {
     left = 37, right = 39, up = 38, down = 40,
-    enter = 13, esc = 27, tab = 9, del = 46, backspace = 8,
+    enter = 13, esc = 27, tab = 9, del = 46, ins = 45, backspace = 8,
     shift = 16, ctrl = 17, alt = 18, space = 32,
     f1 = 112, f2 = 113, f3 = 114, f4 = 115, f5 = 116, f6 = 117, f7 = 118, f8 = 119, f9 = 120, f10 = 121, f11 = 122, f12 = 123,
     s = 83, t = 84, u = 85, v = 86, w = 87, x = 88, y = 89, z = 90, m = 77, q = 81,
