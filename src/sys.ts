@@ -2223,13 +2223,13 @@ export async function removeDir(dir: string) {
     });
 }
 
-export async function clientQuestion(cn: Context, message: string, optionsEnum: string): Promise<number> {
+export async function clientQuestion(cn: Context, title: string, message: string, optionsEnum: string): Promise<number> {
     return new Promise(resolve => {
         let items = getEnumItems(cn, optionsEnum);
         let waitFn = answer => resolve(answer);
         let questionID = newID().toString();
         glob.clientQuestionCallbacks[cn["httpReq"].session.id + ":" + questionID] = waitFn;
-        glob.postClientCommandCallback(cn, ClientCommand.Question, questionID, message, items);
+        glob.postClientCommandCallback(cn, ClientCommand.Question, title, message, items, questionID);
     });
 }
 

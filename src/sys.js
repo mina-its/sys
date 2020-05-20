@@ -1999,13 +1999,13 @@ async function removeDir(dir) {
     });
 }
 exports.removeDir = removeDir;
-async function clientQuestion(cn, message, optionsEnum) {
+async function clientQuestion(cn, title, message, optionsEnum) {
     return new Promise(resolve => {
         let items = getEnumItems(cn, optionsEnum);
         let waitFn = answer => resolve(answer);
         let questionID = newID().toString();
         exports.glob.clientQuestionCallbacks[cn["httpReq"].session.id + ":" + questionID] = waitFn;
-        exports.glob.postClientCommandCallback(cn, types_1.ClientCommand.Question, questionID, message, items);
+        exports.glob.postClientCommandCallback(cn, types_1.ClientCommand.Question, title, message, items, questionID);
     });
 }
 exports.clientQuestion = clientQuestion;
