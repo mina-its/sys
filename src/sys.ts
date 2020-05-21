@@ -343,9 +343,7 @@ export async function put(cn: Context, objectName: string, data: any, options?: 
 
 export function evalExpression($this: any, expression: string): any {
     try {
-        if (expression == null) {
-            return null;
-        }
+        if (!expression) return expression;
         return eval(expression.replace(/\bthis\b/g, '$this'));
     } catch (ex) {
         error(`Evaluating '${expression}' failed! this:` + ex.message);
@@ -496,6 +494,9 @@ export async function patch(cn: Context, objectName: string, patchData: any, opt
 
     if (!portions.length)
         portions = [{type: RefPortionType.entity, value: objectName} as RefPortion];
+
+    if (portions.length < 2)
+        assert(patchData._id, `_id is expected in patch data.`);
 
     if (portions.length == 1) {
         portions.push({
@@ -1909,6 +1910,7 @@ export function stringify(value): string {
 
 export function parse(str: string | any): any {
     let json = typeof str == "string" ? JSON.parse(str) : str;
+    if (!json) return json;
     let keys = {};
     const findKeys = obj => {
         if (obj && obj._0) {
@@ -2176,7 +2178,7 @@ export async function runFunction(cn: Context, functionId: ID, input: any) {
     return invoke(cn, func, args);
 }
 
-export async function resetPassword(cn: Context, newPassword: string, confirm: string) {
+export async function resetOwnerPassword(cn: Context, newPassword: string, confirm: string) {
     if (!cn.user) throw StatusCode.Unauthorized;
     if (newPassword != confirm) throwError(StatusCode.BadRequest, "Password confirm error!");
     let hash = await hashPassword(newPassword);
@@ -2185,9 +2187,17 @@ export async function resetPassword(cn: Context, newPassword: string, confirm: s
     await patch(cn, SysCollection.users, {_id: cn.user._id, password: hash, passwordExpireTime: date} as User);
 }
 
+export async function resetPassword(cn: Context, email: string, newPassword: string, confirm: string) {
+    if (newPassword != confirm) throwError(StatusCode.BadRequest, "Password confirm error!");
+    let hash = await hashPassword(newPassword);
+    let date = new Date();
+    date.setDate(date.getDate() + Constants.PASSWORD_EXPIRE_AGE);
+    let result = await patch(cn, SysCollection.users, {password: hash, passwordExpireTime: date} as User, {filter: {email}});
+}
+
 export async function changePassword(cn: Context, oldPassword: string, newPassword: string, confirm: string) {
     if (!await comparePassword(oldPassword, cn.user.password)) throwError(StatusCode.BadRequest, "Invalid old password!");
-    await resetPassword(cn, newPassword, confirm);
+    await resetOwnerPassword(cn, newPassword, confirm);
 }
 
 export function isID(value: any): boolean {
@@ -2300,4 +2310,62 @@ export async function countryLookup(ip: string): Promise<string> {
         return null;
     }
     return result.country.iso_code; // inferred type maxmind.CityResponse
+}
+
+export function flat2recursive(json: any | string): any {
+    json = typeof json == "string" ? JSON.parse(json) : json;
+    if (!json) return json;
+    let keys = {};
+    const findKeys = obj => {
+        if (obj && obj._0) {
+            keys[obj._0] = obj;
+            delete obj._0;
+        }
+
+        for (const key in obj) {
+            if (typeof obj[key] === 'object') {
+                findKeys(obj[key]);
+            }
+        }
+    };
+
+    const seen = new WeakSet();
+    const replaceRef = obj => {
+        try {
+            if (!obj) return;
+            if (seen.has(obj)) {
+                return;
+            }
+            seen.add(obj);
+
+            for (const key in obj) {
+                let val = obj[key];
+                if (!val) continue;
+
+                try {
+                    if (typeof val === 'object') {
+                        if (val.$date) {
+                            obj[key] = new Date(val.$date);
+                        } else if (!val.$oid) {
+                            if (val._$ == '') {
+                                obj[key] = json;
+                            } else if (val._$) {
+                                obj[key] = eval('json' + val._$);
+                            }
+                            replaceRef(val);
+                        }
+                    }
+                } catch (e) {
+                    throw e;
+                }
+            }
+        } catch (e) {
+            throw  e;
+        }
+    };
+
+    delete json._0;
+    findKeys(json);
+    replaceRef(json);
+    return json;
 }

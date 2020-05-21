@@ -331,9 +331,9 @@ export class EntityLink {
     title: string | MultilangText;
     comment: string | MultilangText;
     condition: string;
-    single: boolean;
     disable: boolean;
     type: LinkType;
+    access: Access;
     style: string;
 }
 

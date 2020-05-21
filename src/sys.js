@@ -280,9 +280,8 @@ async function put(cn, objectName, data, options) {
 exports.put = put;
 function evalExpression($this, expression) {
     try {
-        if (expression == null) {
-            return null;
-        }
+        if (!expression)
+            return expression;
         return eval(expression.replace(/\bthis\b/g, '$this'));
     }
     catch (ex) {
@@ -433,6 +432,8 @@ async function patch(cn, objectName, patchData, options) {
     let portions = options.portions;
     if (!portions.length)
         portions = [{ type: types_1.RefPortionType.entity, value: objectName }];
+    if (portions.length < 2)
+        assert(patchData._id, `_id is expected in patch data.`);
     if (portions.length == 1) {
         portions.push({
             type: types_1.RefPortionType.item,
@@ -1699,6 +1700,8 @@ function stringify(value) {
 exports.stringify = stringify;
 function parse(str) {
     let json = typeof str == "string" ? JSON.parse(str) : str;
+    if (!json)
+        return json;
     let keys = {};
     const findKeys = obj => {
         if (obj && obj._0) {
@@ -1948,7 +1951,7 @@ async function runFunction(cn, functionId, input) {
     return invoke(cn, func, args);
 }
 exports.runFunction = runFunction;
-async function resetPassword(cn, newPassword, confirm) {
+async function resetOwnerPassword(cn, newPassword, confirm) {
     if (!cn.user)
         throw types_1.StatusCode.Unauthorized;
     if (newPassword != confirm)
@@ -1958,11 +1961,20 @@ async function resetPassword(cn, newPassword, confirm) {
     date.setDate(date.getDate() + types_1.Constants.PASSWORD_EXPIRE_AGE);
     await patch(cn, types_1.SysCollection.users, { _id: cn.user._id, password: hash, passwordExpireTime: date });
 }
+exports.resetOwnerPassword = resetOwnerPassword;
+async function resetPassword(cn, email, newPassword, confirm) {
+    if (newPassword != confirm)
+        throwError(types_1.StatusCode.BadRequest, "Password confirm error!");
+    let hash = await hashPassword(newPassword);
+    let date = new Date();
+    date.setDate(date.getDate() + types_1.Constants.PASSWORD_EXPIRE_AGE);
+    let result = await patch(cn, types_1.SysCollection.users, { password: hash, passwordExpireTime: date }, { filter: { email } });
+}
 exports.resetPassword = resetPassword;
 async function changePassword(cn, oldPassword, newPassword, confirm) {
     if (!await comparePassword(oldPassword, cn.user.password))
         throwError(types_1.StatusCode.BadRequest, "Invalid old password!");
-    await resetPassword(cn, newPassword, confirm);
+    await resetOwnerPassword(cn, newPassword, confirm);
 }
 exports.changePassword = changePassword;
 function isID(value) {
@@ -2078,4 +2090,64 @@ async function countryLookup(ip) {
     return result.country.iso_code;
 }
 exports.countryLookup = countryLookup;
+function flat2recursive(json) {
+    json = typeof json == "string" ? JSON.parse(json) : json;
+    if (!json)
+        return json;
+    let keys = {};
+    const findKeys = obj => {
+        if (obj && obj._0) {
+            keys[obj._0] = obj;
+            delete obj._0;
+        }
+        for (const key in obj) {
+            if (typeof obj[key] === 'object') {
+                findKeys(obj[key]);
+            }
+        }
+    };
+    const seen = new WeakSet();
+    const replaceRef = obj => {
+        try {
+            if (!obj)
+                return;
+            if (seen.has(obj)) {
+                return;
+            }
+            seen.add(obj);
+            for (const key in obj) {
+                let val = obj[key];
+                if (!val)
+                    continue;
+                try {
+                    if (typeof val === 'object') {
+                        if (val.$date) {
+                            obj[key] = new Date(val.$date);
+                        }
+                        else if (!val.$oid) {
+                            if (val._$ == '') {
+                                obj[key] = json;
+                            }
+                            else if (val._$) {
+                                obj[key] = eval('json' + val._$);
+                            }
+                            replaceRef(val);
+                        }
+                    }
+                }
+                catch (e) {
+                    throw e;
+                }
+            }
+        }
+        catch (e) {
+            throw e;
+        }
+    };
+    delete json._0;
+    findKeys(json);
+    replaceRef(json);
+    return json;
+}
+exports.flat2recursive = flat2recursive;
 //# sourceMappingURL=sys.js.map
