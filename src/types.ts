@@ -123,8 +123,9 @@ export class mObject extends Entity implements IProperties {
     reference: ID;
     titleProperty: string;
     sortDefaultProperty: string;
-    query: string;
+    query: any;
     referType: ObjectReferType;
+    filterObject: ID;
     source: SourceType;
     rowHeaderStyle: GridRowHeaderStyle;
     reorderable: boolean;
@@ -136,6 +137,7 @@ export class mObject extends Entity implements IProperties {
         db: string;
         autoSetInsertTime?: boolean;
         inited?: boolean;
+        filterObject?: mObject;
     }
 }
 
@@ -1140,6 +1142,10 @@ export class ObjectDec {
     listsViewType: ObjectListsViewType;
     pageLinks: any[];
     properties: Property[];
+    filterDec: {
+        properties: Property[];
+    };
+    filterData: any;
     access: AccessPermission;
     count: number;
     pages: number;

@@ -1,6 +1,8 @@
 let index = {
     "Start                                              ": reload,
     "Load Packages package.json file                    ": loadPackagesInfo,
+
+    "Initialize Entities                                ": initializeEntities,
 };
 
 
@@ -1396,6 +1398,7 @@ export function initObject(obj: mObject) {
 
         obj.properties = obj.properties || [];
         obj._.autoSetInsertTime = _.some(obj.properties, {name: SystemProperty.time});
+        obj._.filterObject = findEntity(obj.filterObject) as mObject;
         obj._.access = {};
         obj._.access[obj._.db] = obj.access;
         initProperties(obj.properties, obj);
@@ -1856,6 +1859,23 @@ export function bson2json(doc: any): any {
     return EJSON.serialize(doc);
 }
 
+export function toSerializableValue(val): any {
+    if (val == null)
+        return {"$null": 1};
+
+    if (val.constructor == ObjectId)
+        return {"$oid": val.toString()};
+
+    else if (val.constructor == RegExp)
+        return {"$reg": val.toString()};
+
+    else if (val instanceof Date)
+        return {"$date": val.toString()};
+
+    else
+        return val;
+}
+
 export function stringify(value): string {
     value._0 = "";
 
@@ -1945,6 +1965,9 @@ export function parse(str: string | any): any {
                     continue;
                 } else if (val.$date) {
                     obj[key] = new Date(val.$date);
+                    continue;
+                } else if (val.$num) {
+                    obj[key] = val.$num.indexOf(".") > -1 ? parseFloat(val.$num) : parseInt(val.$num);
                     continue;
                 }
                 if (val._$ == "") {

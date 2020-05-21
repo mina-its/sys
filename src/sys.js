@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 let index = {
     "Start                                              ": reload,
     "Load Packages package.json file                    ": loadPackagesInfo,
+    "Initialize Entities                                ": initializeEntities,
 };
 const logger = require("winston");
 const https = require("https");
@@ -1223,6 +1224,7 @@ function initObject(obj) {
             obj._.inited = true;
         obj.properties = obj.properties || [];
         obj._.autoSetInsertTime = _.some(obj.properties, { name: types_1.SystemProperty.time });
+        obj._.filterObject = findEntity(obj.filterObject);
         obj._.access = {};
         obj._.access[obj._.db] = obj.access;
         initProperties(obj.properties, obj);
@@ -1651,6 +1653,19 @@ function bson2json(doc) {
     return EJSON.serialize(doc);
 }
 exports.bson2json = bson2json;
+function toSerializableValue(val) {
+    if (val == null)
+        return { "$null": 1 };
+    if (val.constructor == mongodb_1.ObjectId)
+        return { "$oid": val.toString() };
+    else if (val.constructor == RegExp)
+        return { "$reg": val.toString() };
+    else if (val instanceof Date)
+        return { "$date": val.toString() };
+    else
+        return val;
+}
+exports.toSerializableValue = toSerializableValue;
 function stringify(value) {
     value._0 = "";
     const getCircularReplacer = () => {
@@ -1738,6 +1753,10 @@ function parse(str) {
                 }
                 else if (val.$date) {
                     obj[key] = new Date(val.$date);
+                    continue;
+                }
+                else if (val.$num) {
+                    obj[key] = val.$num.indexOf(".") > -1 ? parseFloat(val.$num) : parseInt(val.$num);
                     continue;
                 }
                 if (val._$ == "") {
