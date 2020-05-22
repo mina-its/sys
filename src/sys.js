@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.flat2recursive = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.throwError = exports.isID = exports.changePassword = exports.resetPassword = exports.resetOwnerPassword = exports.runFunction = exports.hashPassword = exports.comparePassword = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getPackageInfo = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.initializeRoles = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.getDriveStatus = exports.del = exports.patch = exports.extractRefPortions = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
 let index = {
     "Start                                              ": reload,
     "Load Packages package.json file                    ": loadPackagesInfo,
@@ -29,7 +30,6 @@ const types_1 = require("./types");
 const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
 const assert = require('assert').strict;
-const { EJSON } = require('bson');
 const { exec } = require("child_process");
 exports.glob = new types_1.Global();
 const fsPromises = fs.promises;
@@ -1645,136 +1645,6 @@ function makeEntityList(cn, entities) {
     return _.orderBy(items, ['title']);
 }
 exports.makeEntityList = makeEntityList;
-function json2bson(doc) {
-    return EJSON.deserialize(doc);
-}
-exports.json2bson = json2bson;
-function bson2json(doc) {
-    return EJSON.serialize(doc);
-}
-exports.bson2json = bson2json;
-function toSerializableValue(val) {
-    if (val == null)
-        return { "$null": 1 };
-    if (val.constructor == mongodb_1.ObjectId)
-        return { "$oid": val.toString() };
-    else if (val.constructor == RegExp)
-        return { "$reg": val.toString() };
-    else if (val instanceof Date)
-        return { "$date": val.toString() };
-    else
-        return val;
-}
-exports.toSerializableValue = toSerializableValue;
-function stringify(value) {
-    value._0 = "";
-    const getCircularReplacer = () => {
-        const seen = new WeakSet();
-        return (key, value) => {
-            if (typeof value === "object" && value !== null) {
-                if (seen.has(value)) {
-                    return { _$: value._0 };
-                }
-                for (const attr in value) {
-                    let val = value[attr];
-                    if (val) {
-                        if (val.constructor == mongodb_1.ObjectId)
-                            value[attr] = { "$oid": val.toString() };
-                        else if (val.constructor == RegExp)
-                            value[attr] = { "$reg": val.toString() };
-                        else if (val instanceof Date)
-                            value[attr] = { "$date": val.toString() };
-                    }
-                }
-                seen.add(value);
-            }
-            return value;
-        };
-    };
-    const seen = new WeakSet();
-    const setKeys = (obj, parentKey) => {
-        if (seen.has(obj))
-            return;
-        seen.add(obj);
-        for (const key in obj) {
-            let val = obj[key];
-            if (!val)
-                continue;
-            if (typeof val === "object" && val.constructor != mongodb_1.ObjectId) {
-                if (val._0 == null) {
-                    val._0 = parentKey + (Array.isArray(obj) ? `[${key}]` : `['${key}']`);
-                }
-                setKeys(val, val._0);
-            }
-        }
-    };
-    setKeys(value, "");
-    let str = JSON.stringify(value, getCircularReplacer());
-    return str;
-}
-exports.stringify = stringify;
-function parse(str) {
-    let json = typeof str == "string" ? JSON.parse(str) : str;
-    if (!json)
-        return json;
-    let keys = {};
-    const findKeys = obj => {
-        if (obj && obj._0) {
-            keys[obj._0] = obj;
-            delete obj._0;
-        }
-        for (const key in obj) {
-            if (typeof obj[key] === "object")
-                findKeys(obj[key]);
-        }
-    };
-    const seen = new WeakSet();
-    const replaceRef = obj => {
-        if (seen.has(obj))
-            return;
-        seen.add(obj);
-        for (const key in obj) {
-            let val = obj[key];
-            if (!val)
-                continue;
-            if (typeof val === "object") {
-                if (val.$oid) {
-                    obj[key] = newID(val.$oid);
-                    continue;
-                }
-                else if (val.$reg) {
-                    let match = val.$reg.match(/\/(.+)\/(.*)/);
-                    obj[key] = new RegExp(match[1], match[2]);
-                    continue;
-                }
-                else if (val.$null) {
-                    obj[key] = null;
-                    continue;
-                }
-                else if (val.$date) {
-                    obj[key] = new Date(val.$date);
-                    continue;
-                }
-                else if (val.$num) {
-                    obj[key] = val.$num.indexOf(".") > -1 ? parseFloat(val.$num) : parseInt(val.$num);
-                    continue;
-                }
-                if (val._$ == "") {
-                    obj[key] = json;
-                }
-                else if (val._$) {
-                    obj[key] = eval('json' + val._$);
-                }
-                replaceRef(val);
-            }
-        }
-    };
-    delete json._0;
-    findKeys(json);
-    replaceRef(json);
-    return json;
-}
-exports.parse = parse;
 async function getPropertyReferenceValues(cn, prop, instance) {
     if (prop._.enum) {
         let items = prop._.enum.items.map(item => {
