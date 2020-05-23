@@ -221,7 +221,7 @@ export interface IProperties {
 }
 
 export interface IData {
-    _id: any;
+    _id: ID;
     _z: number;
     _: EntityMeta;
 }
@@ -1004,6 +1004,7 @@ export class WebResponse implements IError {
     redirect: string;
     message: string;
     code: StatusCode;
+    modifyResult: any;
     config: AppStateConfig;
     texts: { [key: string]: string };
 }

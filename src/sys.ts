@@ -277,7 +277,7 @@ export async function makeObjectReady(cn: Context, properties: Property[], data:
 }
 
 export function getFileUri(cn: Context, prop: Property, file: mFile): string {
-    if (!file || !prop.file.drive) return null;
+    if (!file || !prop.file || !prop.file.drive) return null;
     let uri = joinUri(prop.file.drive._.uri, file.path, file.name).replace(/\\/g, '/');
     return `${cn.url ? cn.url.protocol : 'http:'}//${encodeURI(uri)}`; // in user login context is not completed!
 }
@@ -2195,62 +2195,4 @@ export async function countryLookup(ip: string): Promise<string> {
         return null;
     }
     return result.country.iso_code; // inferred type maxmind.CityResponse
-}
-
-export function flat2recursive(json: any | string): any {
-    json = typeof json == "string" ? JSON.parse(json) : json;
-    if (!json) return json;
-    let keys = {};
-    const findKeys = obj => {
-        if (obj && obj._0) {
-            keys[obj._0] = obj;
-            delete obj._0;
-        }
-
-        for (const key in obj) {
-            if (typeof obj[key] === 'object') {
-                findKeys(obj[key]);
-            }
-        }
-    };
-
-    const seen = new WeakSet();
-    const replaceRef = obj => {
-        try {
-            if (!obj) return;
-            if (seen.has(obj)) {
-                return;
-            }
-            seen.add(obj);
-
-            for (const key in obj) {
-                let val = obj[key];
-                if (!val) continue;
-
-                try {
-                    if (typeof val === 'object') {
-                        if (val.$date) {
-                            obj[key] = new Date(val.$date);
-                        } else if (!val.$oid) {
-                            if (val._$ == '') {
-                                obj[key] = json;
-                            } else if (val._$) {
-                                obj[key] = eval('json' + val._$);
-                            }
-                            replaceRef(val);
-                        }
-                    }
-                } catch (e) {
-                    throw e;
-                }
-            }
-        } catch (e) {
-            throw  e;
-        }
-    };
-
-    delete json._0;
-    findKeys(json);
-    replaceRef(json);
-    return json;
 }

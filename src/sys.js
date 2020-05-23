@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.flat2recursive = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.throwError = exports.isID = exports.changePassword = exports.resetPassword = exports.resetOwnerPassword = exports.runFunction = exports.hashPassword = exports.comparePassword = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getPackageInfo = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.initializeRoles = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.getDriveStatus = exports.del = exports.patch = exports.extractRefPortions = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
+exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.throwError = exports.isID = exports.changePassword = exports.resetPassword = exports.resetOwnerPassword = exports.runFunction = exports.hashPassword = exports.comparePassword = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getPackageInfo = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.initializeRoles = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.getDriveStatus = exports.del = exports.patch = exports.extractRefPortions = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
 let index = {
     "Start                                              ": reload,
     "Load Packages package.json file                    ": loadPackagesInfo,
@@ -213,7 +213,7 @@ async function makeObjectReady(cn, properties, data, options = null) {
 }
 exports.makeObjectReady = makeObjectReady;
 function getFileUri(cn, prop, file) {
-    if (!file || !prop.file.drive)
+    if (!file || !prop.file || !prop.file.drive)
         return null;
     let uri = joinUri(prop.file.drive._.uri, file.path, file.name).replace(/\\/g, '/');
     return `${cn.url ? cn.url.protocol : 'http:'}//${encodeURI(uri)}`;
@@ -1979,64 +1979,4 @@ async function countryLookup(ip) {
     return result.country.iso_code;
 }
 exports.countryLookup = countryLookup;
-function flat2recursive(json) {
-    json = typeof json == "string" ? JSON.parse(json) : json;
-    if (!json)
-        return json;
-    let keys = {};
-    const findKeys = obj => {
-        if (obj && obj._0) {
-            keys[obj._0] = obj;
-            delete obj._0;
-        }
-        for (const key in obj) {
-            if (typeof obj[key] === 'object') {
-                findKeys(obj[key]);
-            }
-        }
-    };
-    const seen = new WeakSet();
-    const replaceRef = obj => {
-        try {
-            if (!obj)
-                return;
-            if (seen.has(obj)) {
-                return;
-            }
-            seen.add(obj);
-            for (const key in obj) {
-                let val = obj[key];
-                if (!val)
-                    continue;
-                try {
-                    if (typeof val === 'object') {
-                        if (val.$date) {
-                            obj[key] = new Date(val.$date);
-                        }
-                        else if (!val.$oid) {
-                            if (val._$ == '') {
-                                obj[key] = json;
-                            }
-                            else if (val._$) {
-                                obj[key] = eval('json' + val._$);
-                            }
-                            replaceRef(val);
-                        }
-                    }
-                }
-                catch (e) {
-                    throw e;
-                }
-            }
-        }
-        catch (e) {
-            throw e;
-        }
-    };
-    delete json._0;
-    findKeys(json);
-    replaceRef(json);
-    return json;
-}
-exports.flat2recursive = flat2recursive;
 //# sourceMappingURL=sys.js.map
