@@ -75,6 +75,9 @@ export class Country {
     population: number;
     area: number;
     gdp: string;
+    group: string;
+    locale: Locale;
+    localName: string;
 }
 
 export class Global {
@@ -242,6 +245,7 @@ export class Property implements IProperties {
     access: Access;
     isList: boolean;
     locale: Locale;
+    links: EntityLink[];
     formula: string;
     detailsViewType: ObjectDetailsViewType;
     listsViewType: ObjectListsViewType;
