@@ -270,6 +270,7 @@ export class Property implements IProperties {
         drive: Drive;
         preview: boolean;
         sizeLimit: number;
+        gallery: boolean;
         path: string;
     };
     time: {
@@ -309,7 +310,6 @@ export class Drive {
     comment: string | MultilangText;
     address: string;
     access: Access;
-    mode: DriveMode;
     s3: {
         accessKeyId: string;
         secretAccessKey: string;
@@ -500,12 +500,11 @@ export class App {
     favicon: string;
     brandingLogo: string;
     interactive: boolean;
-    loginForm: ID;
+    signInUri: string;
     _: {
         db?: string;
         menu?: Menu;
         navmenu?: Menu;
-        loginForm?: string;
         templateRender?: any;
     }
 }
@@ -847,6 +846,7 @@ export enum FunctionMode {
     OpenDialog = 1,
     OpenPage = 2,
     Run = 3,
+    ResultAsObject = 4,
 }
 
 export enum ChangeFrequency {
@@ -908,7 +908,7 @@ export enum RedirectType {
     Permanent
 }
 
-export enum SysCollection {
+export enum Objects {
     audits = "audits",
     users = "users",
     dictionary = "dictionary",
@@ -968,7 +968,6 @@ export const Constants = {
     sysDb: "sys",
     defaultAddress: "_default",
     indexProperty: "_z",
-    defaultLoginUri: 'login',
     amazonS3ApiVersion: "2006-03-01",
     ClassStyle_Object: "cs-obj",
     ClassStyle_Function: "cs-func",
@@ -1029,7 +1028,7 @@ export class AppStateConfig {
         photoUrl?: string;
         title?: string;
         email?: string;
-        profileUrl?: string;
+        accountUrl?: string;
     };
     interactive: boolean = false;
     menu: MenuItem[] = [];
@@ -1064,11 +1063,6 @@ export class UnitTestObject {
         location: GeoLocation
     };
     birthday: Date;
-}
-
-export enum DriveMode {
-    Gallery = 1,
-    NonSelectable = 2,
 }
 
 export enum DirFileType {

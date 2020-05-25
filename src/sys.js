@@ -129,7 +129,7 @@ async function audit(cn, auditType, args) {
         }
         if (type && type.disabled)
             return;
-        await put(cn, types_1.SysCollection.audits, args);
+        await put(cn, types_1.Objects.audits, args);
     }
     catch (e) {
         error(`Audit '${auditType}' error: ${e.stack}`);
@@ -771,11 +771,11 @@ exports.isRtl = isRtl;
 async function loadTimeZones() {
     log('loadGeneralCollections ...');
     exports.glob.timeZones = await get({ db: types_1.Constants.sysDb }, types_1.Constants.timeZonesCollection);
-    let result = await get({ db: types_1.Constants.sysDb }, types_1.SysCollection.objects, {
+    let result = await get({ db: types_1.Constants.sysDb }, types_1.Objects.objects, {
         query: { name: types_1.Constants.systemPropertiesObjectName },
         count: 1
     });
-    let countries = await get({ db: types_1.Constants.sysDb }, types_1.SysCollection.countries);
+    let countries = await get({ db: types_1.Constants.sysDb }, types_1.Objects.countries);
     for (const country of countries) {
         exports.glob.countries[country.code] = country;
     }
@@ -787,7 +787,7 @@ async function loadTimeZones() {
 }
 async function loadAuditTypes() {
     log('loadAuditTypes ...');
-    exports.glob.auditTypes = await get({ db: types_1.Constants.sysDb }, types_1.SysCollection.auditTypes);
+    exports.glob.auditTypes = await get({ db: types_1.Constants.sysDb }, types_1.Objects.auditTypes);
 }
 function getEnabledPackages() {
     return exports.glob.systemConfig.packages.filter(pack => pack.enabled).map(pack => pack.name);
@@ -804,7 +804,7 @@ async function loadPackagesInfo() {
     }
 }
 async function loadSystemConfig() {
-    let collection = await getCollection({ db: types_1.Constants.sysDb }, types_1.SysCollection.systemConfig);
+    let collection = await getCollection({ db: types_1.Constants.sysDb }, types_1.Objects.systemConfig);
     exports.glob.systemConfig = await collection.findOne({});
 }
 function applyAmazonConfig() {
@@ -814,47 +814,47 @@ function applyAmazonConfig() {
 async function loadPackageSystemCollections(db) {
     log(`Loading system collections db '${db}' ...`);
     let cn = { db };
-    let hosts = await get(cn, types_1.SysCollection.hosts);
+    let hosts = await get(cn, types_1.Objects.hosts);
     for (const host of hosts) {
         host._ = { db };
         exports.glob.hosts.push(host);
     }
-    let objects = await get(cn, types_1.SysCollection.objects);
+    let objects = await get(cn, types_1.Objects.objects);
     for (const object of objects) {
         object._ = { db };
         object.entityType = types_1.EntityType.Object;
         exports.glob.entities.push(object);
     }
-    let functions = await get(cn, types_1.SysCollection.functions);
+    let functions = await get(cn, types_1.Objects.functions);
     for (const func of functions) {
         func._ = { db };
         func.entityType = types_1.EntityType.Function;
         exports.glob.entities.push(func);
     }
-    let config = await getOne(cn, types_1.SysCollection.appConfig);
+    let config = await getOne(cn, types_1.Objects.appConfig);
     if (config)
         exports.glob.appConfig[db] = config;
-    let forms = await get(cn, types_1.SysCollection.forms);
+    let forms = await get(cn, types_1.Objects.forms);
     for (const form of forms) {
         form._ = { db };
         form.entityType = types_1.EntityType.Form;
         exports.glob.entities.push(form);
     }
-    let texts = await get(cn, types_1.SysCollection.dictionary);
+    let texts = await get(cn, types_1.Objects.dictionary);
     for (const item of texts) {
         exports.glob.dictionary[db + "." + item.name] = item.text;
     }
-    let menus = await get(cn, types_1.SysCollection.menus);
+    let menus = await get(cn, types_1.Objects.menus);
     for (const menu of menus) {
         menu._ = { db };
         exports.glob.menus.push(menu);
     }
-    let roles = await get(cn, types_1.SysCollection.roles);
+    let roles = await get(cn, types_1.Objects.roles);
     for (const role of roles) {
         role._ = { db };
         exports.glob.roles.push(role);
     }
-    let drives = await get(cn, types_1.SysCollection.drives);
+    let drives = await get(cn, types_1.Objects.drives);
     for (const drive of drives) {
         drive._ = { db };
         exports.glob.drives.push(drive);
@@ -1120,7 +1120,7 @@ async function initializeEnums() {
     exports.glob.enums = [];
     exports.glob.enumTexts = {};
     for (const db of enabledDbs()) {
-        let enums = await get({ db }, types_1.SysCollection.enums);
+        let enums = await get({ db }, types_1.Objects.enums);
         for (const theEnum of enums) {
             theEnum._ = { db };
             exports.glob.enums.push(theEnum);
@@ -1155,16 +1155,8 @@ async function initializeEntities() {
     }
     for (const db of enabledDbs()) {
         let config = exports.glob.appConfig[db];
-        let obj = findObject(db, types_1.SysCollection.appConfig);
+        let obj = findObject(db, types_1.Objects.appConfig);
         await makeObjectReady({ db }, obj.properties, config);
-        for (const app of config.apps) {
-            app._.loginForm = types_1.Constants.defaultLoginUri;
-            if (app.loginForm) {
-                let entity = findEntity(app.loginForm);
-                if (entity)
-                    app._.loginForm = entity.name;
-            }
-        }
     }
     log(`Initializing '${allFunctions(null).length}' functions ...`);
     for (const func of allFunctions(null)) {
@@ -1848,7 +1840,7 @@ async function resetOwnerPassword(cn, newPassword, confirm) {
     let hash = await hashPassword(newPassword);
     let date = new Date();
     date.setDate(date.getDate() + types_1.Constants.PASSWORD_EXPIRE_AGE);
-    await patch(cn, types_1.SysCollection.users, { _id: cn.user._id, password: hash, passwordExpireTime: date });
+    await patch(cn, types_1.Objects.users, { _id: cn.user._id, password: hash, passwordExpireTime: date });
 }
 exports.resetOwnerPassword = resetOwnerPassword;
 async function resetPassword(cn, email, newPassword, confirm) {
@@ -1857,7 +1849,7 @@ async function resetPassword(cn, email, newPassword, confirm) {
     let hash = await hashPassword(newPassword);
     let date = new Date();
     date.setDate(date.getDate() + types_1.Constants.PASSWORD_EXPIRE_AGE);
-    let result = await patch(cn, types_1.SysCollection.users, { password: hash, passwordExpireTime: date }, { filter: { email } });
+    let result = await patch(cn, types_1.Objects.users, { password: hash, passwordExpireTime: date }, { filter: { email } });
 }
 exports.resetPassword = resetPassword;
 async function changePassword(cn, oldPassword, newPassword, confirm) {
