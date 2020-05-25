@@ -1,6 +1,8 @@
 let index = {
     "Start                                              ": reload,
     "Load Packages package.json file                    ": loadPackagesInfo,
+
+    "Initialize Entities                                ": initializeEntities,
 };
 
 
@@ -73,17 +75,16 @@ import {
     SourceType,
     StatusCode,
     SysAuditTypes,
-    SysCollection,
+    Objects,
     SystemProperty,
     Text,
     UploadedFile,
-    User,
+    User, ObjectDec, ObjectViewType, AccessPermission, AccessItem,
 } from './types';
 
 const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
 const assert = require('assert').strict;
-const {EJSON} = require('bson');
 const {exec} = require("child_process");
 export let glob = new Global();
 const fsPromises = fs.promises;
@@ -190,7 +191,7 @@ export async function audit(cn: Context, auditType: string, args: AuditArgs) {
         }
 
         if (type && type.disabled) return;
-        await put(cn, SysCollection.audits, args);
+        await put(cn, Objects.audits, args);
     } catch (e) {
         error(`Audit '${auditType}' error: ${e.stack}`);
     }
@@ -276,7 +277,7 @@ export async function makeObjectReady(cn: Context, properties: Property[], data:
 }
 
 export function getFileUri(cn: Context, prop: Property, file: mFile): string {
-    if (!file || !prop.file.drive) return null;
+    if (!file || !prop.file || !prop.file.drive) return null;
     let uri = joinUri(prop.file.drive._.uri, file.path, file.name).replace(/\\/g, '/');
     return `${cn.url ? cn.url.protocol : 'http:'}//${encodeURI(uri)}`; // in user login context is not completed!
 }
@@ -343,9 +344,7 @@ export async function put(cn: Context, objectName: string, data: any, options?: 
 
 export function evalExpression($this: any, expression: string): any {
     try {
-        if (expression == null) {
-            return null;
-        }
+        if (!expression) return expression;
         return eval(expression.replace(/\bthis\b/g, '$this'));
     } catch (ex) {
         error(`Evaluating '${expression}' failed! this:` + ex.message);
@@ -496,6 +495,9 @@ export async function patch(cn: Context, objectName: string, patchData: any, opt
 
     if (!portions.length)
         portions = [{type: RefPortionType.entity, value: objectName} as RefPortion];
+
+    if (portions.length < 2)
+        assert(patchData._id, `_id is expected in patch data.`);
 
     if (portions.length == 1) {
         portions.push({
@@ -884,12 +886,12 @@ async function loadTimeZones() {
     log('loadGeneralCollections ...');
 
     glob.timeZones = await get({db: Constants.sysDb} as Context, Constants.timeZonesCollection);
-    let result: mObject = await get({db: Constants.sysDb} as Context, SysCollection.objects, {
+    let result: mObject = await get({db: Constants.sysDb} as Context, Objects.objects, {
         query: {name: Constants.systemPropertiesObjectName},
         count: 1
     });
 
-    let countries: Country[] = await get({db: Constants.sysDb} as Context, SysCollection.countries);
+    let countries: Country[] = await get({db: Constants.sysDb} as Context, Objects.countries);
     for (const country of countries) {
         glob.countries[country.code] = country;
     }
@@ -903,7 +905,7 @@ async function loadTimeZones() {
 
 async function loadAuditTypes() {
     log('loadAuditTypes ...');
-    glob.auditTypes = await get({db: Constants.sysDb} as Context, SysCollection.auditTypes);
+    glob.auditTypes = await get({db: Constants.sysDb} as Context, Objects.auditTypes);
 }
 
 function getEnabledPackages(): string[] {
@@ -925,7 +927,7 @@ async function loadPackagesInfo() {
 }
 
 async function loadSystemConfig() {
-    let collection = await getCollection({db: Constants.sysDb} as Context, SysCollection.systemConfig);
+    let collection = await getCollection({db: Constants.sysDb} as Context, Objects.systemConfig);
     glob.systemConfig = await collection.findOne({});
 }
 
@@ -938,55 +940,55 @@ async function loadPackageSystemCollections(db: string) {
     log(`Loading system collections db '${db}' ...`);
     let cn = {db} as Context;
 
-    let hosts: Host[] = await get(cn, SysCollection.hosts);
+    let hosts: Host[] = await get(cn, Objects.hosts);
     for (const host of hosts) {
         host._ = {db};
         glob.hosts.push(host);
     }
 
-    let objects: mObject[] = await get(cn, SysCollection.objects);
+    let objects: mObject[] = await get(cn, Objects.objects);
     for (const object of objects) {
         object._ = {db};
         object.entityType = EntityType.Object;
         glob.entities.push(object as Entity);
     }
 
-    let functions: Function[] = await get(cn, SysCollection.functions);
+    let functions: Function[] = await get(cn, Objects.functions);
     for (const func of functions) {
         func._ = {db};
         func.entityType = EntityType.Function;
         glob.entities.push(func as Entity);
     }
 
-    let config: AppConfig = await getOne(cn, SysCollection.appConfig);
+    let config: AppConfig = await getOne(cn, Objects.appConfig);
     if (config)
         glob.appConfig[db] = config;
 
-    let forms: Form[] = await get(cn, SysCollection.forms);
+    let forms: Form[] = await get(cn, Objects.forms);
     for (const form of forms) {
         form._ = {db};
         form.entityType = EntityType.Form;
         glob.entities.push(form as Entity);
     }
 
-    let texts: Text[] = await get(cn, SysCollection.dictionary);
+    let texts: Text[] = await get(cn, Objects.dictionary);
     for (const item of texts) {
         glob.dictionary[db + "." + item.name] = item.text;
     }
 
-    let menus: Menu[] = await get(cn, SysCollection.menus);
+    let menus: Menu[] = await get(cn, Objects.menus);
     for (const menu of menus) {
         menu._ = {db};
         glob.menus.push(menu);
     }
 
-    let roles: Role[] = await get(cn, SysCollection.roles);
+    let roles: Role[] = await get(cn, Objects.roles);
     for (const role of roles) {
         role._ = {db};
         glob.roles.push(role);
     }
 
-    let drives: Drive[] = await get(cn, SysCollection.drives);
+    let drives: Drive[] = await get(cn, Objects.drives);
     for (const drive of drives) {
         drive._ = {db};
         glob.drives.push(drive);
@@ -1281,7 +1283,7 @@ export async function initializeEnums() {
     glob.enumTexts = {};
 
     for (const db of enabledDbs()) {
-        let enums: Enum[] = await get({db} as Context, SysCollection.enums);
+        let enums: Enum[] = await get({db} as Context, Objects.enums);
         for (const theEnum of enums) {
             theEnum._ = {db};
             glob.enums.push(theEnum);
@@ -1319,15 +1321,8 @@ async function initializeEntities() {
 
     for (const db of enabledDbs()) {
         let config = glob.appConfig[db];
-        let obj = findObject(db, SysCollection.appConfig);
+        let obj = findObject(db, Objects.appConfig);
         await makeObjectReady({db} as Context, obj.properties, config);
-        for (const app of config.apps) {
-            app._.loginForm = Constants.defaultLoginUri;
-            if (app.loginForm) {
-                let entity = findEntity(app.loginForm);
-                if (entity) app._.loginForm = entity.name;
-            }
-        }
     }
 
     log(`Initializing '${allFunctions(null).length}' functions ...`);
@@ -1395,6 +1390,7 @@ export function initObject(obj: mObject) {
 
         obj.properties = obj.properties || [];
         obj._.autoSetInsertTime = _.some(obj.properties, {name: SystemProperty.time});
+        obj._.filterObject = findEntity(obj.filterObject) as mObject;
         obj._.access = {};
         obj._.access[obj._.db] = obj.access;
         initProperties(obj.properties, obj);
@@ -1847,122 +1843,6 @@ export function makeEntityList(cn: Context, entities: Entity[]) {
     return _.orderBy(items, ['title']);
 }
 
-export function json2bson(doc: any): any {
-    return EJSON.deserialize(doc);
-}
-
-export function bson2json(doc: any): any {
-    return EJSON.serialize(doc);
-}
-
-export function stringify(value): string {
-    value._0 = "";
-
-    const getCircularReplacer = () => {
-        const seen = new WeakSet();
-        return (key, value) => {
-            if (typeof value === "object" && value !== null) {
-                if (seen.has(value)) {
-                    return {_$: value._0};
-                }
-
-                for (const attr in value) {
-                    let val = value[attr];
-                    if (val) {
-                        if (val.constructor == ObjectId)
-                            value[attr] = {"$oid": val.toString()};
-
-                        else if (val.constructor == RegExp)
-                            value[attr] = {"$reg": val.toString()};
-
-                        else if (val instanceof Date)
-                            value[attr] = {"$date": val.toString()};
-                    }
-                }
-                seen.add(value);
-            }
-            return value;
-        };
-    };
-
-    const seen = new WeakSet();
-    const setKeys = (obj, parentKey) => {
-        if (seen.has(obj)) return;
-        seen.add(obj);
-
-        for (const key in obj) {
-            let val = obj[key];
-            if (!val) continue;
-            if (typeof val === "object" && val.constructor != ObjectId) {
-                if (val._0 == null) {
-                    val._0 = parentKey + (Array.isArray(obj) ? `[${key}]` : `['${key}']`);
-                }
-                setKeys(val, val._0);
-            }
-        }
-    };
-
-    setKeys(value, "");
-    let str = JSON.stringify(value, getCircularReplacer());
-    return str;
-}
-
-export function parse(str: string | any): any {
-    let json = typeof str == "string" ? JSON.parse(str) : str;
-    let keys = {};
-    const findKeys = obj => {
-        if (obj && obj._0) {
-            keys[obj._0] = obj;
-            delete obj._0;
-        }
-
-        for (const key in obj) {
-            if (typeof obj[key] === "object")
-                findKeys(obj[key]);
-        }
-    };
-
-    const seen = new WeakSet();
-    const replaceRef = obj => {
-        if (seen.has(obj)) return;
-        seen.add(obj);
-
-        for (const key in obj) {
-            let val = obj[key];
-            if (!val) continue;
-            if (typeof val === "object") {
-                if (val.$oid) {
-                    obj[key] = newID(val.$oid);
-                    continue;
-                } else if (val.$reg) {
-                    let match = val.$reg.match(/\/(.+)\/(.*)/);
-                    obj[key] = new RegExp(match[1], match[2]);
-                    continue;
-                } else if (val.$null) {
-                    obj[key] = null;
-                    continue;
-                } else if (val.$date) {
-                    obj[key] = new Date(val.$date);
-                    continue;
-                }
-                if (val._$ == "") {
-                    obj[key] = json;
-                } else if (val._$) {
-                    obj[key] = eval('json' + val._$);
-                }
-
-                replaceRef(val);
-            }
-        }
-    };
-
-    delete json._0;
-    findKeys(json);
-    replaceRef(json);
-
-    return json;
-}
-
 export async function getPropertyReferenceValues(cn: Context, prop: Property, instance: any) {
     if (prop._.enum) {
         let items = prop._.enum.items.map(item => {
@@ -2176,18 +2056,26 @@ export async function runFunction(cn: Context, functionId: ID, input: any) {
     return invoke(cn, func, args);
 }
 
-export async function resetPassword(cn: Context, newPassword: string, confirm: string) {
+export async function resetOwnerPassword(cn: Context, newPassword: string, confirm: string) {
     if (!cn.user) throw StatusCode.Unauthorized;
     if (newPassword != confirm) throwError(StatusCode.BadRequest, "Password confirm error!");
     let hash = await hashPassword(newPassword);
     let date = new Date();
     date.setDate(date.getDate() + Constants.PASSWORD_EXPIRE_AGE);
-    await patch(cn, SysCollection.users, {_id: cn.user._id, password: hash, passwordExpireTime: date} as User);
+    await patch(cn, Objects.users, {_id: cn.user._id, password: hash, passwordExpireTime: date} as User);
+}
+
+export async function resetPassword(cn: Context, email: string, newPassword: string, confirm: string) {
+    if (newPassword != confirm) throwError(StatusCode.BadRequest, "Password confirm error!");
+    let hash = await hashPassword(newPassword);
+    let date = new Date();
+    date.setDate(date.getDate() + Constants.PASSWORD_EXPIRE_AGE);
+    let result = await patch(cn, Objects.users, {password: hash, passwordExpireTime: date} as User, {filter: {email}});
 }
 
 export async function changePassword(cn: Context, oldPassword: string, newPassword: string, confirm: string) {
     if (!await comparePassword(oldPassword, cn.user.password)) throwError(StatusCode.BadRequest, "Invalid old password!");
-    await resetPassword(cn, newPassword, confirm);
+    await resetOwnerPassword(cn, newPassword, confirm);
 }
 
 export function isID(value: any): boolean {
@@ -2223,13 +2111,13 @@ export async function removeDir(dir: string) {
     });
 }
 
-export async function clientQuestion(cn: Context, message: string, optionsEnum: string): Promise<number> {
+export async function clientQuestion(cn: Context, title: string, message: string, optionsEnum: string): Promise<number> {
     return new Promise(resolve => {
         let items = getEnumItems(cn, optionsEnum);
         let waitFn = answer => resolve(answer);
         let questionID = newID().toString();
         glob.clientQuestionCallbacks[cn["httpReq"].session.id + ":" + questionID] = waitFn;
-        glob.postClientCommandCallback(cn, ClientCommand.Question, questionID, message, items);
+        glob.postClientCommandCallback(cn, ClientCommand.Question, title, message, items, questionID);
     });
 }
 

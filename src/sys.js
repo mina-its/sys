@@ -1,8 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.throwError = exports.isID = exports.changePassword = exports.resetPassword = exports.resetOwnerPassword = exports.runFunction = exports.hashPassword = exports.comparePassword = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getPackageInfo = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.initializeRoles = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.getDriveStatus = exports.del = exports.patch = exports.extractRefPortions = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
 let index = {
     "Start                                              ": reload,
     "Load Packages package.json file                    ": loadPackagesInfo,
+    "Initialize Entities                                ": initializeEntities,
 };
 const logger = require("winston");
 const https = require("https");
@@ -28,7 +30,6 @@ const types_1 = require("./types");
 const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
 const assert = require('assert').strict;
-const { EJSON } = require('bson');
 const { exec } = require("child_process");
 exports.glob = new types_1.Global();
 const fsPromises = fs.promises;
@@ -128,7 +129,7 @@ async function audit(cn, auditType, args) {
         }
         if (type && type.disabled)
             return;
-        await put(cn, types_1.SysCollection.audits, args);
+        await put(cn, types_1.Objects.audits, args);
     }
     catch (e) {
         error(`Audit '${auditType}' error: ${e.stack}`);
@@ -212,7 +213,7 @@ async function makeObjectReady(cn, properties, data, options = null) {
 }
 exports.makeObjectReady = makeObjectReady;
 function getFileUri(cn, prop, file) {
-    if (!file || !prop.file.drive)
+    if (!file || !prop.file || !prop.file.drive)
         return null;
     let uri = joinUri(prop.file.drive._.uri, file.path, file.name).replace(/\\/g, '/');
     return `${cn.url ? cn.url.protocol : 'http:'}//${encodeURI(uri)}`;
@@ -280,9 +281,8 @@ async function put(cn, objectName, data, options) {
 exports.put = put;
 function evalExpression($this, expression) {
     try {
-        if (expression == null) {
-            return null;
-        }
+        if (!expression)
+            return expression;
         return eval(expression.replace(/\bthis\b/g, '$this'));
     }
     catch (ex) {
@@ -433,6 +433,8 @@ async function patch(cn, objectName, patchData, options) {
     let portions = options.portions;
     if (!portions.length)
         portions = [{ type: types_1.RefPortionType.entity, value: objectName }];
+    if (portions.length < 2)
+        assert(patchData._id, `_id is expected in patch data.`);
     if (portions.length == 1) {
         portions.push({
             type: types_1.RefPortionType.item,
@@ -769,11 +771,11 @@ exports.isRtl = isRtl;
 async function loadTimeZones() {
     log('loadGeneralCollections ...');
     exports.glob.timeZones = await get({ db: types_1.Constants.sysDb }, types_1.Constants.timeZonesCollection);
-    let result = await get({ db: types_1.Constants.sysDb }, types_1.SysCollection.objects, {
+    let result = await get({ db: types_1.Constants.sysDb }, types_1.Objects.objects, {
         query: { name: types_1.Constants.systemPropertiesObjectName },
         count: 1
     });
-    let countries = await get({ db: types_1.Constants.sysDb }, types_1.SysCollection.countries);
+    let countries = await get({ db: types_1.Constants.sysDb }, types_1.Objects.countries);
     for (const country of countries) {
         exports.glob.countries[country.code] = country;
     }
@@ -785,7 +787,7 @@ async function loadTimeZones() {
 }
 async function loadAuditTypes() {
     log('loadAuditTypes ...');
-    exports.glob.auditTypes = await get({ db: types_1.Constants.sysDb }, types_1.SysCollection.auditTypes);
+    exports.glob.auditTypes = await get({ db: types_1.Constants.sysDb }, types_1.Objects.auditTypes);
 }
 function getEnabledPackages() {
     return exports.glob.systemConfig.packages.filter(pack => pack.enabled).map(pack => pack.name);
@@ -802,7 +804,7 @@ async function loadPackagesInfo() {
     }
 }
 async function loadSystemConfig() {
-    let collection = await getCollection({ db: types_1.Constants.sysDb }, types_1.SysCollection.systemConfig);
+    let collection = await getCollection({ db: types_1.Constants.sysDb }, types_1.Objects.systemConfig);
     exports.glob.systemConfig = await collection.findOne({});
 }
 function applyAmazonConfig() {
@@ -812,47 +814,47 @@ function applyAmazonConfig() {
 async function loadPackageSystemCollections(db) {
     log(`Loading system collections db '${db}' ...`);
     let cn = { db };
-    let hosts = await get(cn, types_1.SysCollection.hosts);
+    let hosts = await get(cn, types_1.Objects.hosts);
     for (const host of hosts) {
         host._ = { db };
         exports.glob.hosts.push(host);
     }
-    let objects = await get(cn, types_1.SysCollection.objects);
+    let objects = await get(cn, types_1.Objects.objects);
     for (const object of objects) {
         object._ = { db };
         object.entityType = types_1.EntityType.Object;
         exports.glob.entities.push(object);
     }
-    let functions = await get(cn, types_1.SysCollection.functions);
+    let functions = await get(cn, types_1.Objects.functions);
     for (const func of functions) {
         func._ = { db };
         func.entityType = types_1.EntityType.Function;
         exports.glob.entities.push(func);
     }
-    let config = await getOne(cn, types_1.SysCollection.appConfig);
+    let config = await getOne(cn, types_1.Objects.appConfig);
     if (config)
         exports.glob.appConfig[db] = config;
-    let forms = await get(cn, types_1.SysCollection.forms);
+    let forms = await get(cn, types_1.Objects.forms);
     for (const form of forms) {
         form._ = { db };
         form.entityType = types_1.EntityType.Form;
         exports.glob.entities.push(form);
     }
-    let texts = await get(cn, types_1.SysCollection.dictionary);
+    let texts = await get(cn, types_1.Objects.dictionary);
     for (const item of texts) {
         exports.glob.dictionary[db + "." + item.name] = item.text;
     }
-    let menus = await get(cn, types_1.SysCollection.menus);
+    let menus = await get(cn, types_1.Objects.menus);
     for (const menu of menus) {
         menu._ = { db };
         exports.glob.menus.push(menu);
     }
-    let roles = await get(cn, types_1.SysCollection.roles);
+    let roles = await get(cn, types_1.Objects.roles);
     for (const role of roles) {
         role._ = { db };
         exports.glob.roles.push(role);
     }
-    let drives = await get(cn, types_1.SysCollection.drives);
+    let drives = await get(cn, types_1.Objects.drives);
     for (const drive of drives) {
         drive._ = { db };
         exports.glob.drives.push(drive);
@@ -1118,7 +1120,7 @@ async function initializeEnums() {
     exports.glob.enums = [];
     exports.glob.enumTexts = {};
     for (const db of enabledDbs()) {
-        let enums = await get({ db }, types_1.SysCollection.enums);
+        let enums = await get({ db }, types_1.Objects.enums);
         for (const theEnum of enums) {
             theEnum._ = { db };
             exports.glob.enums.push(theEnum);
@@ -1153,16 +1155,8 @@ async function initializeEntities() {
     }
     for (const db of enabledDbs()) {
         let config = exports.glob.appConfig[db];
-        let obj = findObject(db, types_1.SysCollection.appConfig);
+        let obj = findObject(db, types_1.Objects.appConfig);
         await makeObjectReady({ db }, obj.properties, config);
-        for (const app of config.apps) {
-            app._.loginForm = types_1.Constants.defaultLoginUri;
-            if (app.loginForm) {
-                let entity = findEntity(app.loginForm);
-                if (entity)
-                    app._.loginForm = entity.name;
-            }
-        }
     }
     log(`Initializing '${allFunctions(null).length}' functions ...`);
     for (const func of allFunctions(null)) {
@@ -1222,6 +1216,7 @@ function initObject(obj) {
             obj._.inited = true;
         obj.properties = obj.properties || [];
         obj._.autoSetInsertTime = _.some(obj.properties, { name: types_1.SystemProperty.time });
+        obj._.filterObject = findEntity(obj.filterObject);
         obj._.access = {};
         obj._.access[obj._.db] = obj.access;
         initProperties(obj.properties, obj);
@@ -1642,117 +1637,6 @@ function makeEntityList(cn, entities) {
     return _.orderBy(items, ['title']);
 }
 exports.makeEntityList = makeEntityList;
-function json2bson(doc) {
-    return EJSON.deserialize(doc);
-}
-exports.json2bson = json2bson;
-function bson2json(doc) {
-    return EJSON.serialize(doc);
-}
-exports.bson2json = bson2json;
-function stringify(value) {
-    value._0 = "";
-    const getCircularReplacer = () => {
-        const seen = new WeakSet();
-        return (key, value) => {
-            if (typeof value === "object" && value !== null) {
-                if (seen.has(value)) {
-                    return { _$: value._0 };
-                }
-                for (const attr in value) {
-                    let val = value[attr];
-                    if (val) {
-                        if (val.constructor == mongodb_1.ObjectId)
-                            value[attr] = { "$oid": val.toString() };
-                        else if (val.constructor == RegExp)
-                            value[attr] = { "$reg": val.toString() };
-                        else if (val instanceof Date)
-                            value[attr] = { "$date": val.toString() };
-                    }
-                }
-                seen.add(value);
-            }
-            return value;
-        };
-    };
-    const seen = new WeakSet();
-    const setKeys = (obj, parentKey) => {
-        if (seen.has(obj))
-            return;
-        seen.add(obj);
-        for (const key in obj) {
-            let val = obj[key];
-            if (!val)
-                continue;
-            if (typeof val === "object" && val.constructor != mongodb_1.ObjectId) {
-                if (val._0 == null) {
-                    val._0 = parentKey + (Array.isArray(obj) ? `[${key}]` : `['${key}']`);
-                }
-                setKeys(val, val._0);
-            }
-        }
-    };
-    setKeys(value, "");
-    let str = JSON.stringify(value, getCircularReplacer());
-    return str;
-}
-exports.stringify = stringify;
-function parse(str) {
-    let json = typeof str == "string" ? JSON.parse(str) : str;
-    let keys = {};
-    const findKeys = obj => {
-        if (obj && obj._0) {
-            keys[obj._0] = obj;
-            delete obj._0;
-        }
-        for (const key in obj) {
-            if (typeof obj[key] === "object")
-                findKeys(obj[key]);
-        }
-    };
-    const seen = new WeakSet();
-    const replaceRef = obj => {
-        if (seen.has(obj))
-            return;
-        seen.add(obj);
-        for (const key in obj) {
-            let val = obj[key];
-            if (!val)
-                continue;
-            if (typeof val === "object") {
-                if (val.$oid) {
-                    obj[key] = newID(val.$oid);
-                    continue;
-                }
-                else if (val.$reg) {
-                    let match = val.$reg.match(/\/(.+)\/(.*)/);
-                    obj[key] = new RegExp(match[1], match[2]);
-                    continue;
-                }
-                else if (val.$null) {
-                    obj[key] = null;
-                    continue;
-                }
-                else if (val.$date) {
-                    obj[key] = new Date(val.$date);
-                    continue;
-                }
-                if (val._$ == "") {
-                    obj[key] = json;
-                }
-                else if (val._$) {
-                    obj[key] = eval('json' + val._$);
-                }
-                replaceRef(val);
-            }
-        }
-    };
-    delete json._0;
-    findKeys(json);
-    replaceRef(json);
-    return json;
-}
-exports.parse = parse;
 async function getPropertyReferenceValues(cn, prop, instance) {
     if (prop._.enum) {
         let items = prop._.enum.items.map(item => {
@@ -1948,7 +1832,7 @@ async function runFunction(cn, functionId, input) {
     return invoke(cn, func, args);
 }
 exports.runFunction = runFunction;
-async function resetPassword(cn, newPassword, confirm) {
+async function resetOwnerPassword(cn, newPassword, confirm) {
     if (!cn.user)
         throw types_1.StatusCode.Unauthorized;
     if (newPassword != confirm)
@@ -1956,13 +1840,22 @@ async function resetPassword(cn, newPassword, confirm) {
     let hash = await hashPassword(newPassword);
     let date = new Date();
     date.setDate(date.getDate() + types_1.Constants.PASSWORD_EXPIRE_AGE);
-    await patch(cn, types_1.SysCollection.users, { _id: cn.user._id, password: hash, passwordExpireTime: date });
+    await patch(cn, types_1.Objects.users, { _id: cn.user._id, password: hash, passwordExpireTime: date });
+}
+exports.resetOwnerPassword = resetOwnerPassword;
+async function resetPassword(cn, email, newPassword, confirm) {
+    if (newPassword != confirm)
+        throwError(types_1.StatusCode.BadRequest, "Password confirm error!");
+    let hash = await hashPassword(newPassword);
+    let date = new Date();
+    date.setDate(date.getDate() + types_1.Constants.PASSWORD_EXPIRE_AGE);
+    let result = await patch(cn, types_1.Objects.users, { password: hash, passwordExpireTime: date }, { filter: { email } });
 }
 exports.resetPassword = resetPassword;
 async function changePassword(cn, oldPassword, newPassword, confirm) {
     if (!await comparePassword(oldPassword, cn.user.password))
         throwError(types_1.StatusCode.BadRequest, "Invalid old password!");
-    await resetPassword(cn, newPassword, confirm);
+    await resetOwnerPassword(cn, newPassword, confirm);
 }
 exports.changePassword = changePassword;
 function isID(value) {
@@ -1999,13 +1892,13 @@ async function removeDir(dir) {
     });
 }
 exports.removeDir = removeDir;
-async function clientQuestion(cn, message, optionsEnum) {
+async function clientQuestion(cn, title, message, optionsEnum) {
     return new Promise(resolve => {
         let items = getEnumItems(cn, optionsEnum);
         let waitFn = answer => resolve(answer);
         let questionID = newID().toString();
         exports.glob.clientQuestionCallbacks[cn["httpReq"].session.id + ":" + questionID] = waitFn;
-        exports.glob.postClientCommandCallback(cn, types_1.ClientCommand.Question, questionID, message, items);
+        exports.glob.postClientCommandCallback(cn, types_1.ClientCommand.Question, title, message, items, questionID);
     });
 }
 exports.clientQuestion = clientQuestion;

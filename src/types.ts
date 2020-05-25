@@ -75,6 +75,9 @@ export class Country {
     population: number;
     area: number;
     gdp: string;
+    group: string;
+    locale: Locale;
+    localName: string;
 }
 
 export class Global {
@@ -123,8 +126,9 @@ export class mObject extends Entity implements IProperties {
     reference: ID;
     titleProperty: string;
     sortDefaultProperty: string;
-    query: string;
+    query: any;
     referType: ObjectReferType;
+    filterObject: ID;
     source: SourceType;
     rowHeaderStyle: GridRowHeaderStyle;
     reorderable: boolean;
@@ -136,6 +140,7 @@ export class mObject extends Entity implements IProperties {
         db: string;
         autoSetInsertTime?: boolean;
         inited?: boolean;
+        filterObject?: mObject;
     }
 }
 
@@ -219,7 +224,7 @@ export interface IProperties {
 }
 
 export interface IData {
-    _id: any;
+    _id: ID;
     _z: number;
     _: EntityMeta;
 }
@@ -240,6 +245,7 @@ export class Property implements IProperties {
     access: Access;
     isList: boolean;
     locale: Locale;
+    links: EntityLink[];
     formula: string;
     detailsViewType: ObjectDetailsViewType;
     listsViewType: ObjectListsViewType;
@@ -264,6 +270,7 @@ export class Property implements IProperties {
         drive: Drive;
         preview: boolean;
         sizeLimit: number;
+        gallery: boolean;
         path: string;
     };
     time: {
@@ -303,7 +310,6 @@ export class Drive {
     comment: string | MultilangText;
     address: string;
     access: Access;
-    mode: DriveMode;
     s3: {
         accessKeyId: string;
         secretAccessKey: string;
@@ -331,9 +337,9 @@ export class EntityLink {
     title: string | MultilangText;
     comment: string | MultilangText;
     condition: string;
-    single: boolean;
     disable: boolean;
     type: LinkType;
+    access: Access;
     style: string;
 }
 
@@ -494,12 +500,11 @@ export class App {
     favicon: string;
     brandingLogo: string;
     interactive: boolean;
-    loginForm: ID;
+    signInUri: string;
     _: {
         db?: string;
         menu?: Menu;
         navmenu?: Menu;
-        loginForm?: string;
         templateRender?: any;
     }
 }
@@ -841,6 +846,7 @@ export enum FunctionMode {
     OpenDialog = 1,
     OpenPage = 2,
     Run = 3,
+    ResultAsObject = 4,
 }
 
 export enum ChangeFrequency {
@@ -902,7 +908,7 @@ export enum RedirectType {
     Permanent
 }
 
-export enum SysCollection {
+export enum Objects {
     audits = "audits",
     users = "users",
     dictionary = "dictionary",
@@ -962,7 +968,6 @@ export const Constants = {
     sysDb: "sys",
     defaultAddress: "_default",
     indexProperty: "_z",
-    defaultLoginUri: 'login',
     amazonS3ApiVersion: "2006-03-01",
     ClassStyle_Object: "cs-obj",
     ClassStyle_Function: "cs-func",
@@ -1002,6 +1007,7 @@ export class WebResponse implements IError {
     redirect: string;
     message: string;
     code: StatusCode;
+    modifyResult: any;
     config: AppStateConfig;
     texts: { [key: string]: string };
 }
@@ -1022,7 +1028,7 @@ export class AppStateConfig {
         photoUrl?: string;
         title?: string;
         email?: string;
-        profileUrl?: string;
+        accountUrl?: string;
     };
     interactive: boolean = false;
     menu: MenuItem[] = [];
@@ -1057,11 +1063,6 @@ export class UnitTestObject {
         location: GeoLocation
     };
     birthday: Date;
-}
-
-export enum DriveMode {
-    Gallery = 1,
-    NonSelectable = 2,
 }
 
 export enum DirFileType {
@@ -1140,6 +1141,10 @@ export class ObjectDec {
     listsViewType: ObjectListsViewType;
     pageLinks: any[];
     properties: Property[];
+    filterDec: {
+        properties: Property[];
+    };
+    filterData: any;
     access: AccessPermission;
     count: number;
     pages: number;

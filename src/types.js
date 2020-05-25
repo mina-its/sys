@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.UserProfile = exports.SysDashboardInfo = exports.ApiDoc = exports.ApiDocEnum = exports.ApiDocSchema = exports.ApiDocBlock = exports.ApiDocOperation = exports.ApiDocParameter = exports.ReqParams = exports.FunctionDec = exports.ObjectDec = exports.EntityMeta = exports.NotificationInfo = exports.AjaxConfig = exports.Context = exports.YesNo = exports.ObjectListsViewType = exports.ObjectDetailsViewType = exports.ClientCommand = exports.DirFile = exports.DirFileType = exports.UnitTestObject = exports.WebMethod = exports.AppStateConfig = exports.WebResponse = exports.RequestMode = exports.EnvMode = exports.PropertyConditionBehavior = exports.Constants = exports.GridRowHeaderStyle = exports.PType = exports.SystemProperty = exports.SysAuditTypes = exports.Objects = exports.RedirectType = exports.ObjectReferType = exports.TimeFormat = exports.RefPortionType = exports.GlobalType = exports.PropertyReferType = exports.NewItemMode = exports.ChangeFrequency = exports.FunctionMode = exports.SourceType = exports.Locale = exports.Keys = exports.PropertyEditMode = exports.PropertyViewMode = exports.AccessPermission = exports.EntityType = exports.ElemType = exports.Orientation = exports.PanelType = exports.LinkType = exports.LogType = exports.UploadedFile = exports.StatusCode = exports.GetOptions = exports.DelOptions = exports.PatchOptions = exports.PutOptions = exports.Point = exports.GeoLocation = exports.RefPortion = exports.TimeZone = exports.Text = exports.mFile = exports.PackageAddressRule = exports.PackageType = exports.PackageInfo = exports.SystemConfig = exports.AppConfig = exports.EmailAccount = exports.SmsAccount = exports.MultilangText = exports.EnumItem = exports.Enum = exports.Host = exports.SystemConfigStaticPackage = exports.App = exports.Pair = exports.MenuItem = exports.Menu = exports.AccessItem = exports.Access = exports.ChartSeries = exports.ErrorObject = exports.Elem = exports.ObjectViewType = exports.EntityLink = exports.FunctionTestSample = exports.Drive = exports.Property = exports.ObjectModifyType = exports.SendSmsParams = exports.SendEmailParams = exports.EmailTemplateConfig = exports.ObjectModifyState = exports.FormDto = exports.Form = exports.Function = exports.mObject = exports.Entity = exports.Global = exports.Country = exports.SmsProvider = exports.AuditType = exports.User = exports.Role = exports.AuditArgs = void 0;
 class AuditArgs {
 }
 exports.AuditArgs = AuditArgs;
@@ -380,6 +381,7 @@ var FunctionMode;
     FunctionMode[FunctionMode["OpenDialog"] = 1] = "OpenDialog";
     FunctionMode[FunctionMode["OpenPage"] = 2] = "OpenPage";
     FunctionMode[FunctionMode["Run"] = 3] = "Run";
+    FunctionMode[FunctionMode["ResultAsObject"] = 4] = "ResultAsObject";
 })(FunctionMode = exports.FunctionMode || (exports.FunctionMode = {}));
 var ChangeFrequency;
 (function (ChangeFrequency) {
@@ -440,24 +442,24 @@ var RedirectType;
 (function (RedirectType) {
     RedirectType[RedirectType["Permanent"] = 0] = "Permanent";
 })(RedirectType = exports.RedirectType || (exports.RedirectType = {}));
-var SysCollection;
-(function (SysCollection) {
-    SysCollection["audits"] = "audits";
-    SysCollection["users"] = "users";
-    SysCollection["dictionary"] = "dictionary";
-    SysCollection["countries"] = "countries";
-    SysCollection["objects"] = "objects";
-    SysCollection["functions"] = "functions";
-    SysCollection["roles"] = "roles";
-    SysCollection["appConfig"] = "appConfig";
-    SysCollection["systemConfig"] = "systemConfig";
-    SysCollection["hosts"] = "hosts";
-    SysCollection["menus"] = "menus";
-    SysCollection["drives"] = "drives";
-    SysCollection["forms"] = "forms";
-    SysCollection["auditTypes"] = "auditTypes";
-    SysCollection["enums"] = "enums";
-})(SysCollection = exports.SysCollection || (exports.SysCollection = {}));
+var Objects;
+(function (Objects) {
+    Objects["audits"] = "audits";
+    Objects["users"] = "users";
+    Objects["dictionary"] = "dictionary";
+    Objects["countries"] = "countries";
+    Objects["objects"] = "objects";
+    Objects["functions"] = "functions";
+    Objects["roles"] = "roles";
+    Objects["appConfig"] = "appConfig";
+    Objects["systemConfig"] = "systemConfig";
+    Objects["hosts"] = "hosts";
+    Objects["menus"] = "menus";
+    Objects["drives"] = "drives";
+    Objects["forms"] = "forms";
+    Objects["auditTypes"] = "auditTypes";
+    Objects["enums"] = "enums";
+})(Objects = exports.Objects || (exports.Objects = {}));
 var SysAuditTypes;
 (function (SysAuditTypes) {
     SysAuditTypes["addItem"] = "5d7b8fbd10f5321b74a1b83b";
@@ -500,7 +502,6 @@ exports.Constants = {
     sysDb: "sys",
     defaultAddress: "_default",
     indexProperty: "_z",
-    defaultLoginUri: 'login',
     amazonS3ApiVersion: "2006-03-01",
     ClassStyle_Object: "cs-obj",
     ClassStyle_Function: "cs-func",
@@ -560,11 +561,6 @@ var WebMethod;
 class UnitTestObject {
 }
 exports.UnitTestObject = UnitTestObject;
-var DriveMode;
-(function (DriveMode) {
-    DriveMode[DriveMode["Gallery"] = 1] = "Gallery";
-    DriveMode[DriveMode["NonSelectable"] = 2] = "NonSelectable";
-})(DriveMode = exports.DriveMode || (exports.DriveMode = {}));
 var DirFileType;
 (function (DirFileType) {
     DirFileType[DirFileType["File"] = 1] = "File";

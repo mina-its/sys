@@ -1,6 +1,6 @@
 ///<reference path="../node_modules/@types/jest/index.d.ts"/>
 import {execShellCommand, glob, newID} from "../../sys";
-import {Constants, mObject, StatusCode, SysCollection, UnitTestObject} from "../src/types";
+import {Constants, mObject, StatusCode, UnitTestObject} from "../src/types";
 import path=require("path");
 
 
