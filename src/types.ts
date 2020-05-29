@@ -132,6 +132,7 @@ export class mObject extends Entity implements IProperties {
     source: SourceType;
     rowHeaderStyle: GridRowHeaderStyle;
     reorderable: boolean;
+    approximateCount: number;
     modified: ID;
     detailsViewType: ObjectDetailsViewType;
     listsViewType: ObjectListsViewType;
