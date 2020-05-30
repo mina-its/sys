@@ -997,14 +997,15 @@ function initializePackages() {
         }
     }
 }
-function checkPropertyGtype(prop, entity) {
+function checkPropertyGtype(prop, entity, parentProperty = null) {
     if (!prop.type) {
         if (prop.properties && prop.properties.length) {
             prop._.gtype = types_1.GlobalType.object;
             return;
         }
         else {
-            warn(`property '${entity._.db}.${entity.name}.${prop.name}' type is empty!`);
+            if (!parentProperty || (parentProperty.referType != types_1.PropertyReferType.inlineData && parentProperty.referType != types_1.PropertyReferType.outbound))
+                warn(`property '${entity._.db}.${entity.name}.${prop.name}' type is empty!`);
             return;
         }
     }
@@ -1165,7 +1166,7 @@ async function initializeEntities() {
             func._.access[func._.db] = func.access;
             func.pack = func.pack || exports.glob.appConfig[func._.db].defaultPack;
             assert(func.pack, `Function needs unknown pack, or default pack in PackageConfig needed!`);
-            initProperties(func.properties, func, func.title);
+            initProperties(func.properties, func, func.title, null);
         }
         catch (ex) {
             error("Init functions, Module: " + func._.db + ", Action: " + func.name, ex);
@@ -1195,16 +1196,22 @@ function checkForSystemProperty(prop) {
             _.defaultsDeep(prop, sysProperty);
     }
 }
-function initProperties(properties, entity, parentTitle) {
+function initProperties(properties, entity, parentTitle, parentProperty) {
     if (!properties)
         return;
     for (const prop of properties) {
         prop._ = {};
         checkForSystemProperty(prop);
         prop.group = prop.group || parentTitle;
-        checkPropertyGtype(prop, entity);
+        checkPropertyGtype(prop, entity, parentProperty);
         checkFileProperty(prop, entity);
-        initProperties(prop.properties, entity, prop.title);
+        if (prop.referType == types_1.PropertyReferType.outbound) {
+            assert(prop.type, `Property ${prop.name} is outbound, but the type has not been specified for it.`);
+            let type = findEntity(prop.type);
+            initObject(type);
+            compareParentProperties(prop.properties, _.cloneDeep(type.properties), type);
+        }
+        initProperties(prop.properties, entity, prop.title, prop);
     }
 }
 exports.initProperties = initProperties;
@@ -1219,7 +1226,7 @@ function initObject(obj) {
         obj._.filterObject = findEntity(obj.filterObject);
         obj._.access = {};
         obj._.access[obj._.db] = obj.access;
-        initProperties(obj.properties, obj);
+        initProperties(obj.properties, obj, null, null);
         if (obj.reference) {
             let referenceObj = findEntity(obj.reference);
             if (!referenceObj)
@@ -1637,28 +1644,57 @@ function makeEntityList(cn, entities) {
     return _.orderBy(items, ['title']);
 }
 exports.makeEntityList = makeEntityList;
-async function getPropertyReferenceValues(cn, prop, instance) {
-    if (prop._.enum) {
-        let items = prop._.enum.items.map(item => {
+async function getPropertyReferenceValues(cn, prop, instance, filter) {
+    if (prop._.enum)
+        return (prop._.enum.items || []).map(item => {
             return { ref: item.value, title: getText(cn, item.title) };
         });
-        return items;
-    }
     let entity = findEntity(prop.type);
-    if (!entity) {
-        throwError(types_1.StatusCode.ServerError, `Property '${prop.name}' type '${prop.type}' not found.`);
-    }
+    assert(entity, `Property '${prop.name}' type '${prop.type}' not found.`);
     if (entity.entityType == types_1.EntityType.Object) {
-        let result = await get({ db: cn.db }, entity.name, { count: 10 });
-        if (result) {
-            return result.map(item => {
-                return { ref: item._id, title: getText(cn, item.title) };
-            });
+        let db = entity._.db;
+        if (entity.name == types_1.Objects.users || entity.name == types_1.Objects.roles || entity.name == types_1.Objects.menus || entity.name == types_1.Objects.drives)
+            db = cn.db;
+        let query = null;
+        if (filter) {
+            let titlePropName = entity.titleProperty || "title";
+            let titleProp = entity.properties.find(p => p.name == titlePropName);
+            if (titleProp) {
+                if (titleProp.text && titleProp.text.multiLanguage) {
+                    let filterGlobal = {};
+                    let filterLocalize = {};
+                    filterGlobal[titlePropName] = new RegExp(filter, "i");
+                    filterLocalize[titlePropName + "." + types_1.Locale[cn.locale]] = new RegExp(filter, "i");
+                    query = { $or: [filterGlobal, filterLocalize] };
+                }
+                else {
+                    query = {};
+                    query[titlePropName] = new RegExp(filter, "i");
+                }
+            }
         }
+        else if (Array.isArray(instance)) {
+            let values = instance.filter(i => i[prop.name]).map(i => i[prop.name]);
+            if (values.length)
+                query = { _id: { $in: values } };
+        }
+        else if (instance) {
+            let value = instance[prop.name];
+            if (value)
+                query = { _id: value };
+        }
+        let result = await get({ db, locale: cn.locale }, entity.name, { count: types_1.Constants.referenceValuesLoadCount, query });
+        if (result)
+            return result.map(item => {
+                return {
+                    ref: item._id,
+                    title: getText(cn, entity.titleProperty ? item[entity.titleProperty] : item.title)
+                };
+            });
         else
-            return null;
+            throw types_1.StatusCode.NotFound;
     }
-    else if (entity.entityType === types_1.EntityType.Function) {
+    else if (entity.entityType == types_1.EntityType.Function) {
         let typeFunc = entity;
         let args = [];
         if (typeFunc.properties)
@@ -1675,7 +1711,28 @@ async function getPropertyReferenceValues(cn, prop, instance) {
                         break;
                 }
             }
-        return await invoke(cn, typeFunc, args);
+        try {
+            let items = await invoke(cn, typeFunc, args);
+            if (!Array.isArray(items)) {
+                error('getPropertyReferenceValues: the function result must be an array of Pair.');
+            }
+            else {
+                items = items.map(item => {
+                    let title = getText(cn, item.title, false) || item.name;
+                    let pair = { title, ref: item._id };
+                    if (item._cs)
+                        pair._cs = item._cs;
+                    return pair;
+                });
+                if (filter)
+                    items = items.filter(item => item.title && item.title.toLowerCase().indexOf(filter.toLowerCase()) > -1);
+            }
+            return items;
+        }
+        catch (ex) {
+            error(`getPropertyReferenceValues: the function '${typeFunc.name}' invoke failed: ${ex.message}`);
+            throw ex;
+        }
     }
 }
 exports.getPropertyReferenceValues = getPropertyReferenceValues;

@@ -499,6 +499,7 @@ var GridRowHeaderStyle;
 })(GridRowHeaderStyle = exports.GridRowHeaderStyle || (exports.GridRowHeaderStyle = {}));
 exports.Constants = {
     urlPortionApi: "api",
+    referenceValuesLoadCount: 10,
     sysDb: "sys",
     defaultAddress: "_default",
     indexProperty: "_z",

@@ -58,6 +58,7 @@ import {
     mObject,
     ObjectModifyState,
     ObjectModifyType,
+    Objects,
     PackageInfo,
     Pair,
     Property,
@@ -75,11 +76,10 @@ import {
     SourceType,
     StatusCode,
     SysAuditTypes,
-    Objects,
     SystemProperty,
     Text,
     UploadedFile,
-    User, ObjectDec, ObjectViewType, AccessPermission, AccessItem,
+    User,
 } from './types';
 
 const nodemailer = require('nodemailer');
@@ -1148,13 +1148,14 @@ function initializePackages() {
     }
 }
 
-function checkPropertyGtype(prop: Property, entity: Entity) {
+function checkPropertyGtype(prop: Property, entity: Entity, parentProperty: Property = null) {
     if (!prop.type) {
         if (prop.properties && prop.properties.length) {
             prop._.gtype = GlobalType.object;
             return;
         } else {
-            warn(`property '${entity._.db}.${entity.name}.${prop.name}' type is empty!`);
+            if (!parentProperty || (parentProperty.referType != PropertyReferType.inlineData && parentProperty.referType != PropertyReferType.outbound))
+                warn(`property '${entity._.db}.${entity.name}.${prop.name}' type is empty!`);
             return;
         }
     }
@@ -1332,7 +1333,7 @@ async function initializeEntities() {
             func._.access[func._.db] = func.access;
             func.pack = func.pack || glob.appConfig[func._.db].defaultPack;
             assert(func.pack, `Function needs unknown pack, or default pack in PackageConfig needed!`);
-            initProperties(func.properties, func, func.title);
+            initProperties(func.properties, func, func.title, null);
         } catch (ex) {
             error("Init functions, Module: " + func._.db + ", Action: " + func.name, ex);
         }
@@ -1364,7 +1365,7 @@ function checkForSystemProperty(prop: Property) {
     }
 }
 
-export function initProperties(properties: Property[], entity: Entity, parentTitle?) {
+export function initProperties(properties: Property[], entity: Entity, parentTitle: any, parentProperty: Property) {
     if (!properties) return;
     for (const prop of properties) {
         // if (prop._.inited)
@@ -1375,9 +1376,17 @@ export function initProperties(properties: Property[], entity: Entity, parentTit
         prop._ = {};
         checkForSystemProperty(prop);
         prop.group = prop.group || parentTitle;
-        checkPropertyGtype(prop, entity);
+        checkPropertyGtype(prop, entity, parentProperty);
         checkFileProperty(prop, entity);
-        initProperties(prop.properties, entity, prop.title);
+
+        if (prop.referType == PropertyReferType.outbound) {
+            assert(prop.type, `Property ${prop.name} is outbound, but the type has not been specified for it.`);
+            let type = findEntity(prop.type) as mObject;
+            initObject(type);
+            compareParentProperties(prop.properties, _.cloneDeep(type.properties), type);
+        }
+
+        initProperties(prop.properties, entity, prop.title, prop);
     }
 }
 
@@ -1393,7 +1402,7 @@ export function initObject(obj: mObject) {
         obj._.filterObject = findEntity(obj.filterObject) as mObject;
         obj._.access = {};
         obj._.access[obj._.db] = obj.access;
-        initProperties(obj.properties, obj);
+        initProperties(obj.properties, obj, null, null);
 
         if (obj.reference) {
             let referenceObj = findEntity(obj.reference) as mObject;
@@ -1843,28 +1852,57 @@ export function makeEntityList(cn: Context, entities: Entity[]) {
     return _.orderBy(items, ['title']);
 }
 
-export async function getPropertyReferenceValues(cn: Context, prop: Property, instance: any) {
-    if (prop._.enum) {
-        let items = prop._.enum.items.map(item => {
-            return {ref: item.value, title: getText(cn, item.title)} as Pair;
-        });
-        return items;
-    }
+export async function getPropertyReferenceValues(cn: Context, prop: Property, instance: any, filter: string): Promise<Pair[]> {
+    if (prop._.enum) return (prop._.enum.items || []).map(item => {
+        return {ref: item.value, title: getText(cn, item.title)} as Pair;
+    });
 
     let entity = findEntity(prop.type);
-    if (!entity) {
-        throwError(StatusCode.ServerError, `Property '${prop.name}' type '${prop.type}' not found.`);
-    }
+    assert(entity, `Property '${prop.name}' type '${prop.type}' not found.`);
 
     if (entity.entityType == EntityType.Object) {
-        let result = await get({db: cn.db} as Context, entity.name, {count: 10});
-        if (result) {
+        let db = entity._.db;
+        if (entity.name == Objects.users || entity.name == Objects.roles || entity.name == Objects.menus || entity.name == Objects.drives)
+            db = cn.db;
+
+        // Create Query base on given filter (user input)
+        let query = null;
+        if (filter) {
+            let titlePropName = (entity as mObject).titleProperty || "title";
+            let titleProp = (entity as mObject).properties.find(p => p.name == titlePropName);
+            if (titleProp) {
+                if (titleProp.text && titleProp.text.multiLanguage) {
+                    let filterGlobal = {};
+                    let filterLocalize = {};
+                    filterGlobal[titlePropName] = new RegExp(filter, "i");
+                    filterLocalize[titlePropName + "." + Locale[cn.locale]] = new RegExp(filter, "i");
+                    query = {$or: [filterGlobal, filterLocalize]};
+                } else {
+                    query = {};
+                    query[titlePropName] = new RegExp(filter, "i");
+                }
+            }
+        } else if (Array.isArray(instance)) {
+            let values = instance.filter(i => i[prop.name]).map(i => i[prop.name]);
+            if (values.length)
+                query = {_id: {$in: values}};
+        } else if (instance) {
+            let value = instance[prop.name];
+            if (value)
+                query = {_id: value};
+        }
+
+        let result = await get({db, locale: cn.locale}, entity.name, {count: Constants.referenceValuesLoadCount, query});
+        if (result)
             return result.map(item => {
-                return {ref: item._id, title: getText(cn, item.title)} as Pair;
+                return {
+                    ref: item._id,
+                    title: getText(cn, (entity as mObject).titleProperty ? item[(entity as mObject).titleProperty] : item.title)
+                } as Pair;
             });
-        } else
-            return null;
-    } else if (entity.entityType === EntityType.Function) {
+        else
+            throw StatusCode.NotFound;
+    } else if (entity.entityType == EntityType.Function) {
         let typeFunc = entity as Function;
         let args = [];
         if (typeFunc.properties)
@@ -1884,7 +1922,26 @@ export async function getPropertyReferenceValues(cn: Context, prop: Property, in
                 }
             }
 
-        return await invoke(cn, typeFunc, args);
+        try {
+            let items = await invoke(cn, typeFunc, args);
+            if (!Array.isArray(items)) {
+                error('getPropertyReferenceValues: the function result must be an array of Pair.');
+            } else {
+                items = items.map(item => {
+                    let title = getText(cn, item.title, false) || item.name;
+                    let pair = {title, ref: item._id} as Pair;
+                    if (item._cs) pair._cs = item._cs;
+                    return pair;
+                });
+
+                if (filter)
+                    items = items.filter(item => item.title && item.title.toLowerCase().indexOf(filter.toLowerCase()) > -1);
+            }
+            return items;
+        } catch (ex) {
+            error(`getPropertyReferenceValues: the function '${typeFunc.name}' invoke failed: ${ex.message}`);
+            throw ex;
+        }
     }
 }
 
