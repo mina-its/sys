@@ -404,6 +404,7 @@ var PropertyReferType;
     PropertyReferType[PropertyReferType["inlineData"] = 9] = "inlineData";
     PropertyReferType[PropertyReferType["outbound"] = 5] = "outbound";
     PropertyReferType[PropertyReferType["select"] = 10] = "select";
+    PropertyReferType[PropertyReferType["InnerSelectType"] = 4] = "InnerSelectType";
 })(PropertyReferType = exports.PropertyReferType || (exports.PropertyReferType = {}));
 var GlobalType;
 (function (GlobalType) {

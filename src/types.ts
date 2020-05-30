@@ -245,6 +245,7 @@ export class Property implements IProperties {
     required: boolean;
     type: ID;
     access: Access;
+    foreignProperty: string;
     isList: boolean;
     english: boolean;
     links: EntityLink[];
@@ -871,6 +872,7 @@ export enum PropertyReferType {
     inlineData = 9,
     outbound = 5,
     select = 10,
+    InnerSelectType = 4,
 }
 
 export enum GlobalType {

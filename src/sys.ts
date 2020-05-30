@@ -1852,37 +1852,63 @@ export function makeEntityList(cn: Context, entities: Entity[]) {
     return _.orderBy(items, ['title']);
 }
 
-export async function getPropertyReferenceValues(cn: Context, prop: Property, instance: any, filter: string): Promise<Pair[]> {
-    if (prop._.enum) return (prop._.enum.items || []).map(item => {
-        return {ref: item.value, title: getText(cn, item.title)} as Pair;
+async function getInnerPropertyReferenceValues(cn: Context, db: string, prop: Property, instance: any): Promise<Pair[]> {
+    assert(prop.dependsOn, `DependsOn property must be set for InnerSelectType property: ${prop.name}`);
+    assert(prop.foreignProperty, `ForeignProperty must be set for InnerSelectType property: ${prop.name}`);
+
+    let val = instance ? instance[prop.dependsOn] : null;
+    if (!val) return [];
+    let obj = findEntity(prop.type);
+    let result = await get({db, locale: cn.locale}, obj.name, {itemId: val});
+    if (!result) return [];
+
+    let items = result[prop.foreignProperty];
+    assert(Array.isArray(items), `ForeignProperty must be an array InnerSelectType property: ${prop.name}`);
+
+    return items.map(item => {
+        return {
+            ref: item._id,
+            title: getText(cn, item.title)
+        } as Pair;
     });
+}
 
-    let entity = findEntity(prop.type);
-    assert(entity, `Property '${prop.name}' type '${prop.type}' not found.`);
+async function getPropertyObjectReferenceValues(cn: Context, obj: mObject, prop: Property, instance: any, phrase: string, query: any): Promise<Pair[]> {
+    let db = obj._.db;
+    if (obj.name == Objects.users || obj.name == Objects.roles || obj.name == Objects.menus || obj.name == Objects.drives)
+        db = cn.db;
 
-    if (entity.entityType == EntityType.Object) {
-        let db = entity._.db;
-        if (entity.name == Objects.users || entity.name == Objects.roles || entity.name == Objects.menus || entity.name == Objects.drives)
-            db = cn.db;
+    if (prop.filter && !query)
+        return [];
 
-        // Create Query base on given filter (user input)
-        let query = null;
-        if (filter) {
-            let titlePropName = (entity as mObject).titleProperty || "title";
-            let titleProp = (entity as mObject).properties.find(p => p.name == titlePropName);
-            if (titleProp) {
-                if (titleProp.text && titleProp.text.multiLanguage) {
-                    let filterGlobal = {};
-                    let filterLocalize = {};
-                    filterGlobal[titlePropName] = new RegExp(filter, "i");
-                    filterLocalize[titlePropName + "." + Locale[cn.locale]] = new RegExp(filter, "i");
-                    query = {$or: [filterGlobal, filterLocalize]};
-                } else {
-                    query = {};
-                    query[titlePropName] = new RegExp(filter, "i");
-                }
+    if (prop.referType == PropertyReferType.InnerSelectType) {
+        if (Array.isArray(instance)) {
+            let values = [];
+            for (let item of instance) {
+                values = values.concat(await getInnerPropertyReferenceValues(cn, db, prop, item));
             }
-        } else if (Array.isArray(instance)) {
+            return values;
+        } else
+            return await getInnerPropertyReferenceValues(cn, db, prop, instance);
+    } else if (phrase) {
+        let titlePropName = obj.titleProperty || "title";
+        let titleProp = obj.properties.find(p => p.name == titlePropName);
+        if (titleProp) {
+            let phraseQuery;
+            if (titleProp.text && titleProp.text.multiLanguage) {
+                let filterGlobal = {};
+                let filterLocalize = {};
+                filterGlobal[titlePropName] = new RegExp(phrase, "i");
+                filterLocalize[titlePropName + "." + Locale[cn.locale]] = new RegExp(phrase, "i");
+                phraseQuery = {$or: [filterGlobal, filterLocalize]};
+            } else {
+                phraseQuery = {};
+                phraseQuery[titlePropName] = new RegExp(phrase, "i");
+            }
+            query = query ? {$and: [query, phraseQuery]} : phraseQuery;
+        }
+    } else if (!query) {
+        if (Array.isArray(instance)) {
             let values = instance.filter(i => i[prop.name]).map(i => i[prop.name]);
             if (values.length)
                 query = {_id: {$in: values}};
@@ -1891,58 +1917,75 @@ export async function getPropertyReferenceValues(cn: Context, prop: Property, in
             if (value)
                 query = {_id: value};
         }
-
-        let result = await get({db, locale: cn.locale}, entity.name, {count: Constants.referenceValuesLoadCount, query});
-        if (result)
-            return result.map(item => {
-                return {
-                    ref: item._id,
-                    title: getText(cn, (entity as mObject).titleProperty ? item[(entity as mObject).titleProperty] : item.title)
-                } as Pair;
-            });
-        else
-            throw StatusCode.NotFound;
-    } else if (entity.entityType == EntityType.Function) {
-        let typeFunc = entity as Function;
-        let args = [];
-        if (typeFunc.properties)
-            for (const param of typeFunc.properties) {
-                switch (param.name) {
-                    case "meta":
-                        args.push(prop);
-                        break;
-
-                    case "item":
-                        args.push(instance); //  || cn.httpReq.body
-                        break;
-
-                    default:
-                        args.push(null);
-                        break;
-                }
-            }
-
-        try {
-            let items = await invoke(cn, typeFunc, args);
-            if (!Array.isArray(items)) {
-                error('getPropertyReferenceValues: the function result must be an array of Pair.');
-            } else {
-                items = items.map(item => {
-                    let title = getText(cn, item.title, false) || item.name;
-                    let pair = {title, ref: item._id} as Pair;
-                    if (item._cs) pair._cs = item._cs;
-                    return pair;
-                });
-
-                if (filter)
-                    items = items.filter(item => item.title && item.title.toLowerCase().indexOf(filter.toLowerCase()) > -1);
-            }
-            return items;
-        } catch (ex) {
-            error(`getPropertyReferenceValues: the function '${typeFunc.name}' invoke failed: ${ex.message}`);
-            throw ex;
-        }
     }
+
+    let result = await get({db, locale: cn.locale}, obj.name, {count: Constants.referenceValuesLoadCount, query});
+    if (result)
+        return result.map(item => {
+            return {
+                ref: item._id,
+                title: getText(cn, (obj as mObject).titleProperty ? item[(obj as mObject).titleProperty] : item.title)
+            } as Pair;
+        });
+    else
+        throw StatusCode.NotFound;
+}
+
+async function getPropertyFunctionReferenceValues(cn: Context, func: Function, prop: Property, instance: any, phrase: string, query: any): Promise<Pair[]> {
+    let args = [];
+    if (func.properties)
+        for (const param of func.properties) {
+            switch (param.name) {
+                case "meta":
+                    args.push(prop);
+                    break;
+
+                case "item":
+                    args.push(instance); //  || cn.httpReq.body
+                    break;
+
+                default:
+                    args.push(null);
+                    break;
+            }
+        }
+
+    try {
+        let items = await invoke(cn, func, args);
+        if (!Array.isArray(items)) {
+            error('getPropertyReferenceValues: the function result must be an array of Pair.');
+        } else {
+            items = items.map(item => {
+                let title = getText(cn, item.title, false) || item.name;
+                let pair = {title, ref: item._id} as Pair;
+                if (item._cs) pair._cs = item._cs;
+                return pair;
+            });
+
+            if (phrase)
+                items = items.filter(item => item.title && item.title.toLowerCase().indexOf(phrase.toLowerCase()) > -1);
+        }
+        return items;
+    } catch (ex) {
+        error(`getPropertyReferenceValues: the function '${func.name}' invoke failed: ${ex.message}`);
+        throw ex;
+    }
+}
+
+export async function getPropertyReferenceValues(cn: Context, prop: Property, instance: any, phrase: string, query: any): Promise<Pair[]> {
+    if (prop._.enum)
+        return (prop._.enum.items || []).map(item => {
+            return {ref: item.value, title: getText(cn, item.title)} as Pair;
+        });
+
+    let entity = findEntity(prop.type);
+    assert(entity, `Property '${prop.name}' type '${prop.type}' not found.`);
+
+    if (entity.entityType == EntityType.Object)
+        return await getPropertyObjectReferenceValues(cn, entity as mObject, prop, instance, phrase, query);
+    else if (entity.entityType == EntityType.Function)
+        return await getPropertyFunctionReferenceValues(cn, entity as Function, prop, instance, phrase, query);
+
 }
 
 function mockCheckMatchInput(cn: Context, func: Function, args: any[], sample: FunctionTestSample): boolean {
