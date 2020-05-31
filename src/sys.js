@@ -1688,7 +1688,9 @@ async function getPropertyObjectReferenceValues(cn, obj, prop, instance, phrase,
         else
             return await getInnerPropertyReferenceValues(cn, obj, db, prop, instance);
     }
-    else if (phrase) {
+    else if (phrase == "") {
+    }
+    else if (phrase != null) {
         let titlePropName = obj.titleProperty || "title";
         let titleProp = obj.properties.find(p => p.name == titlePropName);
         if (titleProp) {
@@ -1715,8 +1717,12 @@ async function getPropertyObjectReferenceValues(cn, obj, prop, instance, phrase,
         }
         else if (instance) {
             let value = instance[prop.name];
-            if (value)
-                query = { _id: value };
+            if (value) {
+                if (Array.isArray(value))
+                    query = { _id: { $in: value } };
+                else
+                    query = { _id: value };
+            }
         }
     }
     let result = await get({ db, locale: cn.locale }, obj.name, { count: types_1.Constants.referenceValuesLoadCount, query });

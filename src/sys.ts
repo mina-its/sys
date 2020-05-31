@@ -1901,7 +1901,9 @@ async function getPropertyObjectReferenceValues(cn: Context, obj: mObject, prop:
             return values;
         } else
             return await getInnerPropertyReferenceValues(cn, obj, db, prop, instance);
-    } else if (phrase) {
+    } else if (phrase == "") {
+        // When call from client side on-change
+    } else if (phrase != null) {
         let titlePropName = obj.titleProperty || "title";
         let titleProp = obj.properties.find(p => p.name == titlePropName);
         if (titleProp) {
@@ -1925,8 +1927,12 @@ async function getPropertyObjectReferenceValues(cn: Context, obj: mObject, prop:
                 query = {_id: {$in: values}};
         } else if (instance) {
             let value = instance[prop.name];
-            if (value)
-                query = {_id: value};
+            if (value) {
+                if (Array.isArray(value)) // Multi value property
+                    query = {_id: {$in: value}};
+                else
+                    query = {_id: value};
+            }
         }
     }
 
