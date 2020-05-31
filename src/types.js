@@ -403,6 +403,7 @@ var PropertyReferType;
     PropertyReferType[PropertyReferType["inlineData"] = 9] = "inlineData";
     PropertyReferType[PropertyReferType["outbound"] = 5] = "outbound";
     PropertyReferType[PropertyReferType["select"] = 10] = "select";
+    PropertyReferType[PropertyReferType["InnerSelectType"] = 4] = "InnerSelectType";
 })(PropertyReferType = exports.PropertyReferType || (exports.PropertyReferType = {}));
 var GlobalType;
 (function (GlobalType) {
@@ -498,6 +499,7 @@ var GridRowHeaderStyle;
 })(GridRowHeaderStyle = exports.GridRowHeaderStyle || (exports.GridRowHeaderStyle = {}));
 exports.Constants = {
     urlPortionApi: "api",
+    referenceValuesLoadCount: 10,
     sysDb: "sys",
     defaultAddress: "_default",
     indexProperty: "_z",

@@ -241,11 +241,13 @@ export class Property implements IProperties {
     defaultValue: string;
     editMode: PropertyEditMode;
     commentStyle: string;
+    filter: string;
     required: boolean;
     type: ID;
     access: Access;
+    foreignProperty: string;
     isList: boolean;
-    locale: Locale;
+    english: boolean;
     links: EntityLink[];
     formula: string;
     detailsViewType: ObjectDetailsViewType;
@@ -870,6 +872,7 @@ export enum PropertyReferType {
     inlineData = 9,
     outbound = 5,
     select = 10,
+    InnerSelectType = 4,
 }
 
 export enum GlobalType {
@@ -966,6 +969,7 @@ export enum GridRowHeaderStyle {
 
 export const Constants = {
     urlPortionApi: "api",
+    referenceValuesLoadCount: 10,
     sysDb: "sys",
     defaultAddress: "_default",
     indexProperty: "_z",
