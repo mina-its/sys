@@ -1644,22 +1644,30 @@ function makeEntityList(cn, entities) {
     return _.orderBy(items, ['title']);
 }
 exports.makeEntityList = makeEntityList;
-async function getInnerPropertyReferenceValues(cn, db, prop, instance) {
+async function getInnerPropertyReferenceValues(cn, foreignObj, db, prop, instance) {
     assert(prop.dependsOn, `DependsOn property must be set for InnerSelectType property: ${prop.name}`);
     assert(prop.foreignProperty, `ForeignProperty must be set for InnerSelectType property: ${prop.name}`);
     let val = instance ? instance[prop.dependsOn] : null;
     if (!val)
         return [];
-    let obj = findEntity(prop.type);
-    let result = await get({ db, locale: cn.locale }, obj.name, { itemId: val });
+    let result = await get({ db, locale: cn.locale }, foreignObj.name, { itemId: val });
     if (!result)
         return [];
+    let foreignProp = foreignObj.properties.find(p => p.name == prop.foreignProperty);
+    assert(foreignProp, `Foreign property '${prop.foreignProperty}' not found!`);
+    let foreignTitleProp = foreignProp.properties.find(p => foreignProp.titleProperty ? p.name == foreignObj.titleProperty : p.name == types_1.Constants.titlePropertyName);
+    assert(foreignTitleProp, `Foreign object needs the title property`);
     let items = result[prop.foreignProperty];
     assert(Array.isArray(items), `ForeignProperty must be an array InnerSelectType property: ${prop.name}`);
     return items.map(item => {
+        let title;
+        if (foreignTitleProp.formula)
+            title = evalExpression(item, foreignTitleProp.formula);
+        else
+            title = item[foreignTitleProp.name];
         return {
             ref: item._id,
-            title: getText(cn, item.title)
+            title: getText(cn, title)
         };
     });
 }
@@ -1673,12 +1681,12 @@ async function getPropertyObjectReferenceValues(cn, obj, prop, instance, phrase,
         if (Array.isArray(instance)) {
             let values = [];
             for (let item of instance) {
-                values = values.concat(await getInnerPropertyReferenceValues(cn, db, prop, item));
+                values = values.concat(await getInnerPropertyReferenceValues(cn, obj, db, prop, item));
             }
             return values;
         }
         else
-            return await getInnerPropertyReferenceValues(cn, db, prop, instance);
+            return await getInnerPropertyReferenceValues(cn, obj, db, prop, instance);
     }
     else if (phrase) {
         let titlePropName = obj.titleProperty || "title";

@@ -502,6 +502,7 @@ exports.Constants = {
     urlPortionApi: "api",
     referenceValuesLoadCount: 10,
     sysDb: "sys",
+    titlePropertyName: "title",
     defaultAddress: "_default",
     indexProperty: "_z",
     amazonS3ApiVersion: "2006-03-01",
