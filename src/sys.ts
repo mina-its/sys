@@ -1852,23 +1852,34 @@ export function makeEntityList(cn: Context, entities: Entity[]) {
     return _.orderBy(items, ['title']);
 }
 
-async function getInnerPropertyReferenceValues(cn: Context, db: string, prop: Property, instance: any): Promise<Pair[]> {
+async function getInnerPropertyReferenceValues(cn: Context, foreignObj: mObject, db: string, prop: Property, instance: any): Promise<Pair[]> {
     assert(prop.dependsOn, `DependsOn property must be set for InnerSelectType property: ${prop.name}`);
     assert(prop.foreignProperty, `ForeignProperty must be set for InnerSelectType property: ${prop.name}`);
+    // assert(obj.properties.find(p => p.name == prop.dependsOn), `Depends On Property '${prop.dependsOn}' not found!`);
 
     let val = instance ? instance[prop.dependsOn] : null;
     if (!val) return [];
-    let obj = findEntity(prop.type);
-    let result = await get({db, locale: cn.locale}, obj.name, {itemId: val});
+    let result = await get({db, locale: cn.locale}, foreignObj.name, {itemId: val});
     if (!result) return [];
+
+    let foreignProp = foreignObj.properties.find(p => p.name == prop.foreignProperty);
+    assert(foreignProp, `Foreign property '${prop.foreignProperty}' not found!`);
+
+    let foreignTitleProp = foreignProp.properties.find(p => foreignProp.titleProperty ? p.name == foreignObj.titleProperty : p.name == Constants.titlePropertyName);
+    assert(foreignTitleProp, `Foreign object needs the title property`);
 
     let items = result[prop.foreignProperty];
     assert(Array.isArray(items), `ForeignProperty must be an array InnerSelectType property: ${prop.name}`);
 
     return items.map(item => {
+        let title;
+        if (foreignTitleProp.formula)
+            title = evalExpression(item, foreignTitleProp.formula);
+        else
+            title = item[foreignTitleProp.name];
         return {
             ref: item._id,
-            title: getText(cn, item.title)
+            title: getText(cn, title)
         } as Pair;
     });
 }
@@ -1885,12 +1896,14 @@ async function getPropertyObjectReferenceValues(cn: Context, obj: mObject, prop:
         if (Array.isArray(instance)) {
             let values = [];
             for (let item of instance) {
-                values = values.concat(await getInnerPropertyReferenceValues(cn, db, prop, item));
+                values = values.concat(await getInnerPropertyReferenceValues(cn, obj, db, prop, item));
             }
             return values;
         } else
-            return await getInnerPropertyReferenceValues(cn, db, prop, instance);
-    } else if (phrase) {
+            return await getInnerPropertyReferenceValues(cn, obj, db, prop, instance);
+    } else if (phrase == "") {
+        // When call from client side on-change
+    } else if (phrase != null) {
         let titlePropName = obj.titleProperty || "title";
         let titleProp = obj.properties.find(p => p.name == titlePropName);
         if (titleProp) {
@@ -1914,8 +1927,12 @@ async function getPropertyObjectReferenceValues(cn: Context, obj: mObject, prop:
                 query = {_id: {$in: values}};
         } else if (instance) {
             let value = instance[prop.name];
-            if (value)
-                query = {_id: value};
+            if (value) {
+                if (Array.isArray(value)) // Multi value property
+                    query = {_id: {$in: value}};
+                else
+                    query = {_id: value};
+            }
         }
     }
 
