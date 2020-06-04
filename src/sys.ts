@@ -702,7 +702,7 @@ export async function putFile(drive: Drive, relativePath: string, file: Buffer) 
         case SourceType.S3:
             try {
                 let sdk = getS3DriveSdk(drive);
-                let s3 = new sdk.S3({apiVersion: Constants.amazonS3ApiVersion});
+                let s3 = new sdk.S3({apiVersion: Constants.amazonS3ApiVersion, region: drive.s3.region});
                 const config = {
                     Bucket: drive.address,
                     Key: relativePath,

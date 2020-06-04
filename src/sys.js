@@ -625,7 +625,7 @@ async function putFile(drive, relativePath, file) {
         case types_1.SourceType.S3:
             try {
                 let sdk = getS3DriveSdk(drive);
-                let s3 = new sdk.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion });
+                let s3 = new sdk.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion, region: drive.s3.region });
                 const config = {
                     Bucket: drive.address,
                     Key: relativePath,

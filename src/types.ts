@@ -311,6 +311,7 @@ export class Drive {
     address: string;
     access: Access;
     s3: {
+        region: string;
         accessKeyId: string;
         secretAccessKey: string;
         _sdk: any;
@@ -414,7 +415,7 @@ export class Elem {
     };
     text?: {
         content: string;
-        markdown: boolean;
+        markdown?: boolean;
     };
     document?: {
         value: any;
