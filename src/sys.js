@@ -215,7 +215,8 @@ exports.makeObjectReady = makeObjectReady;
 function getFileUri(cn, prop, file) {
     if (!file || !prop.file || !prop.file.drive)
         return null;
-    let uri = joinUri(prop.file.drive._.uri, file.path, file.name).replace(/\\/g, '/');
+    let drive = exports.glob.drives.find(d => d._id.equals(prop.file.drive));
+    let uri = joinUri(drive._.uri, file.path, file.name).replace(/\\/g, '/');
     return `${cn.url ? cn.url.protocol : 'http:'}//${encodeURI(uri)}`;
 }
 exports.getFileUri = getFileUri;
@@ -614,7 +615,6 @@ async function putFile(drive, relativePath, file) {
             break;
         case types_1.SourceType.Db:
             let db = await dbConnection({ db: drive._.db });
-            ;
             let bucket = new mongodb.GridFSBucket(db);
             let stream = bucket.openUploadStream(relativePath);
             await delFile(drive._.db, drive, relativePath);
@@ -623,16 +623,22 @@ async function putFile(drive, relativePath, file) {
             }).end(file);
             break;
         case types_1.SourceType.S3:
-            let sdk = getS3DriveSdk(drive);
-            let s3 = new sdk.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion });
-            const config = {
-                Bucket: drive.address,
-                Key: relativePath,
-                Body: file,
-                ACL: "public-read"
-            };
-            let result = await s3.upload(config).promise();
-            log(JSON.stringify(result));
+            try {
+                let sdk = getS3DriveSdk(drive);
+                let s3 = new sdk.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion });
+                const config = {
+                    Bucket: drive.address,
+                    Key: relativePath,
+                    Body: file,
+                    ACL: "public-read"
+                };
+                let result = await s3.upload(config).promise();
+                log(JSON.stringify(result));
+            }
+            catch (ex) {
+                error(`putFile error, drive: ${drive.name}`, ex);
+                throwError(types_1.StatusCode.ConfigurationProblem, `Could not save the file due to a problem.`);
+            }
             break;
         default:
             throw types_1.StatusCode.NotImplemented;
@@ -1190,9 +1196,11 @@ async function initializeEntities() {
 function checkFileProperty(prop, entity) {
     if (prop._.gtype == types_1.GlobalType.file) {
         if (prop.file && prop.file.drive) {
-            prop.file.drive = exports.glob.drives.find(d => d._id.equals(prop.file.drive));
-            if (!prop.file.drive)
+            let drive = exports.glob.drives.find(d => d._id.equals(prop.file.drive));
+            if (!drive)
                 error(`drive for property file '${entity._.db}.${entity.name}.${prop.name}' not found.`);
+            else
+                prop._.fileUri = drive._.uri;
         }
         else if (entity.entityType == types_1.EntityType.Object)
             error(`drive for property file '${entity._.db}.${entity.name}.${prop.name}' must be set.`);

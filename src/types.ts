@@ -112,10 +112,6 @@ export class Entity {
     access: Access;
     links: EntityLink[];
     _: IEntity;
-    // 	{
-    // 	access: { [id: string]: Access; } // = {"sys": {} as Access};
-    // 	pack: string;
-    // };
 }
 
 export class mObject extends Entity implements IProperties {
@@ -271,7 +267,7 @@ export class Property implements IProperties {
         // autoComplete: boolean;
     };
     file: {
-        drive: Drive;
+        drive: ID;
         preview: boolean;
         sizeLimit: number;
         gallery: boolean;
@@ -296,8 +292,8 @@ export class Property implements IProperties {
     _z: number;
 
     _: {
-        drive?: Drive
         gtype?: GlobalType;
+        fileUri?: string;
         isRef?: boolean;
         enum?: Enum;
         ref?: string;
