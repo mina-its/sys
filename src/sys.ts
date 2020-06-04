@@ -301,6 +301,14 @@ export async function put(cn: Context, objectName: string, data: any, options?: 
                 type: ObjectModifyType.Insert,
                 items: data
             };
+        } else if (data._id && data._new) {
+            delete data._new;
+            await collection.insertOne(data);
+            return {
+                type: ObjectModifyType.Insert,
+                item: data,
+                itemId: data._id
+            };
         } else if (data._id) {
             await collection.replaceOne({_id: data._id}, data);
             return {
@@ -329,7 +337,7 @@ export async function put(cn: Context, objectName: string, data: any, options?: 
 
         default: // Insert / Update not root item
             let command = {$addToSet: {}};
-            data._id = data._id || newID();
+            assert(data._id, `_id expected for inserting!`);
             let rootId = portions[1].itemId;
             let pth: string = await portionsToMongoPath(cn, rootId, portions, portions.length);
             command.$addToSet[pth] = data;

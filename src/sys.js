@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.throwError = exports.isID = exports.changePassword = exports.resetPassword = exports.resetOwnerPassword = exports.runFunction = exports.hashPassword = exports.comparePassword = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getPackageInfo = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.initializeRoles = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.getDriveStatus = exports.del = exports.patch = exports.extractRefPortions = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
 let index = {
     "Start                                              ": reload,
     "Load Packages package.json file                    ": loadPackagesInfo,
@@ -237,6 +238,15 @@ async function put(cn, objectName, data, options) {
                 items: data
             };
         }
+        else if (data._id && data._new) {
+            delete data._new;
+            await collection.insertOne(data);
+            return {
+                type: types_1.ObjectModifyType.Insert,
+                item: data,
+                itemId: data._id
+            };
+        }
         else if (data._id) {
             await collection.replaceOne({ _id: data._id }, data);
             return {
@@ -265,7 +275,7 @@ async function put(cn, objectName, data, options) {
             });
         default:
             let command = { $addToSet: {} };
-            data._id = data._id || newID();
+            assert(data._id, `_id expected for inserting!`);
             let rootId = portions[1].itemId;
             let pth = await portionsToMongoPath(cn, rootId, portions, portions.length);
             command.$addToSet[pth] = data;
