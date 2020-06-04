@@ -1763,6 +1763,8 @@ async function getPropertyFunctionReferenceValues(cn, func, prop, instance, phra
         }
     try {
         let items = await invoke(cn, func, args);
+        if (items == null)
+            return [];
         if (!Array.isArray(items)) {
             error('getPropertyReferenceValues: the function result must be an array of Pair.');
         }
