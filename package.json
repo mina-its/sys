@@ -1,6 +1,6 @@
 {
   "name": "mina-sys",
-  "version": "5.3.3",
+  "version": "5.3.4",
   "description": "mina sys package",
   "main": "index.d.js",
   "types": "index.d.ts",

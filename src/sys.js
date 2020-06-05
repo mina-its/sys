@@ -1508,8 +1508,6 @@ function getAllFiles(path) {
 exports.getAllFiles = getAllFiles;
 function getPackageInfo(pack) {
     let config = exports.glob.packageInfo[pack];
-    if (!config)
-        throw `config for package '${pack}' not found.`;
     config = require(getAbsolutePath('./' + pack, `package.json`));
     return config;
 }

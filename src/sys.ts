@@ -1706,8 +1706,8 @@ export function getAllFiles(path) {
 
 export function getPackageInfo(pack: string): PackageInfo {
     let config = glob.packageInfo[pack];
-    if (!config)
-        throw `config for package '${pack}' not found.`;
+    // if (!config)
+    //     throw `config for package '${pack}' not found.`;
 
     // reload package.json
     config = require(getAbsolutePath('./' + pack, `package.json`)) as PackageInfo;
