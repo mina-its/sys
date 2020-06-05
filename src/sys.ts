@@ -2098,7 +2098,7 @@ async function invokeFuncMakeArgsReady(cn: Context, func: Function, action, args
         if (val == null && prop.required)
             throwError(StatusCode.BadRequest, `parameter '${prop.name}' is mandatory!`);
 
-        if (prop._.isRef && !prop._.enum && prop.viewMode != PropertyViewMode.Hidden && isID(val)) {
+        if (prop._.isRef && !prop._.enum && prop.viewMode != PropertyViewMode.Hidden && prop.useAsObject && isID(val)) {
             let refObj = findEntity(prop.type);
             if (!refObj)
                 throwError(StatusCode.UnprocessableEntity, `referred object for property '${cn.db}.${prop.name}' not found!`);

@@ -245,6 +245,7 @@ export class Property implements IProperties {
     foreignProperty: string;
     isList: boolean;
     english: boolean;
+    useAsObject: boolean;
     links: EntityLink[];
     formula: string;
     detailsViewType: ObjectDetailsViewType;
