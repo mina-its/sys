@@ -278,7 +278,8 @@ export async function makeObjectReady(cn: Context, properties: Property[], data:
 
 export function getFileUri(cn: Context, prop: Property, file: mFile): string {
     if (!file || !prop.file || !prop.file.drive) return null;
-    let uri = joinUri(prop.file.drive._.uri, file.path, file.name).replace(/\\/g, '/');
+    let drive = glob.drives.find(d => d._id.equals(prop.file.drive));
+    let uri = joinUri(drive._.uri, file.path, file.name).replace(/\\/g, '/');
     return `${cn.url ? cn.url.protocol : 'http:'}//${encodeURI(uri)}`; // in user login context is not completed!
 }
 
@@ -300,6 +301,14 @@ export async function put(cn: Context, objectName: string, data: any, options?: 
             return {
                 type: ObjectModifyType.Insert,
                 items: data
+            };
+        } else if (data._id && data._new) {
+            delete data._new;
+            await collection.insertOne(data);
+            return {
+                type: ObjectModifyType.Insert,
+                item: data,
+                itemId: data._id
             };
         } else if (data._id) {
             await collection.replaceOne({_id: data._id}, data);
@@ -329,7 +338,7 @@ export async function put(cn: Context, objectName: string, data: any, options?: 
 
         default: // Insert / Update not root item
             let command = {$addToSet: {}};
-            data._id = data._id || newID();
+            assert(data._id, `_id expected for inserting!`);
             let rootId = portions[1].itemId;
             let pth: string = await portionsToMongoPath(cn, rootId, portions, portions.length);
             command.$addToSet[pth] = data;
@@ -681,7 +690,6 @@ export async function putFile(drive: Drive, relativePath: string, file: Buffer) 
 
         case SourceType.Db:
             let db = await dbConnection({db: drive._.db} as Context);
-            ;
             let bucket = new mongodb.GridFSBucket(db);
             let stream = bucket.openUploadStream(relativePath);
             await delFile(drive._.db, drive, relativePath);
@@ -692,16 +700,21 @@ export async function putFile(drive: Drive, relativePath: string, file: Buffer) 
             break;
 
         case SourceType.S3:
-            let sdk = getS3DriveSdk(drive);
-            let s3 = new sdk.S3({apiVersion: Constants.amazonS3ApiVersion});
-            const config = {
-                Bucket: drive.address,
-                Key: relativePath,
-                Body: file,
-                ACL: "public-read"
-            };
-            let result = await s3.upload(config).promise();
-            log(JSON.stringify(result));
+            try {
+                let sdk = getS3DriveSdk(drive);
+                let s3 = new sdk.S3({apiVersion: Constants.amazonS3ApiVersion, region: drive.s3.region});
+                const config = {
+                    Bucket: drive.address,
+                    Key: relativePath,
+                    Body: file,
+                    ACL: "public-read"
+                };
+                let result = await s3.upload(config).promise();
+                log(JSON.stringify(result));
+            } catch (ex) {
+                error(`putFile error, drive: ${drive.name}`, ex);
+                throwError(StatusCode.ConfigurationProblem, `Could not save the file due to a problem.`);
+            }
             break;
 
         default:
@@ -1349,9 +1362,11 @@ async function initializeEntities() {
 function checkFileProperty(prop: Property, entity: Entity) {
     if (prop._.gtype == GlobalType.file) {
         if (prop.file && prop.file.drive) {
-            prop.file.drive = glob.drives.find(d => d._id.equals(prop.file.drive as any));
-            if (!prop.file.drive)
+            let drive = glob.drives.find(d => d._id.equals(prop.file.drive as any));
+            if (!drive)
                 error(`drive for property file '${entity._.db}.${entity.name}.${prop.name}' not found.`);
+            else
+                prop._.fileUri = drive._.uri;
         } else if (entity.entityType == EntityType.Object)
             error(`drive for property file '${entity._.db}.${entity.name}.${prop.name}' must be set.`);
     }
@@ -1645,6 +1660,10 @@ export function getEnumItems(cn: Context, enumName: string): Pair[] {
     });
 }
 
+export function getEnum(cn: Context, enumName: string): Enum {
+    return glob.enums.find(e => e.name == enumName);
+}
+
 export function getEnumByName(thePackage: string, dependencies: string[], enumType: string): any {
     let theEnum = glob.enumTexts[thePackage + "." + enumType];
     if (!theEnum && dependencies)
@@ -1691,8 +1710,8 @@ export function getAllFiles(path) {
 
 export function getPackageInfo(pack: string): PackageInfo {
     let config = glob.packageInfo[pack];
-    if (!config)
-        throw `config for package '${pack}' not found.`;
+    // if (!config)
+    //     throw `config for package '${pack}' not found.`;
 
     // reload package.json
     config = require(getAbsolutePath('./' + pack, `package.json`)) as PackageInfo;
@@ -1969,6 +1988,8 @@ async function getPropertyFunctionReferenceValues(cn: Context, func: Function, p
 
     try {
         let items = await invoke(cn, func, args);
+        if (items == null) return [];
+
         if (!Array.isArray(items)) {
             error('getPropertyReferenceValues: the function result must be an array of Pair.');
         } else {
@@ -2081,7 +2102,7 @@ async function invokeFuncMakeArgsReady(cn: Context, func: Function, action, args
         if (val == null && prop.required)
             throwError(StatusCode.BadRequest, `parameter '${prop.name}' is mandatory!`);
 
-        if (prop._.isRef && !prop._.enum && prop.viewMode != PropertyViewMode.Hidden && isID(val)) {
+        if (prop._.isRef && !prop._.enum && prop.viewMode != PropertyViewMode.Hidden && prop.useAsObject && isID(val)) {
             let refObj = findEntity(prop.type);
             if (!refObj)
                 throwError(StatusCode.UnprocessableEntity, `referred object for property '${cn.db}.${prop.name}' not found!`);
@@ -2202,6 +2223,15 @@ export function isID(value: any): boolean {
 
 export function throwError(code: StatusCode, message?: string) {
     throw new ErrorObject(code, message);
+}
+
+export function throwContextError(cn: Context, code: StatusCode, message?: string) {
+    message = message || getErrorCodeMessage(cn, code);
+    throw new ErrorObject(code, message);
+}
+
+export function getErrorCodeMessage(cn: Context, code: StatusCode): string {
+    return `${$t(cn, "error")} (${code}): ${getEnumText(cn, "StatusCode", code)}`;
 }
 
 export function getReference(id?: string): ID {

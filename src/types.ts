@@ -112,10 +112,6 @@ export class Entity {
     access: Access;
     links: EntityLink[];
     _: IEntity;
-    // 	{
-    // 	access: { [id: string]: Access; } // = {"sys": {} as Access};
-    // 	pack: string;
-    // };
 }
 
 export class mObject extends Entity implements IProperties {
@@ -249,6 +245,7 @@ export class Property implements IProperties {
     foreignProperty: string;
     isList: boolean;
     english: boolean;
+    useAsObject: boolean;
     links: EntityLink[];
     formula: string;
     detailsViewType: ObjectDetailsViewType;
@@ -271,7 +268,7 @@ export class Property implements IProperties {
         // autoComplete: boolean;
     };
     file: {
-        drive: Drive;
+        drive: ID;
         preview: boolean;
         sizeLimit: number;
         gallery: boolean;
@@ -296,8 +293,8 @@ export class Property implements IProperties {
     _z: number;
 
     _: {
-        drive?: Drive
         gtype?: GlobalType;
+        fileUri?: string;
         isRef?: boolean;
         enum?: Enum;
         ref?: string;
@@ -315,6 +312,7 @@ export class Drive {
     address: string;
     access: Access;
     s3: {
+        region: string;
         accessKeyId: string;
         secretAccessKey: string;
         _sdk: any;
@@ -418,7 +416,7 @@ export class Elem {
     };
     text?: {
         content: string;
-        markdown: boolean;
+        markdown?: boolean;
     };
     document?: {
         value: any;
@@ -548,8 +546,8 @@ export class EnumItem {
     name: string;
     title: string | MultilangText;
     value: number;
-    comment: string | MultilangText
-    icon;
+    comment: string | MultilangText;
+    style: string;
 }
 
 export class MultilangText {
@@ -911,6 +909,12 @@ export enum ObjectReferType {
 
 export enum RedirectType {
     Permanent
+}
+
+export enum FileType {
+    Excel = 1,
+    Csv = 2,
+    Pdf = 3,
 }
 
 export enum Objects {

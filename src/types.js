@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.UserProfile = exports.SysDashboardInfo = exports.ApiDoc = exports.ApiDocEnum = exports.ApiDocSchema = exports.ApiDocBlock = exports.ApiDocOperation = exports.ApiDocParameter = exports.ReqParams = exports.FunctionDec = exports.ObjectDec = exports.EntityMeta = exports.NotificationInfo = exports.AjaxConfig = exports.Context = exports.YesNo = exports.ObjectListsViewType = exports.ObjectDetailsViewType = exports.ClientCommand = exports.DirFile = exports.DirFileType = exports.UnitTestObject = exports.WebMethod = exports.AppStateConfig = exports.WebResponse = exports.RequestMode = exports.EnvMode = exports.PropertyConditionBehavior = exports.Constants = exports.GridRowHeaderStyle = exports.PType = exports.SystemProperty = exports.SysAuditTypes = exports.Objects = exports.FileType = exports.RedirectType = exports.ObjectReferType = exports.TimeFormat = exports.RefPortionType = exports.GlobalType = exports.PropertyReferType = exports.NewItemMode = exports.ChangeFrequency = exports.FunctionMode = exports.SourceType = exports.Locale = exports.Keys = exports.PropertyEditMode = exports.PropertyViewMode = exports.AccessPermission = exports.EntityType = exports.ElemType = exports.Orientation = exports.PanelType = exports.LinkType = exports.LogType = exports.UploadedFile = exports.StatusCode = exports.GetOptions = exports.DelOptions = exports.PatchOptions = exports.PutOptions = exports.Point = exports.GeoLocation = exports.RefPortion = exports.TimeZone = exports.Text = exports.mFile = exports.PackageAddressRule = exports.PackageType = exports.PackageInfo = exports.SystemConfig = exports.AppConfig = exports.EmailAccount = exports.SmsAccount = exports.MultilangText = exports.EnumItem = exports.Enum = exports.Host = exports.SystemConfigStaticPackage = exports.App = exports.Pair = exports.MenuItem = exports.Menu = exports.AccessItem = exports.Access = exports.ChartSeries = exports.ErrorObject = exports.Elem = exports.ObjectViewType = exports.EntityLink = exports.FunctionTestSample = exports.Drive = exports.Property = exports.ObjectModifyType = exports.SendSmsParams = exports.SendEmailParams = exports.EmailTemplateConfig = exports.ObjectModifyState = exports.FormDto = exports.Form = exports.Function = exports.mObject = exports.Entity = exports.Global = exports.Country = exports.SmsProvider = exports.AuditType = exports.User = exports.Role = exports.AuditArgs = void 0;
 class AuditArgs {
 }
 exports.AuditArgs = AuditArgs;
@@ -442,6 +443,12 @@ var RedirectType;
 (function (RedirectType) {
     RedirectType[RedirectType["Permanent"] = 0] = "Permanent";
 })(RedirectType = exports.RedirectType || (exports.RedirectType = {}));
+var FileType;
+(function (FileType) {
+    FileType[FileType["Excel"] = 1] = "Excel";
+    FileType[FileType["Csv"] = 2] = "Csv";
+    FileType[FileType["Pdf"] = 3] = "Pdf";
+})(FileType = exports.FileType || (exports.FileType = {}));
 var Objects;
 (function (Objects) {
     Objects["audits"] = "audits";
