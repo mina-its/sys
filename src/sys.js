@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.changePassword = exports.resetPassword = exports.resetOwnerPassword = exports.runFunction = exports.hashPassword = exports.comparePassword = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getPackageInfo = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.initializeRoles = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.getDriveStatus = exports.del = exports.patch = exports.extractRefPortions = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
+exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.changePassword = exports.resetPassword = exports.resetOwnerPassword = exports.runFunction = exports.hashPassword = exports.comparePassword = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getPackageInfo = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.initializeRoles = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.extractRefPortions = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
 let index = {
     "Start                                              ": reload,
     "Load Packages package.json file                    ": loadPackagesInfo,
@@ -543,6 +543,10 @@ async function getDriveStatus(drive) {
     }
 }
 exports.getDriveStatus = getDriveStatus;
+function findDrive(cn, driveName) {
+    return exports.glob.drives.find(drive => drive._.db == cn.db && drive.name == driveName);
+}
+exports.findDrive = findDrive;
 function toAsync(fn) {
     return universalify_1.fromCallback(fn);
 }
@@ -606,6 +610,25 @@ async function fileExists(filePath, drive) {
     }
 }
 exports.fileExists = fileExists;
+async function putFileProperty(cn, objectName, item, propertyName, fileName, buffer) {
+    if (!buffer || !buffer.length)
+        return;
+    let obj = findObject(cn, objectName);
+    assert(obj, `putFileProperty Invalid objectName: ${objectName}`);
+    let property = obj.properties.find(p => p.name == propertyName);
+    assert(property, `putFileProperty Invalid property: '${objectName}.${propertyName}'`);
+    assert(property.file && property.file.drive, `putFileProperty Property: '${propertyName}' should have file config`);
+    let drive = exports.glob.drives.find(d => d._id.equals(property.file.drive));
+    let relativePath = joinUri(property.file.path, fileName);
+    await putFile(drive, relativePath, buffer);
+    let file = { name: fileName, size: buffer.length, path: property.file.path };
+    let patchData = {};
+    patchData[propertyName] = file;
+    await patch(cn, objectName, patchData, { filter: { _id: item._id } });
+    file._ = { uri: getFileUri(cn, property, file) };
+    item[propertyName] = file;
+}
+exports.putFileProperty = putFileProperty;
 async function putFile(drive, relativePath, file) {
     switch (drive.type) {
         case types_1.SourceType.File:
@@ -632,8 +655,7 @@ async function putFile(drive, relativePath, file) {
                     Body: file,
                     ACL: "public-read"
                 };
-                let result = await s3.upload(config).promise();
-                log(JSON.stringify(result));
+                return await s3.upload(config).promise();
             }
             catch (ex) {
                 error(`putFile error, drive: ${drive.name}`, ex);
@@ -1394,6 +1416,13 @@ async function sendEmail(cn, from, to, subject, content, params) {
         secure: account.secure,
         auth: { user: account.username, pass: account.password }
     });
+    if (params && params.attachments)
+        transporter.attachments = params.attachments.map(item => {
+            return {
+                filename: item.name,
+                path: path.dirname(item._.uri)
+            };
+        });
     if (params && params.fromName)
         from = `"${params.fromName}" <${from}>`;
     let mailOptions = { from, to, subject };
@@ -1408,6 +1437,7 @@ async function sendEmail(cn, from, to, subject, content, params) {
                 reject(err);
             }
             else {
+                log(`Sending email from '${from}' to '${to} done!`);
                 resolve(info.response);
             }
         });
@@ -1449,7 +1479,7 @@ function getEnumText(cn, enumType, value) {
         return "";
     let theEnum = getEnumByName(cn.db, cn["app"] ? cn["app"].dependencies : null, enumType);
     if (!theEnum)
-        return value;
+        return value.toString();
     let text = theEnum[value];
     return getText(cn, text);
 }
@@ -2007,6 +2037,10 @@ function getErrorCodeMessage(cn, code) {
     return `${$t(cn, "error")} (${code}): ${getEnumText(cn, "StatusCode", code)}`;
 }
 exports.getErrorCodeMessage = getErrorCodeMessage;
+function checkUserRole(cn, role) {
+    return !!cn.user.roles.find(role => role.equals(role));
+}
+exports.checkUserRole = checkUserRole;
 function getReference(id) {
     return newID(id);
 }

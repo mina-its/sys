@@ -1,3 +1,6 @@
+import {ID} from 'bson-util';
+export {ID};
+
 export interface Context {
     locale: Locale;
     user?: User;
@@ -8,10 +11,6 @@ export interface Context {
         redirect?: string;
     };
     url?: URL;
-}
-
-export interface ID {
-    equals: (another: ID) => boolean;
 }
 
 export class AuditArgs {
@@ -52,8 +51,9 @@ export class User {
     lastOffline: Date;
     time: Date;
     _: {
-        pack: string;
+        pack?: string;
         isOnline?: boolean;
+        roles?: ID[];
     }
 }
 

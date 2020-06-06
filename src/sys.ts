@@ -20,6 +20,7 @@ import marked = require('marked');
 import Jalali = require('jalali-moment');
 import sourceMapSupport = require('source-map-support');
 import ejs = require('ejs');
+import {ID} from 'bson-util';
 import AWS = require('aws-sdk');
 import rimraf = require("rimraf");
 import {promises as fsAsync} from "fs";
@@ -50,7 +51,6 @@ import {
     Global,
     GlobalType,
     Host,
-    ID,
     Locale,
     LogType,
     Menu,
@@ -611,6 +611,10 @@ export async function getDriveStatus(drive: Drive) {
     }
 }
 
+export function findDrive(cn: Context, driveName: string): Drive {
+    return glob.drives.find(drive => drive._.db == cn.db && drive.name == driveName);
+}
+
 export function toAsync(fn) {
     return fromCallback(fn);
 }
@@ -680,6 +684,33 @@ export async function fileExists(filePath: string, drive?: Drive): Promise<boole
     }
 }
 
+export async function putFileProperty(cn: Context, objectName: string, item: any, propertyName: string, fileName: string, buffer: Buffer) {
+    if (!buffer || !buffer.length) return;
+
+    let obj = findObject(cn, objectName);
+    assert(obj, `putFileProperty Invalid objectName: ${objectName}`);
+
+    // Find Property
+    let property = obj.properties.find(p => p.name == propertyName);
+    assert(property, `putFileProperty Invalid property: '${objectName}.${propertyName}'`);
+    assert(property.file && property.file.drive, `putFileProperty Property: '${propertyName}' should have file config`);
+
+    // Find Drive And Put File
+    let drive = glob.drives.find(d => d._id.equals(property.file.drive));
+    let relativePath = joinUri(property.file.path, fileName);
+    await putFile(drive, relativePath, buffer);
+
+    // Update Property File Value
+    let file = {name: fileName, size: buffer.length, path: property.file.path} as mFile;
+    let patchData = {};
+    patchData[propertyName] = file;
+    await patch(cn, objectName, patchData, {filter: {_id: item._id}});
+
+    // Update Original Item
+    file._ = {uri: getFileUri(cn, property, file)};
+    item[propertyName] = file;
+}
+
 export async function putFile(drive: Drive, relativePath: string, file: Buffer) {
     switch (drive.type) {
         case SourceType.File:
@@ -709,8 +740,7 @@ export async function putFile(drive: Drive, relativePath: string, file: Buffer) 
                     Body: file,
                     ACL: "public-read"
                 };
-                let result = await s3.upload(config).promise();
-                log(JSON.stringify(result));
+                return await s3.upload(config).promise();
             } catch (ex) {
                 error(`putFile error, drive: ${drive.name}`, ex);
                 throwError(StatusCode.ConfigurationProblem, `Could not save the file due to a problem.`);
@@ -1584,6 +1614,14 @@ export async function sendEmail(cn: Context, from: string, to: string, subject: 
         auth: {user: account.username, pass: account.password}
     });
 
+    if (params && params.attachments)
+        transporter.attachments = params.attachments.map(item => {
+            return {
+                filename: item.name,
+                path: path.dirname(item._.uri)
+            };
+        });
+
     if (params && params.fromName)
         from = `"${params.fromName}" <${from}>`;
 
@@ -1599,6 +1637,7 @@ export async function sendEmail(cn: Context, from: string, to: string, subject: 
                 error(`Sending email from '${from}' to '${to} failed`);
                 reject(err);
             } else {
+                log(`Sending email from '${from}' to '${to} done!`);
                 resolve(info.response);
             }
         });
@@ -1640,13 +1679,13 @@ export async function sendSms(cn: Context, provider, from: string, to: string, t
     });
 }
 
-export function getEnumText(cn: Context, enumType: string, value: number) {
+export function getEnumText(cn: Context, enumType: string, value: number): string {
     if (value == null)
         return "";
 
     let theEnum = getEnumByName(cn.db, cn["app"] ? cn["app"].dependencies : null, enumType);
     if (!theEnum)
-        return value;
+        return value.toString();
 
     let text = theEnum[value];
     return getText(cn, text);
@@ -2232,6 +2271,10 @@ export function throwContextError(cn: Context, code: StatusCode, message?: strin
 
 export function getErrorCodeMessage(cn: Context, code: StatusCode): string {
     return `${$t(cn, "error")} (${code}): ${getEnumText(cn, "StatusCode", code)}`;
+}
+
+export function checkUserRole(cn: Context, role: ID): boolean {
+    return !!cn.user.roles.find(role => role.equals(role));
 }
 
 export function getReference(id?: string): ID {
