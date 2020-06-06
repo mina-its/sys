@@ -546,8 +546,8 @@ export class EnumItem {
     name: string;
     title: string | MultilangText;
     value: number;
-    comment: string | MultilangText
-    icon;
+    comment: string | MultilangText;
+    style: string;
 }
 
 export class MultilangText {
@@ -909,6 +909,12 @@ export enum ObjectReferType {
 
 export enum RedirectType {
     Permanent
+}
+
+export enum FileType {
+    Excel = 1,
+    Csv = 2,
+    Pdf = 3,
 }
 
 export enum Objects {

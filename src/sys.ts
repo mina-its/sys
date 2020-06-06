@@ -1660,6 +1660,10 @@ export function getEnumItems(cn: Context, enumName: string): Pair[] {
     });
 }
 
+export function getEnum(cn: Context, enumName: string): Enum {
+    return glob.enums.find(e => e.name == enumName);
+}
+
 export function getEnumByName(thePackage: string, dependencies: string[], enumType: string): any {
     let theEnum = glob.enumTexts[thePackage + "." + enumType];
     if (!theEnum && dependencies)
@@ -2219,6 +2223,15 @@ export function isID(value: any): boolean {
 
 export function throwError(code: StatusCode, message?: string) {
     throw new ErrorObject(code, message);
+}
+
+export function throwContextError(cn: Context, code: StatusCode, message?: string) {
+    message = message || getErrorCodeMessage(cn, code);
+    throw new ErrorObject(code, message);
+}
+
+export function getErrorCodeMessage(cn: Context, code: StatusCode): string {
+    return `${$t(cn, "error")} (${code}): ${getEnumText(cn, "StatusCode", code)}`;
 }
 
 export function getReference(id?: string): ID {
