@@ -20,9 +20,9 @@ import marked = require('marked');
 import Jalali = require('jalali-moment');
 import sourceMapSupport = require('source-map-support');
 import ejs = require('ejs');
-import {ID} from 'bson-util';
 import AWS = require('aws-sdk');
 import rimraf = require("rimraf");
+import {ID} from 'bson-util';
 import {promises as fsAsync} from "fs";
 import {MongoClient, ObjectId} from 'mongodb';
 import maxmind, {CountryResponse} from 'maxmind';
@@ -240,6 +240,16 @@ export async function get(cn: Context, objectName: string, options?: GetOptions)
 
     await makeObjectReady(cn, obj.properties, result, options);
     return result;
+}
+
+export async function max(cn: Context, objectName: string, property: string) {
+    let collection = await getCollection(cn, objectName);
+    let sort = {};
+    sort[property] = -1;
+
+    let maxDoc = await collection.find().sort(sort).limit(1).toArray();
+    if (!maxDoc || maxDoc.length == 0) return null;
+    return maxDoc[0][property];
 }
 
 export async function makeObjectReady(cn: Context, properties: Property[], data: any, options: GetOptions = null) {
@@ -2274,6 +2284,7 @@ export function getErrorCodeMessage(cn: Context, code: StatusCode): string {
 }
 
 export function checkUserRole(cn: Context, role: ID): boolean {
+    if (!cn.user) return false;
     return !!cn.user.roles.find(role => role.equals(role));
 }
 
