@@ -1,4 +1,5 @@
 import {ID} from 'bson-util';
+
 export {ID};
 
 export interface Context {
@@ -258,6 +259,7 @@ export class Property implements IProperties {
     text: {
         markdown: boolean;
         multiLine: boolean;
+        htmlEditor: boolean;
         multiLanguage: boolean;
         password: boolean;
         isPhone: boolean;
