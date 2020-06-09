@@ -207,6 +207,7 @@ export function run(cn, func: string, ...args) {
 }
 
 export async function getByID(cn: Context, objectName: string, id: ID) {
+    if (!id) return null;
     return get(cn, objectName, {itemId: id});
 }
 

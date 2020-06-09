@@ -147,6 +147,8 @@ function run(cn, func, ...args) {
 }
 exports.run = run;
 async function getByID(cn, objectName, id) {
+    if (!id)
+        return null;
     return get(cn, objectName, { itemId: id });
 }
 exports.getByID = getByID;
