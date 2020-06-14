@@ -46,7 +46,9 @@ export class User {
     country: ID;
     lastName: string;
     passwordExpireTime: Date;
+    passwordResetLinkExpire?: Date;
     image: mFile;
+    birthDate: Date;
     mobile: string;
     lastOnline: Date;
     lastOffline: Date;

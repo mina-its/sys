@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.changePassword = exports.resetPassword = exports.resetOwnerPassword = exports.runFunction = exports.hashPassword = exports.comparePassword = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getPackageInfo = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.initializeRoles = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.extractRefPortions = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
+exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getPackageInfo = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.initializeRoles = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.extractRefPortions = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
 let index = {
     "Start                                              ": reload,
     "Load Packages package.json file                    ": loadPackagesInfo,
@@ -28,7 +28,6 @@ const maxmind_1 = require("maxmind");
 const universalify_1 = require("universalify");
 const types_1 = require("./types");
 const nodemailer = require('nodemailer');
-const bcrypt = require('bcrypt');
 const assert = require('assert').strict;
 const { exec } = require("child_process");
 exports.glob = new types_1.Global();
@@ -847,7 +846,7 @@ async function loadPackagesInfo() {
             exports.glob.packageInfo[pack] = require(getAbsolutePath('./' + pack, `package.json`));
         }
         catch (ex) {
-            error(`Loading package.json for package '${pack}' failed!`, ex);
+            error(`Loading package.json for package '${pack}' failed: ${ex.message}`);
             exports.glob.systemConfig.packages.find(p => p.name == pack).enabled = false;
         }
     }
@@ -1968,29 +1967,6 @@ async function getUploadedFiles(cn, readBuffer) {
     return files;
 }
 exports.getUploadedFiles = getUploadedFiles;
-async function comparePassword(password, hash) {
-    return new Promise((resolve, reject) => {
-        bcrypt.compare(password, hash, function (err, result) {
-            if (err)
-                reject(err);
-            else
-                resolve(result);
-        });
-    });
-}
-exports.comparePassword = comparePassword;
-async function hashPassword(password) {
-    return new Promise((resolve, reject) => {
-        const saltRounds = 10;
-        bcrypt.hash(password, saltRounds, function (err, hash) {
-            if (err)
-                reject(err);
-            else
-                resolve(hash);
-        });
-    });
-}
-exports.hashPassword = hashPassword;
 async function runFunction(cn, functionId, input) {
     let func = findEntity(functionId);
     if (!func)
@@ -2004,32 +1980,6 @@ async function runFunction(cn, functionId, input) {
     return invoke(cn, func, args);
 }
 exports.runFunction = runFunction;
-async function resetOwnerPassword(cn, newPassword, confirm) {
-    if (!cn.user)
-        throw types_1.StatusCode.Unauthorized;
-    if (newPassword != confirm)
-        throwError(types_1.StatusCode.BadRequest, "Password confirm error!");
-    let hash = await hashPassword(newPassword);
-    let date = new Date();
-    date.setDate(date.getDate() + types_1.Constants.PASSWORD_EXPIRE_AGE);
-    await patch(cn, types_1.Objects.users, { _id: cn.user._id, password: hash, passwordExpireTime: date });
-}
-exports.resetOwnerPassword = resetOwnerPassword;
-async function resetPassword(cn, email, newPassword, confirm) {
-    if (newPassword != confirm)
-        throwError(types_1.StatusCode.BadRequest, "Password confirm error!");
-    let hash = await hashPassword(newPassword);
-    let date = new Date();
-    date.setDate(date.getDate() + types_1.Constants.PASSWORD_EXPIRE_AGE);
-    let result = await patch(cn, types_1.Objects.users, { password: hash, passwordExpireTime: date }, { filter: { email } });
-}
-exports.resetPassword = resetPassword;
-async function changePassword(cn, oldPassword, newPassword, confirm) {
-    if (!await comparePassword(oldPassword, cn.user.password))
-        throwError(types_1.StatusCode.BadRequest, "Invalid old password!");
-    await resetOwnerPassword(cn, newPassword, confirm);
-}
-exports.changePassword = changePassword;
 function isID(value) {
     if (!value)
         return false;
