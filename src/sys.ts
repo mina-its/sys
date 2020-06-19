@@ -83,7 +83,6 @@ import {
 } from './types';
 
 const nodemailer = require('nodemailer');
-const bcrypt = require('bcrypt');
 const assert = require('assert').strict;
 const {exec} = require("child_process");
 export let glob = new Global();
@@ -974,7 +973,7 @@ async function loadPackagesInfo() {
             // if (glob.packages[pack.name] == null)
             //     error(`Error loading package ${pack.name}!`);
         } catch (ex) {
-            error(`Loading package.json for package '${pack}' failed!`, ex);
+            error(`Loading package.json for package '${pack}' failed: ${ex.message}`);
             glob.systemConfig.packages.find(p => p.name == pack).enabled = false;
         }
     }
@@ -2211,25 +2210,6 @@ export async function getUploadedFiles(cn: Context, readBuffer: boolean): Promis
     return files;
 }
 
-export async function comparePassword(password: string, hash: string): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-        bcrypt.compare(password, hash, function (err, result) {
-            if (err) reject(err);
-            else resolve(result);
-        });
-    });
-}
-
-export async function hashPassword(password: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const saltRounds = 10;
-        bcrypt.hash(password, saltRounds, function (err, hash) {
-            if (err) reject(err);
-            else resolve(hash);
-        });
-    });
-}
-
 export async function runFunction(cn: Context, functionId: ID, input: any) {
     let func = findEntity(functionId) as Function;
     if (!func) throw StatusCode.NotFound;
@@ -2242,28 +2222,6 @@ export async function runFunction(cn: Context, functionId: ID, input: any) {
         }
 
     return invoke(cn, func, args);
-}
-
-export async function resetOwnerPassword(cn: Context, newPassword: string, confirm: string) {
-    if (!cn.user) throw StatusCode.Unauthorized;
-    if (newPassword != confirm) throwError(StatusCode.BadRequest, "Password confirm error!");
-    let hash = await hashPassword(newPassword);
-    let date = new Date();
-    date.setDate(date.getDate() + Constants.PASSWORD_EXPIRE_AGE);
-    await patch(cn, Objects.users, {_id: cn.user._id, password: hash, passwordExpireTime: date} as User);
-}
-
-export async function resetPassword(cn: Context, email: string, newPassword: string, confirm: string) {
-    if (newPassword != confirm) throwError(StatusCode.BadRequest, "Password confirm error!");
-    let hash = await hashPassword(newPassword);
-    let date = new Date();
-    date.setDate(date.getDate() + Constants.PASSWORD_EXPIRE_AGE);
-    let result = await patch(cn, Objects.users, {password: hash, passwordExpireTime: date} as User, {filter: {email}});
-}
-
-export async function changePassword(cn: Context, oldPassword: string, newPassword: string, confirm: string) {
-    if (!await comparePassword(oldPassword, cn.user.password)) throwError(StatusCode.BadRequest, "Invalid old password!");
-    await resetOwnerPassword(cn, newPassword, confirm);
 }
 
 export function isID(value: any): boolean {
