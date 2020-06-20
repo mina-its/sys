@@ -1834,7 +1834,7 @@ async function getPropertyFunctionReferenceValues(cn, func, prop, instance, phra
     }
     catch (ex) {
         error(`getPropertyReferenceValues: the function '${func.name}' invoke failed: ${ex.message}`);
-        throw ex;
+        return [];
     }
 }
 async function getPropertyReferenceValues(cn, prop, instance, phrase, query) {

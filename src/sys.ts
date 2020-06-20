@@ -2055,7 +2055,7 @@ async function getPropertyFunctionReferenceValues(cn: Context, func: Function, p
         return items;
     } catch (ex) {
         error(`getPropertyReferenceValues: the function '${func.name}' invoke failed: ${ex.message}`);
-        throw ex;
+        return [];
     }
 }
 
