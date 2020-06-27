@@ -924,6 +924,7 @@ export enum FileType {
 export enum Objects {
     audits = "audits",
     users = "users",
+    tasks = "tasks",
     dictionary = "dictionary",
     countries = "countries",
     objects = "objects",
@@ -1247,4 +1248,8 @@ export class SysDashboardInfo {
 
 export class UserProfile {
     email: string;
+}
+
+export class Task {
+    title: string;
 }
