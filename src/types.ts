@@ -1113,6 +1113,7 @@ export enum ObjectDetailsViewType {
     Simple = 3,
     Wizard = 4,
     Tree = 5,
+    Compress = 6,
 }
 
 export enum ObjectListsViewType {
@@ -1275,10 +1276,18 @@ export class Task {
     dueDates: Date[];
     milestone: ID;
     author: ID;
+    archive: boolean;
+    assignees: ID[];
+    favorite: boolean;
     status: TaskStatus;
+    priority: TaskPriority;
     parent: ID;
+    children: ID[];
     category: ID;
     project: ID;
+    _: {
+        style?: string;
+    }
 }
 
 export class Project {
@@ -1300,23 +1309,38 @@ export enum TaskConcern {
     DueDate = 3,
     Assignee = 4,
     Priority = 5,
+    Project = 6,
     Category = 8,
     MileStone = 9,
+}
+
+export enum TaskInboxGroup {
+    Brainstorm = 1,
+    Todo = 2,
+    Doing = 3,
+    Urgent = 4,
+    Overdue = 5,
+    Favorite = 6,
 }
 
 export class TaskManagerProfile {
     _id: ID;
     title: string;
     currentProfile: boolean;
-    concern: TaskConcern;
+    concern: TaskConcern = TaskConcern.Start;
+    coloring: TaskConcern = null;
+    calendarOffset: number = 0;
+    currentUser: ID;
     users: { title: string, _id: ID }[];
     projects: Project[];
     filter: {
-        statuses: number[];
-        priorities: number[];
-        assignees: ID[];
-        projects: ID[];
-        milestones: ID[];
-        categories: string[];
+        statuses?: number[];
+        priorities?: number[];
+        assignees?: ID[];
+        projects?: ID[];
+        milestones?: ID[];
+        categories?: string[];
+    } = {
+        statuses: null
     }
 }
