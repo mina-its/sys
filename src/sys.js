@@ -1064,6 +1064,8 @@ function checkPropertyGtype(prop, entity, parentProperty = null) {
             return;
         case types_1.PType.text:
             prop._.gtype = types_1.GlobalType.string;
+            if (prop.properties)
+                delete prop.properties;
             return;
         case types_1.PType.number:
             prop._.gtype = types_1.GlobalType.number;

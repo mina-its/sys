@@ -1221,6 +1221,7 @@ function checkPropertyGtype(prop: Property, entity: Entity, parentProperty: Prop
 
         case PType.text:
             prop._.gtype = GlobalType.string;
+            if (prop.properties) delete prop.properties; // If switch from sub items to multiple list, DetailsView needs to know it has no child
             return;
 
         case PType.number:
