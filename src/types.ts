@@ -924,6 +924,9 @@ export enum FileType {
 export enum Objects {
     audits = "audits",
     users = "users",
+    projects = "projects",
+    taskManagerProfiles = "taskManagerProfiles",
+    tasks = "tasks",
     dictionary = "dictionary",
     countries = "countries",
     objects = "objects",
@@ -1110,6 +1113,7 @@ export enum ObjectDetailsViewType {
     Simple = 3,
     Wizard = 4,
     Tree = 5,
+    Compress = 6,
 }
 
 export enum ObjectListsViewType {
@@ -1247,4 +1251,96 @@ export class SysDashboardInfo {
 
 export class UserProfile {
     email: string;
+}
+
+export enum TaskStatus {
+    Todo = 1,
+    Doing = 2,
+    Done = 3,
+    OnHold = 4,
+    Verify = 5,
+}
+
+export enum TaskPriority {
+    Urgent = 1,
+    High = 2,
+    Normal = 3,
+    Low = 4,
+}
+
+export class Task {
+    _id: ID;
+    title: string;
+    comment: string;
+    createDate: Date;
+    dueDates: Date[];
+    milestone: ID;
+    author: ID;
+    archive: boolean;
+    assignees: ID[];
+    favorite: boolean;
+    status: TaskStatus;
+    priority: TaskPriority;
+    parent: ID;
+    children: ID[];
+    category: ID;
+    project: ID;
+    _: {
+        style?: string;
+    }
+}
+
+export class Project {
+    _id: ID;
+    title: string;
+    comment?: string;
+    createDate?: Date;
+    team?: {
+        user: ID,
+        editAccess: boolean;
+    }[];
+    categories: string[];
+    milestones: { _id: ID, title: string, dueDate: Date }[];
+}
+
+export enum TaskConcern {
+    Start = 1,
+    Status = 2,
+    DueDate = 3,
+    Assignee = 4,
+    Priority = 5,
+    Project = 6,
+    Category = 8,
+    MileStone = 9,
+}
+
+export enum TaskInboxGroup {
+    Brainstorm = 1,
+    Todo = 2,
+    Doing = 3,
+    Urgent = 4,
+    Overdue = 5,
+    Favorite = 6,
+}
+
+export class TaskManagerProfile {
+    _id: ID;
+    title: string;
+    currentProfile: boolean;
+    concern: TaskConcern = TaskConcern.Start;
+    coloring: TaskConcern = null;
+    calendarOffset: number = 0;
+    currentUser: ID;
+    users: { title: string, _id: ID }[];
+    projects: Project[];
+    filter: {
+        statuses?: number[];
+        priorities?: number[];
+        assignees?: ID[];
+        projects?: ID[];
+        milestones?: ID[];
+        categories?: string[];
+    } = {
+        statuses: null
+    }
 }

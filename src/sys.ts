@@ -87,6 +87,7 @@ const assert = require('assert').strict;
 const {exec} = require("child_process");
 export let glob = new Global();
 const fsPromises = fs.promises;
+const bcrypt = require('bcrypt');
 
 async function initHosts() {
     for (const host of glob.hosts) {
@@ -2348,4 +2349,14 @@ export async function countryLookup(ip: string): Promise<string> {
         return null;
     }
     return result.country.iso_code; // inferred type maxmind.CityResponse
+}
+
+export async function hashPassword(password: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const saltRounds = 10;
+        bcrypt.hash(password, saltRounds, function (err, hash) {
+            if (err) reject(err);
+            else resolve(hash);
+        });
+    });
 }

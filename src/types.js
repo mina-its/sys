@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UserProfile = exports.SysDashboardInfo = exports.ApiDoc = exports.ApiDocEnum = exports.ApiDocSchema = exports.ApiDocBlock = exports.ApiDocOperation = exports.ApiDocParameter = exports.ReqParams = exports.FunctionDec = exports.ObjectDec = exports.EntityMeta = exports.NotificationInfo = exports.AjaxConfig = exports.Context = exports.YesNo = exports.ObjectListsViewType = exports.ObjectDetailsViewType = exports.ClientCommand = exports.DirFile = exports.DirFileType = exports.UnitTestObject = exports.WebMethod = exports.AppStateConfig = exports.WebResponse = exports.RequestMode = exports.EnvMode = exports.PropertyConditionBehavior = exports.Constants = exports.GridRowHeaderStyle = exports.PType = exports.SystemProperty = exports.SysAuditTypes = exports.Objects = exports.FileType = exports.RedirectType = exports.ObjectReferType = exports.TimeFormat = exports.RefPortionType = exports.GlobalType = exports.PropertyReferType = exports.NewItemMode = exports.ChangeFrequency = exports.FunctionMode = exports.SourceType = exports.Locale = exports.Keys = exports.PropertyEditMode = exports.PropertyViewMode = exports.AccessPermission = exports.EntityType = exports.ElemType = exports.Orientation = exports.PanelType = exports.LinkType = exports.LogType = exports.UploadedFile = exports.StatusCode = exports.GetOptions = exports.DelOptions = exports.PatchOptions = exports.PutOptions = exports.Point = exports.GeoLocation = exports.RefPortion = exports.TimeZone = exports.Text = exports.mFile = exports.PackageAddressRule = exports.PackageType = exports.PackageInfo = exports.SystemConfig = exports.AppConfig = exports.EmailAccount = exports.SmsAccount = exports.MultilangText = exports.EnumItem = exports.Enum = exports.Host = exports.SystemConfigStaticPackage = exports.App = exports.Pair = exports.MenuItem = exports.Menu = exports.AccessItem = exports.Access = exports.ChartSeries = exports.ErrorObject = exports.Elem = exports.ObjectViewType = exports.EntityLink = exports.FunctionTestSample = exports.Drive = exports.Property = exports.ObjectModifyType = exports.SendSmsParams = exports.SendEmailParams = exports.EmailTemplateConfig = exports.ObjectModifyState = exports.FormDto = exports.Form = exports.Function = exports.mObject = exports.Entity = exports.Global = exports.Country = exports.SmsProvider = exports.AuditType = exports.User = exports.Role = exports.AuditArgs = exports.ID = void 0;
+exports.TaskManagerProfile = exports.TaskInboxGroup = exports.TaskConcern = exports.Project = exports.Task = exports.TaskPriority = exports.TaskStatus = exports.UserProfile = exports.SysDashboardInfo = exports.ApiDoc = exports.ApiDocEnum = exports.ApiDocSchema = exports.ApiDocBlock = exports.ApiDocOperation = exports.ApiDocParameter = exports.ReqParams = exports.FunctionDec = exports.ObjectDec = exports.EntityMeta = exports.NotificationInfo = exports.AjaxConfig = exports.Context = exports.YesNo = exports.ObjectListsViewType = exports.ObjectDetailsViewType = exports.ClientCommand = exports.DirFile = exports.DirFileType = exports.UnitTestObject = exports.WebMethod = exports.AppStateConfig = exports.WebResponse = exports.RequestMode = exports.EnvMode = exports.PropertyConditionBehavior = exports.Constants = exports.GridRowHeaderStyle = exports.PType = exports.SystemProperty = exports.SysAuditTypes = exports.Objects = exports.FileType = exports.RedirectType = exports.ObjectReferType = exports.TimeFormat = exports.RefPortionType = exports.GlobalType = exports.PropertyReferType = exports.NewItemMode = exports.ChangeFrequency = exports.FunctionMode = exports.SourceType = exports.Locale = exports.Keys = exports.PropertyEditMode = exports.PropertyViewMode = exports.AccessPermission = exports.EntityType = exports.ElemType = exports.Orientation = exports.PanelType = exports.LinkType = exports.LogType = exports.UploadedFile = exports.StatusCode = exports.GetOptions = exports.DelOptions = exports.PatchOptions = exports.PutOptions = exports.Point = exports.GeoLocation = exports.RefPortion = exports.TimeZone = exports.Text = exports.mFile = exports.PackageAddressRule = exports.PackageType = exports.PackageInfo = exports.SystemConfig = exports.AppConfig = exports.EmailAccount = exports.SmsAccount = exports.MultilangText = exports.EnumItem = exports.Enum = exports.Host = exports.SystemConfigStaticPackage = exports.App = exports.Pair = exports.MenuItem = exports.Menu = exports.AccessItem = exports.Access = exports.ChartSeries = exports.ErrorObject = exports.Elem = exports.ObjectViewType = exports.EntityLink = exports.FunctionTestSample = exports.Drive = exports.Property = exports.ObjectModifyType = exports.SendSmsParams = exports.SendEmailParams = exports.EmailTemplateConfig = exports.ObjectModifyState = exports.FormDto = exports.Form = exports.Function = exports.mObject = exports.Entity = exports.Global = exports.Country = exports.SmsProvider = exports.AuditType = exports.User = exports.Role = exports.AuditArgs = exports.ID = void 0;
 const bson_util_1 = require("bson-util");
 Object.defineProperty(exports, "ID", { enumerable: true, get: function () { return bson_util_1.ID; } });
 class AuditArgs {
@@ -456,6 +456,9 @@ var Objects;
 (function (Objects) {
     Objects["audits"] = "audits";
     Objects["users"] = "users";
+    Objects["projects"] = "projects";
+    Objects["taskManagerProfiles"] = "taskManagerProfiles";
+    Objects["tasks"] = "tasks";
     Objects["dictionary"] = "dictionary";
     Objects["countries"] = "countries";
     Objects["objects"] = "objects";
@@ -600,6 +603,7 @@ var ObjectDetailsViewType;
     ObjectDetailsViewType[ObjectDetailsViewType["Simple"] = 3] = "Simple";
     ObjectDetailsViewType[ObjectDetailsViewType["Wizard"] = 4] = "Wizard";
     ObjectDetailsViewType[ObjectDetailsViewType["Tree"] = 5] = "Tree";
+    ObjectDetailsViewType[ObjectDetailsViewType["Compress"] = 6] = "Compress";
 })(ObjectDetailsViewType = exports.ObjectDetailsViewType || (exports.ObjectDetailsViewType = {}));
 var ObjectListsViewType;
 (function (ObjectListsViewType) {
@@ -673,4 +677,56 @@ exports.SysDashboardInfo = SysDashboardInfo;
 class UserProfile {
 }
 exports.UserProfile = UserProfile;
+var TaskStatus;
+(function (TaskStatus) {
+    TaskStatus[TaskStatus["Todo"] = 1] = "Todo";
+    TaskStatus[TaskStatus["Doing"] = 2] = "Doing";
+    TaskStatus[TaskStatus["Done"] = 3] = "Done";
+    TaskStatus[TaskStatus["OnHold"] = 4] = "OnHold";
+    TaskStatus[TaskStatus["Verify"] = 5] = "Verify";
+})(TaskStatus = exports.TaskStatus || (exports.TaskStatus = {}));
+var TaskPriority;
+(function (TaskPriority) {
+    TaskPriority[TaskPriority["Urgent"] = 1] = "Urgent";
+    TaskPriority[TaskPriority["High"] = 2] = "High";
+    TaskPriority[TaskPriority["Normal"] = 3] = "Normal";
+    TaskPriority[TaskPriority["Low"] = 4] = "Low";
+})(TaskPriority = exports.TaskPriority || (exports.TaskPriority = {}));
+class Task {
+}
+exports.Task = Task;
+class Project {
+}
+exports.Project = Project;
+var TaskConcern;
+(function (TaskConcern) {
+    TaskConcern[TaskConcern["Start"] = 1] = "Start";
+    TaskConcern[TaskConcern["Status"] = 2] = "Status";
+    TaskConcern[TaskConcern["DueDate"] = 3] = "DueDate";
+    TaskConcern[TaskConcern["Assignee"] = 4] = "Assignee";
+    TaskConcern[TaskConcern["Priority"] = 5] = "Priority";
+    TaskConcern[TaskConcern["Project"] = 6] = "Project";
+    TaskConcern[TaskConcern["Category"] = 8] = "Category";
+    TaskConcern[TaskConcern["MileStone"] = 9] = "MileStone";
+})(TaskConcern = exports.TaskConcern || (exports.TaskConcern = {}));
+var TaskInboxGroup;
+(function (TaskInboxGroup) {
+    TaskInboxGroup[TaskInboxGroup["Brainstorm"] = 1] = "Brainstorm";
+    TaskInboxGroup[TaskInboxGroup["Todo"] = 2] = "Todo";
+    TaskInboxGroup[TaskInboxGroup["Doing"] = 3] = "Doing";
+    TaskInboxGroup[TaskInboxGroup["Urgent"] = 4] = "Urgent";
+    TaskInboxGroup[TaskInboxGroup["Overdue"] = 5] = "Overdue";
+    TaskInboxGroup[TaskInboxGroup["Favorite"] = 6] = "Favorite";
+})(TaskInboxGroup = exports.TaskInboxGroup || (exports.TaskInboxGroup = {}));
+class TaskManagerProfile {
+    constructor() {
+        this.concern = TaskConcern.Start;
+        this.coloring = null;
+        this.calendarOffset = 0;
+        this.filter = {
+            statuses: null
+        };
+    }
+}
+exports.TaskManagerProfile = TaskManagerProfile;
 //# sourceMappingURL=types.js.map
