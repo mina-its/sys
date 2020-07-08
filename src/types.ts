@@ -1139,7 +1139,6 @@ export class AjaxConfig {
 
 export class NotificationInfo {
     message: string;
-    details?: string;
     type: LogType;
 }
 
@@ -1273,7 +1272,10 @@ export class Task {
     title: string;
     comment: string;
     createDate: Date;
-    dueDates: Date[];
+    dueDates: {
+        from: Date;
+        to: Date;
+    }[];
     milestone: ID;
     author: ID;
     archive: boolean;
@@ -1281,12 +1283,20 @@ export class Task {
     favorite: boolean;
     status: TaskStatus;
     priority: TaskPriority;
+    updates: {
+        time: Date;
+        author: ID;
+        comment: string;
+        attachments: mFile[];
+    }[];
     parent: ID;
-    children: ID[];
-    category: ID;
+    categories: string[];
     project: ID;
     _: {
         style?: string;
+        children?: ID[];
+        expand?: boolean;
+        multiPlace?: boolean;
     }
 }
 
