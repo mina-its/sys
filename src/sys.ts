@@ -3,6 +3,8 @@ let index = {
     "Load Packages package.json file                    ": loadPackagesInfo,
 
     "Initialize Entities                                ": initializeEntities,
+    "   Initialize Object                               ": initObject,
+    "       Initialize Properties                       ": initProperties,
 };
 
 
@@ -62,6 +64,7 @@ import {
     PackageInfo,
     Pair,
     Property,
+    PropertyEditMode,
     PropertyReferType,
     PropertyViewMode,
     PType,
@@ -79,7 +82,6 @@ import {
     SystemProperty,
     Text,
     UploadedFile,
-    User,
 } from './types';
 
 const nodemailer = require('nodemailer');
@@ -1372,7 +1374,7 @@ async function initializeEntities() {
     }
 
     for (const obj of allObjs) {
-        initObject(obj);
+        await initObject(obj);
     }
 
     for (const db of enabledDbs()) {
@@ -1388,7 +1390,7 @@ async function initializeEntities() {
             func._.access[func._.db] = func.access;
             func.pack = func.pack || glob.appConfig[func._.db].defaultPack;
             assert(func.pack, `Function needs unknown pack, or default pack in PackageConfig needed!`);
-            initProperties(func.properties, func, func.title, null);
+            await initProperties(func.properties, func, func.title, null);
         } catch (ex) {
             error("Init functions, Module: " + func._.db + ", Action: " + func.name, ex);
         }
@@ -1425,16 +1427,12 @@ function checkForSystemProperty(prop: Property) {
 export function initProperties(properties: Property[], entity: Entity, parentTitle: any, parentProperty: Property) {
     if (!properties) return;
     for (const prop of properties) {
-        // if (prop._.inited)
-        //     return;
-        // else
-        //     obj._.inited = true;
-
         prop._ = {};
         checkForSystemProperty(prop);
         prop.group = prop.group || parentTitle;
         checkPropertyGtype(prop, entity, parentProperty);
         checkFileProperty(prop, entity);
+        if (prop.number && prop.number.autoIncrement) prop.editMode = PropertyEditMode.Readonly;
 
         if (prop.referType == PropertyReferType.outbound) {
             assert(prop.type, `Property ${prop.name} is outbound, but the type has not been specified for it.`);
@@ -1520,7 +1518,9 @@ function compareParentProperties(properties: Property[], parentProperties: Prope
         return;
 
     let parentNames = parentProperties.map(p => p.name);
-    properties.filter(p => parentNames.indexOf(p.name) == -1).forEach(newProperty => checkPropertyReference(newProperty, entity));
+    for (let newProperty of properties.filter(p => parentNames.indexOf(p.name) == -1)) {
+        checkPropertyReference(newProperty, entity);
+    }
 
     for (const parentProperty of parentProperties) {
         let property: Property = properties.find(p => p.name === parentProperty.name);

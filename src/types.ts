@@ -287,6 +287,8 @@ export class Property implements IProperties {
         // longInteger: boolean;
         float: boolean;
         digitGrouping: boolean;
+        autoIncrement: boolean;
+        seed: number;
     };
     reference: {
         // goToReferenceOption: boolean;
@@ -305,6 +307,7 @@ export class Property implements IProperties {
         items?: Pair[];
         parentPropertiesCompared?: boolean;
         sorted?: boolean;
+        sequence?: number;
     };
 }
 
@@ -1267,31 +1270,41 @@ export enum TaskPriority {
     Low = 4,
 }
 
+export enum TaskLogType {
+    Edit = 1,
+}
+
 export class Task {
     _id: ID;
+    no: number;
     title: string;
-    comment: string;
-    createDate: Date;
     dueDates: {
         from: Date;
         to: Date;
     }[];
-    milestone: ID;
-    author: ID;
-    archive: boolean;
+    description: string;
     assignees: ID[];
-    favorite: boolean;
+    project: ID;
+    milestone: ID;
+    time: Date;
     status: TaskStatus;
+    parent: ID;
     priority: TaskPriority;
-    updates: {
+    favorite: boolean;
+    categories: string[];
+    archive: boolean;
+    comments: {
         time: Date;
-        author: ID;
-        comment: string;
+        user: ID;
+        content: string;
         attachments: mFile[];
     }[];
-    parent: ID;
-    categories: string[];
-    project: ID;
+    logs: {
+        time: Date;
+        user: ID;
+        type: TaskLogType;
+    }[];
+    owner: ID;
     _: {
         style?: string;
         children?: ID[];
