@@ -1727,7 +1727,12 @@ async function getInnerPropertyReferenceValues(cn, foreignObj, db, prop, instanc
     let foreignTitleProp = foreignProp.properties.find(p => foreignProp.titleProperty ? p.name == foreignObj.titleProperty : p.name == types_1.Constants.titlePropertyName);
     assert(foreignTitleProp, `Foreign object needs the title property`);
     let items = result[prop.foreignProperty];
-    assert(Array.isArray(items), `ForeignProperty must be an array InnerSelectType property: ${prop.name}`);
+    if (!items)
+        return [];
+    if (!Array.isArray(items)) {
+        error(`ForeignProperty must be an array InnerSelectType property: ${prop.name}`);
+        return [];
+    }
     return items.map(item => {
         let title;
         if (foreignTitleProp.formula)

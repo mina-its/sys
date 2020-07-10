@@ -1274,14 +1274,29 @@ export enum TaskLogType {
     Edit = 1,
 }
 
+export enum TaskReminder {
+    m0 = 1,
+    m5 = 2,
+    m15 = 3,
+    h1 = 4,
+    h2 = 5,
+    d0 = 6,
+    d1 = 7,
+    d2 = 8,
+}
+
+export class TaskDueDate {
+    _id: ID;
+    time: Date;
+    setTime?: boolean;
+    reminder?: TaskReminder;
+}
+
 export class Task {
     _id: ID;
     no: number;
     title: string;
-    dueDates: {
-        from: Date;
-        to: Date;
-    }[];
+    dueDates: TaskDueDate[];
     description: string;
     assignees: ID[];
     project: ID;
@@ -1305,11 +1320,13 @@ export class Task {
         type: TaskLogType;
     }[];
     owner: ID;
+    _z: number;
     _: {
         style?: string;
         children?: ID[];
         expand?: boolean;
         multiPlace?: boolean;
+        dirty?: boolean;
     }
 }
 
@@ -1323,7 +1340,12 @@ export class Project {
         editAccess: boolean;
     }[];
     categories: string[];
-    milestones: { _id: ID, title: string, dueDate: Date }[];
+    milestones: {
+        _id: ID,
+        title: string,
+        dueDate: Date,
+        objectives: string;
+    }[];
 }
 
 export enum TaskConcern {
