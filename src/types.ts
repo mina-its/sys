@@ -187,6 +187,7 @@ export class ObjectModifyState {
     type: ObjectModifyType;
     itemId?: ID;
     item?: any;
+    items?: any;
 }
 
 export class EmailTemplateConfig {
@@ -928,7 +929,7 @@ export enum Objects {
     audits = "audits",
     users = "users",
     projects = "projects",
-    taskManagerProfiles = "taskManagerProfiles",
+    userCustomizations = "userCustomizations",
     tasks = "tasks",
     dictionary = "dictionary",
     countries = "countries",
@@ -1368,16 +1369,21 @@ export enum TaskInboxGroup {
     Favorite = 6,
 }
 
-export class TaskManagerProfile {
+export class UserCustomization {
+    _id: ID;
+    user: ID;
+    time: Date;
+    projectViews: ProjectView[];
+}
+
+export class ProjectView {
     _id: ID;
     title: string;
-    currentProfile: boolean;
     concern: TaskConcern = TaskConcern.Start;
+    project: ID = null;
+    primary: boolean;
     coloring: TaskConcern = null;
     calendarOffset: number = 0;
-    currentUser: ID;
-    users: { title: string, _id: ID }[];
-    projects: Project[];
     filter: {
         statuses?: number[];
         priorities?: number[];
@@ -1388,4 +1394,13 @@ export class TaskManagerProfile {
     } = {
         statuses: null
     }
+}
+
+export class GetTaskDto {
+    tasks: Task[];
+    views: ProjectView[];
+    tasksDec: ObjectDec;
+    projects: Project[];
+    users: Pair[];
+    currentUser: ID;
 }

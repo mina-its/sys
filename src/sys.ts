@@ -5,6 +5,10 @@ let index = {
     "Initialize Entities                                ": initializeEntities,
     "   Initialize Object                               ": initObject,
     "       Initialize Properties                       ": initProperties,
+
+    "get                                                ": get,
+    "patch                                              ": patch,
+    "put                                                ": put,
 };
 
 
@@ -82,6 +86,7 @@ import {
     SystemProperty,
     Text,
     UploadedFile,
+    UserCustomization,
 } from './types';
 
 const nodemailer = require('nodemailer');
@@ -305,7 +310,7 @@ async function getCollection(cn: Context, objectName: string) {
     return db.collection(objectName);
 }
 
-export async function put(cn: Context, objectName: string, data: any, options?: PutOptions) {
+export async function put(cn: Context, objectName: string, data: any, options?: PutOptions): Promise<ObjectModifyState> {
     let collection = await getCollection(cn, objectName);
     data = data || {};
     if (!options || !options.portions || options.portions.length == 1) {
@@ -2365,4 +2370,34 @@ export async function hashPassword(password: string): Promise<string> {
             else resolve(hash);
         });
     });
+}
+
+export async function getUserCustomization(cn: Context): Promise<UserCustomization> {
+    let customize: UserCustomization = await get(cn, Objects.userCustomizations, {query: {user: cn.user._id}, count: 1});
+    if (!customize) {
+        customize = {user: cn.user._id, time: new Date()} as UserCustomization;
+        let result = await put(cn, Objects.userCustomizations, customize);
+        customize._id = result.itemId;
+    }
+    return customize;
+}
+
+export async function saveUserCustomization(cn: Context, property: string, item: any) {
+    let collection = await getCollection(cn, Objects.userCustomizations);
+    let command = {} as any;
+    let filter = {user: cn.user._id} as any;
+
+    if (item._new) {
+        delete item._new;
+        command.$addToSet = {};
+        command.$addToSet[property] = item;
+    } else {
+        command.$set = {};
+        command.$set[property + ".$"] = item;
+        filter[property + "._id"] = item._id;
+        // options = {arrayFilters: [{item: item._id}]} as any;
+    }
+
+    let result = await collection.updateOne(filter, command);
+    return result.modifiedCount == 1;
 }

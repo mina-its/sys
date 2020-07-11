@@ -1,12 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getPackageInfo = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.initializeRoles = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.extractRefPortions = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
+exports.saveUserCustomization = exports.getUserCustomization = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getPackageInfo = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.initializeRoles = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.extractRefPortions = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
 let index = {
     "Start                                              ": reload,
     "Load Packages package.json file                    ": loadPackagesInfo,
     "Initialize Entities                                ": initializeEntities,
     "   Initialize Object                               ": initObject,
     "       Initialize Properties                       ": initProperties,
+    "get                                                ": get,
+    "patch                                              ": patch,
+    "put                                                ": put,
 };
 const logger = require("winston");
 const https = require("https");
@@ -2134,4 +2137,32 @@ async function hashPassword(password) {
     });
 }
 exports.hashPassword = hashPassword;
+async function getUserCustomization(cn) {
+    let customize = await get(cn, types_1.Objects.userCustomizations, { query: { user: cn.user._id }, count: 1 });
+    if (!customize) {
+        customize = { user: cn.user._id, time: new Date() };
+        let result = await put(cn, types_1.Objects.userCustomizations, customize);
+        customize._id = result.itemId;
+    }
+    return customize;
+}
+exports.getUserCustomization = getUserCustomization;
+async function saveUserCustomization(cn, property, item) {
+    let collection = await getCollection(cn, types_1.Objects.userCustomizations);
+    let command = {};
+    let filter = { user: cn.user._id };
+    if (item._new) {
+        delete item._new;
+        command.$addToSet = {};
+        command.$addToSet[property] = item;
+    }
+    else {
+        command.$set = {};
+        command.$set[property + ".$"] = item;
+        filter[property + "._id"] = item._id;
+    }
+    let result = await collection.updateOne(filter, command);
+    return result.modifiedCount == 1;
+}
+exports.saveUserCustomization = saveUserCustomization;
 //# sourceMappingURL=sys.js.map
