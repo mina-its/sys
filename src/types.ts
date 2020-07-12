@@ -1117,7 +1117,6 @@ export enum ObjectDetailsViewType {
     Simple = 3,
     Wizard = 4,
     Tree = 5,
-    Compress = 6,
 }
 
 export enum ObjectListsViewType {
@@ -1313,7 +1312,7 @@ export class Task {
         time: Date;
         user: ID;
         content: string;
-        attachments: mFile[];
+        attachments?: mFile[];
     }[];
     logs: {
         time: Date;
@@ -1400,6 +1399,7 @@ export class GetTaskDto {
     tasks: Task[];
     views: ProjectView[];
     tasksDec: ObjectDec;
+    dueDatesDec: ObjectDec;
     projects: Project[];
     users: Pair[];
     currentUser: ID;
