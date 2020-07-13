@@ -1322,11 +1322,13 @@ export class Task {
     owner: ID;
     _z: number;
     _: {
-        style?: string;
         children?: ID[];
         expand?: boolean;
         multiPlace?: boolean;
         dirty?: boolean;
+        dragging?: boolean;
+        color?: string;
+        bgColor?: string;
     }
 }
 
