@@ -2382,6 +2382,15 @@ export async function getUserCustomization(cn: Context): Promise<UserCustomizati
     return customize;
 }
 
+export async function deleteUserCustomization(cn: Context, property: string, itemID: ID) {
+    let collection = await getCollection(cn, Objects.userCustomizations);
+    let filter = {user: cn.user._id} as any;
+    let command = {$pull: {}} as any;
+    command.$pull[property] = {_id: itemID};
+    let result = await collection.updateOne(filter, command);
+    return result.modifiedCount == 1;
+}
+
 export async function saveUserCustomization(cn: Context, property: string, item: any) {
     let collection = await getCollection(cn, Objects.userCustomizations);
     let command = {} as any;

@@ -1309,6 +1309,7 @@ export class Task {
     categories: string[];
     archive: boolean;
     comments: {
+        _id: ID;
         time: Date;
         user: ID;
         content: string;
@@ -1322,13 +1323,13 @@ export class Task {
     owner: ID;
     _z: number;
     _: {
-        children?: ID[];
         expand?: boolean;
         multiPlace?: boolean;
         dirty?: boolean;
         dragging?: boolean;
         color?: string;
         bgColor?: string;
+        parent?: Task;
     }
 }
 
