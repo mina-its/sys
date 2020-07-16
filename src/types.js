@@ -28,7 +28,7 @@ class Country {
 exports.Country = Country;
 class Global {
     constructor() {
-        this.dbs = {};
+        this.dbs = {}; // any not mongodb.Db because of client side reference
         this.countries = {};
         this.packageInfo = {};
         this.appConfig = {};
@@ -254,6 +254,7 @@ var PanelType;
 (function (PanelType) {
     PanelType[PanelType["Stack"] = 1] = "Stack";
     PanelType[PanelType["Dock"] = 2] = "Dock";
+    // Grid = 3,
     PanelType[PanelType["Wrap"] = 4] = "Wrap";
     PanelType[PanelType["Flex"] = 5] = "Flex";
     PanelType[PanelType["Modal"] = 6] = "Modal";
@@ -433,6 +434,8 @@ var TimeFormat;
     TimeFormat[TimeFormat["HourMinute"] = 2] = "HourMinute";
     TimeFormat[TimeFormat["DateWithDayOfWeek"] = 3] = "DateWithDayOfWeek";
     TimeFormat[TimeFormat["FriendlyDate"] = 4] = "FriendlyDate";
+    TimeFormat[TimeFormat["YearMonthDay"] = 5] = "YearMonthDay";
+    TimeFormat[TimeFormat["DayMonthNameYear"] = 6] = "DayMonthNameYear";
 })(TimeFormat = exports.TimeFormat || (exports.TimeFormat = {}));
 var ObjectReferType;
 (function (ObjectReferType) {

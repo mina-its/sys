@@ -906,6 +906,8 @@ export enum TimeFormat {
     HourMinute = 2,
     DateWithDayOfWeek = 3,
     FriendlyDate = 4,
+    YearMonthDay = 5,
+    DayMonthNameYear = 6,
 }
 
 export enum ObjectReferType {
