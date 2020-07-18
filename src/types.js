@@ -28,7 +28,7 @@ class Country {
 exports.Country = Country;
 class Global {
     constructor() {
-        this.dbs = {}; // any not mongodb.Db because of client side reference
+        this.dbs = {};
         this.countries = {};
         this.packageInfo = {};
         this.appConfig = {};
@@ -249,12 +249,12 @@ var LinkType;
 (function (LinkType) {
     LinkType[LinkType["Auto"] = 0] = "Auto";
     LinkType[LinkType["Help"] = 1] = "Help";
+    LinkType[LinkType["PropertyGroupLink"] = 2] = "PropertyGroupLink";
 })(LinkType = exports.LinkType || (exports.LinkType = {}));
 var PanelType;
 (function (PanelType) {
     PanelType[PanelType["Stack"] = 1] = "Stack";
     PanelType[PanelType["Dock"] = 2] = "Dock";
-    // Grid = 3,
     PanelType[PanelType["Wrap"] = 4] = "Wrap";
     PanelType[PanelType["Flex"] = 5] = "Flex";
     PanelType[PanelType["Modal"] = 6] = "Modal";
@@ -405,7 +405,6 @@ var NewItemMode;
 var PropertyReferType;
 (function (PropertyReferType) {
     PropertyReferType[PropertyReferType["inlineData"] = 9] = "inlineData";
-    PropertyReferType[PropertyReferType["outbound"] = 5] = "outbound";
     PropertyReferType[PropertyReferType["select"] = 10] = "select";
     PropertyReferType[PropertyReferType["InnerSelectType"] = 4] = "InnerSelectType";
 })(PropertyReferType = exports.PropertyReferType || (exports.PropertyReferType = {}));

@@ -1215,7 +1215,7 @@ function checkPropertyGtype(prop: Property, entity: Entity, parentProperty: Prop
             prop._.gtype = GlobalType.object;
             return;
         } else {
-            if (!parentProperty || (parentProperty.referType != PropertyReferType.inlineData && parentProperty.referType != PropertyReferType.outbound))
+            if (!parentProperty || (parentProperty.referType != PropertyReferType.inlineData))
                 warn(`property '${entity._.db}.${entity.name}.${prop.name}' type is empty!`);
             return;
         }
@@ -1286,11 +1286,6 @@ function checkPropertyGtype(prop: Property, entity: Entity, parentProperty: Prop
         switch (refType) {
             case PropertyReferType.select:
                 prop._.gtype = GlobalType.id;
-                break;
-
-            case PropertyReferType.outbound:
-                prop._.isRef = false;
-                prop._.gtype = GlobalType.object;
                 break;
 
             case PropertyReferType.inlineData:
@@ -1438,13 +1433,6 @@ export function initProperties(properties: Property[], entity: Entity, parentTit
         checkPropertyGtype(prop, entity, parentProperty);
         checkFileProperty(prop, entity);
         if (prop.number && prop.number.autoIncrement) prop.editMode = PropertyEditMode.Readonly;
-
-        if (prop.referType == PropertyReferType.outbound) {
-            assert(prop.type, `Property ${prop.name} is outbound, but the type has not been specified for it.`);
-            let type = findEntity(prop.type) as mObject;
-            initObject(type);
-            compareParentProperties(prop.properties, _.cloneDeep(type.properties), type);
-        }
 
         initProperties(prop.properties, entity, prop.title, prop);
     }

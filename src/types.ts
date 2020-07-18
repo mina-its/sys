@@ -752,7 +752,8 @@ export enum LogType {
 
 export enum LinkType {
     Auto = 0,
-    Help = 1
+    Help = 1,
+    PropertyGroupLink = 2,
 }
 
 export enum PanelType {
@@ -877,7 +878,6 @@ export enum NewItemMode {
 
 export enum PropertyReferType {
     inlineData = 9,
-    outbound = 5,
     select = 10,
     InnerSelectType = 4,
 }
@@ -1158,6 +1158,7 @@ export class ObjectDec {
     title: string;
     ref: string;
     newItemMode: NewItemMode;
+    newItemDefaults: any;
     rowHeaderStyle: GridRowHeaderStyle;
     reorderable: boolean;
     detailsViewType: ObjectDetailsViewType;
@@ -1403,6 +1404,7 @@ export class ProjectView {
 export class GetTaskDto {
     tasks: Task[];
     views: ProjectView[];
+    favorites: ID[];
     tasksDec: ObjectDec;
     dueDatesDec: ObjectDec;
     projects: Project[];
