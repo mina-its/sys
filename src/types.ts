@@ -488,6 +488,13 @@ export class Pair {
     _cs?: string;
 }
 
+export class TreePair {
+    ref: any;
+    title: string;
+    items?: TreePair[];
+    _cs?: string;
+}
+
 export class App {
     _id: ID;
     home: string;
@@ -934,7 +941,10 @@ export enum Objects {
     userCustomizations = "userCustomizations",
     tasks = "tasks",
     dictionary = "dictionary",
+    auditTypes = "auditTypes",
     countries = "countries",
+    documents = "documents",
+    documentDirectories = "documentDirectories",
     objects = "objects",
     functions = "functions",
     roles = "roles",
@@ -944,8 +954,39 @@ export enum Objects {
     menus = "menus",
     drives = "drives",
     forms = "forms",
-    auditTypes = "auditTypes",
     enums = "enums",
+}
+
+export enum DocStatus {
+    Ready = 1,
+    Draft = 2,
+    UnderReview = 3,
+    NeedsRevision = 4,
+}
+
+export class DocumentDirectoryItem {
+    doc: Document;
+    children: DocumentDirectoryItem [];
+}
+
+export class DocumentDirectory {
+    _id: ID;
+    title: string | MultilangText;
+    comment: string | MultilangText;
+    docs: DocumentDirectoryItem [];
+}
+
+export class Document {
+    _id: ID;
+    title: string | MultilangText;
+    name: string;
+    content: string | MultilangText;
+    directory: ID;
+    author: ID;
+    time: Date;
+    status: DocStatus;
+    keywords: string[];
+    publish: boolean;
 }
 
 export enum SysAuditTypes {
@@ -1301,7 +1342,7 @@ export class Task {
     title: string;
     dueDates: TaskDueDate[];
     description: string;
-    assignees: ID[];
+    assignee: ID;
     project: ID;
     milestone: ID;
     time: Date;
@@ -1354,7 +1395,7 @@ export class Project {
     }[];
 }
 
-export enum TaskConcern {
+export enum TaskView {
     Start = 1,
     Status = 2,
     DueDate = 3,
@@ -1363,6 +1404,7 @@ export enum TaskConcern {
     Project = 6,
     Category = 8,
     MileStone = 9,
+    Grid = 10,
 }
 
 export enum TaskInboxGroup {
@@ -1384,10 +1426,10 @@ export class UserCustomization {
 export class ProjectView {
     _id: ID;
     title: string;
-    concern: TaskConcern = TaskConcern.Start;
+    concern: TaskView = TaskView.Start;
     project: ID = null;
     primary: boolean;
-    coloring: TaskConcern = null;
+    coloring: TaskView = null;
     calendarOffset: number = 0;
     filter: {
         statuses?: number[];

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GetTaskDto = exports.ProjectView = exports.UserCustomization = exports.TaskInboxGroup = exports.TaskConcern = exports.Project = exports.Task = exports.TaskDueDate = exports.TaskReminder = exports.TaskLogType = exports.TaskPriority = exports.TaskStatus = exports.UserProfile = exports.SysDashboardInfo = exports.ApiDoc = exports.ApiDocEnum = exports.ApiDocSchema = exports.ApiDocBlock = exports.ApiDocOperation = exports.ApiDocParameter = exports.ReqParams = exports.FunctionDec = exports.ObjectDec = exports.EntityMeta = exports.NotificationInfo = exports.AjaxConfig = exports.Context = exports.YesNo = exports.ObjectListsViewType = exports.ObjectDetailsViewType = exports.ClientCommand = exports.DirFile = exports.DirFileType = exports.UnitTestObject = exports.WebMethod = exports.AppStateConfig = exports.WebResponse = exports.RequestMode = exports.EnvMode = exports.PropertyConditionBehavior = exports.Constants = exports.GridRowHeaderStyle = exports.PType = exports.SystemProperty = exports.SysAuditTypes = exports.Objects = exports.FileType = exports.RedirectType = exports.ObjectReferType = exports.TimeFormat = exports.RefPortionType = exports.GlobalType = exports.PropertyReferType = exports.NewItemMode = exports.ChangeFrequency = exports.FunctionMode = exports.SourceType = exports.Locale = exports.Keys = exports.PropertyEditMode = exports.PropertyViewMode = exports.AccessPermission = exports.EntityType = exports.ElemType = exports.Orientation = exports.PanelType = exports.LinkType = exports.LogType = exports.UploadedFile = exports.StatusCode = exports.GetOptions = exports.DelOptions = exports.PatchOptions = exports.PutOptions = exports.Point = exports.GeoLocation = exports.RefPortion = exports.TimeZone = exports.Text = exports.mFile = exports.PackageAddressRule = exports.PackageType = exports.PackageInfo = exports.SystemConfig = exports.AppConfig = exports.EmailAccount = exports.SmsAccount = exports.MultilangText = exports.EnumItem = exports.Enum = exports.Host = exports.SystemConfigStaticPackage = exports.App = exports.Pair = exports.MenuItem = exports.Menu = exports.AccessItem = exports.Access = exports.ChartSeries = exports.ErrorObject = exports.Elem = exports.ObjectViewType = exports.EntityLink = exports.FunctionTestSample = exports.Drive = exports.Property = exports.ObjectModifyType = exports.SendSmsParams = exports.SendEmailParams = exports.EmailTemplateConfig = exports.ObjectModifyState = exports.FormDto = exports.Form = exports.Function = exports.mObject = exports.Entity = exports.Global = exports.Country = exports.SmsProvider = exports.AuditType = exports.User = exports.Role = exports.AuditArgs = exports.ID = void 0;
+exports.GetTaskDto = exports.ProjectView = exports.UserCustomization = exports.TaskInboxGroup = exports.TaskView = exports.Project = exports.Task = exports.TaskDueDate = exports.TaskReminder = exports.TaskLogType = exports.TaskPriority = exports.TaskStatus = exports.UserProfile = exports.SysDashboardInfo = exports.ApiDoc = exports.ApiDocEnum = exports.ApiDocSchema = exports.ApiDocBlock = exports.ApiDocOperation = exports.ApiDocParameter = exports.ReqParams = exports.FunctionDec = exports.ObjectDec = exports.EntityMeta = exports.NotificationInfo = exports.AjaxConfig = exports.Context = exports.YesNo = exports.ObjectListsViewType = exports.ObjectDetailsViewType = exports.ClientCommand = exports.DirFile = exports.DirFileType = exports.UnitTestObject = exports.WebMethod = exports.AppStateConfig = exports.WebResponse = exports.RequestMode = exports.EnvMode = exports.PropertyConditionBehavior = exports.Constants = exports.GridRowHeaderStyle = exports.PType = exports.SystemProperty = exports.SysAuditTypes = exports.Document = exports.DocumentDirectory = exports.DocumentDirectoryItem = exports.DocStatus = exports.Objects = exports.FileType = exports.RedirectType = exports.ObjectReferType = exports.TimeFormat = exports.RefPortionType = exports.GlobalType = exports.PropertyReferType = exports.NewItemMode = exports.ChangeFrequency = exports.FunctionMode = exports.SourceType = exports.Locale = exports.Keys = exports.PropertyEditMode = exports.PropertyViewMode = exports.AccessPermission = exports.EntityType = exports.ElemType = exports.Orientation = exports.PanelType = exports.LinkType = exports.LogType = exports.UploadedFile = exports.StatusCode = exports.GetOptions = exports.DelOptions = exports.PatchOptions = exports.PutOptions = exports.Point = exports.GeoLocation = exports.RefPortion = exports.TimeZone = exports.Text = exports.mFile = exports.PackageAddressRule = exports.PackageType = exports.PackageInfo = exports.SystemConfig = exports.AppConfig = exports.EmailAccount = exports.SmsAccount = exports.MultilangText = exports.EnumItem = exports.Enum = exports.Host = exports.SystemConfigStaticPackage = exports.App = exports.TreePair = exports.Pair = exports.MenuItem = exports.Menu = exports.AccessItem = exports.Access = exports.ChartSeries = exports.ErrorObject = exports.Elem = exports.ObjectViewType = exports.EntityLink = exports.FunctionTestSample = exports.Drive = exports.Property = exports.ObjectModifyType = exports.SendSmsParams = exports.SendEmailParams = exports.EmailTemplateConfig = exports.ObjectModifyState = exports.FormDto = exports.Form = exports.Function = exports.mObject = exports.Entity = exports.Global = exports.Country = exports.SmsProvider = exports.AuditType = exports.User = exports.Role = exports.AuditArgs = exports.ID = void 0;
 const bson_util_1 = require("bson-util");
 Object.defineProperty(exports, "ID", { enumerable: true, get: function () { return bson_util_1.ID; } });
 class AuditArgs {
@@ -28,7 +28,7 @@ class Country {
 exports.Country = Country;
 class Global {
     constructor() {
-        this.dbs = {}; // any not mongodb.Db because of client side reference
+        this.dbs = {};
         this.countries = {};
         this.packageInfo = {};
         this.appConfig = {};
@@ -131,6 +131,9 @@ exports.MenuItem = MenuItem;
 class Pair {
 }
 exports.Pair = Pair;
+class TreePair {
+}
+exports.TreePair = TreePair;
 class App {
 }
 exports.App = App;
@@ -255,7 +258,6 @@ var PanelType;
 (function (PanelType) {
     PanelType[PanelType["Stack"] = 1] = "Stack";
     PanelType[PanelType["Dock"] = 2] = "Dock";
-    // Grid = 3,
     PanelType[PanelType["Wrap"] = 4] = "Wrap";
     PanelType[PanelType["Flex"] = 5] = "Flex";
     PanelType[PanelType["Modal"] = 6] = "Modal";
@@ -462,7 +464,10 @@ var Objects;
     Objects["userCustomizations"] = "userCustomizations";
     Objects["tasks"] = "tasks";
     Objects["dictionary"] = "dictionary";
+    Objects["auditTypes"] = "auditTypes";
     Objects["countries"] = "countries";
+    Objects["documents"] = "documents";
+    Objects["documentDirectories"] = "documentDirectories";
     Objects["objects"] = "objects";
     Objects["functions"] = "functions";
     Objects["roles"] = "roles";
@@ -472,9 +477,24 @@ var Objects;
     Objects["menus"] = "menus";
     Objects["drives"] = "drives";
     Objects["forms"] = "forms";
-    Objects["auditTypes"] = "auditTypes";
     Objects["enums"] = "enums";
 })(Objects = exports.Objects || (exports.Objects = {}));
+var DocStatus;
+(function (DocStatus) {
+    DocStatus[DocStatus["Ready"] = 1] = "Ready";
+    DocStatus[DocStatus["Draft"] = 2] = "Draft";
+    DocStatus[DocStatus["UnderReview"] = 3] = "UnderReview";
+    DocStatus[DocStatus["NeedsRevision"] = 4] = "NeedsRevision";
+})(DocStatus = exports.DocStatus || (exports.DocStatus = {}));
+class DocumentDirectoryItem {
+}
+exports.DocumentDirectoryItem = DocumentDirectoryItem;
+class DocumentDirectory {
+}
+exports.DocumentDirectory = DocumentDirectory;
+class Document {
+}
+exports.Document = Document;
 var SysAuditTypes;
 (function (SysAuditTypes) {
     SysAuditTypes["addItem"] = "5d7b8fbd10f5321b74a1b83b";
@@ -717,17 +737,18 @@ exports.Task = Task;
 class Project {
 }
 exports.Project = Project;
-var TaskConcern;
-(function (TaskConcern) {
-    TaskConcern[TaskConcern["Start"] = 1] = "Start";
-    TaskConcern[TaskConcern["Status"] = 2] = "Status";
-    TaskConcern[TaskConcern["DueDate"] = 3] = "DueDate";
-    TaskConcern[TaskConcern["Assignee"] = 4] = "Assignee";
-    TaskConcern[TaskConcern["Priority"] = 5] = "Priority";
-    TaskConcern[TaskConcern["Project"] = 6] = "Project";
-    TaskConcern[TaskConcern["Category"] = 8] = "Category";
-    TaskConcern[TaskConcern["MileStone"] = 9] = "MileStone";
-})(TaskConcern = exports.TaskConcern || (exports.TaskConcern = {}));
+var TaskView;
+(function (TaskView) {
+    TaskView[TaskView["Start"] = 1] = "Start";
+    TaskView[TaskView["Status"] = 2] = "Status";
+    TaskView[TaskView["DueDate"] = 3] = "DueDate";
+    TaskView[TaskView["Assignee"] = 4] = "Assignee";
+    TaskView[TaskView["Priority"] = 5] = "Priority";
+    TaskView[TaskView["Project"] = 6] = "Project";
+    TaskView[TaskView["Category"] = 8] = "Category";
+    TaskView[TaskView["MileStone"] = 9] = "MileStone";
+    TaskView[TaskView["Grid"] = 10] = "Grid";
+})(TaskView = exports.TaskView || (exports.TaskView = {}));
 var TaskInboxGroup;
 (function (TaskInboxGroup) {
     TaskInboxGroup[TaskInboxGroup["Brainstorm"] = 1] = "Brainstorm";
@@ -742,7 +763,7 @@ class UserCustomization {
 exports.UserCustomization = UserCustomization;
 class ProjectView {
     constructor() {
-        this.concern = TaskConcern.Start;
+        this.concern = TaskView.Start;
         this.project = null;
         this.coloring = null;
         this.calendarOffset = 0;
