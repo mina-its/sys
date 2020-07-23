@@ -940,6 +940,7 @@ export enum Objects {
     projects = "projects",
     userCustomizations = "userCustomizations",
     tasks = "tasks",
+    devConfig = "devConfig",
     dictionary = "dictionary",
     auditTypes = "auditTypes",
     countries = "countries",

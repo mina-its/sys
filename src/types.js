@@ -463,6 +463,7 @@ var Objects;
     Objects["projects"] = "projects";
     Objects["userCustomizations"] = "userCustomizations";
     Objects["tasks"] = "tasks";
+    Objects["devConfig"] = "devConfig";
     Objects["dictionary"] = "dictionary";
     Objects["auditTypes"] = "auditTypes";
     Objects["countries"] = "countries";
