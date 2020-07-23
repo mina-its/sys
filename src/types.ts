@@ -1135,9 +1135,11 @@ export class UnitTestObject {
 export enum DirFileType {
     File = 1,
     Folder = 2,
+    Drive = 3,
 }
 
 export class DirFile {
+    _id: ID;
     name: string;
     size?: number;
     lastModified?: number;

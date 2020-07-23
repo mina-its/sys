@@ -604,6 +604,7 @@ var DirFileType;
 (function (DirFileType) {
     DirFileType[DirFileType["File"] = 1] = "File";
     DirFileType[DirFileType["Folder"] = 2] = "Folder";
+    DirFileType[DirFileType["Drive"] = 3] = "Drive";
 })(DirFileType = exports.DirFileType || (exports.DirFileType = {}));
 class DirFile {
 }
