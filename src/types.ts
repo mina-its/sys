@@ -944,6 +944,7 @@ export enum Objects {
     auditTypes = "auditTypes",
     countries = "countries",
     documents = "documents",
+    feedbacks = "feedbacks",
     documentDirectories = "documentDirectories",
     objects = "objects",
     functions = "functions",
@@ -1197,6 +1198,7 @@ export class EntityMeta {
 
 export class ObjectDec {
     title: string;
+    comment: string;
     ref: string;
     newItemMode: NewItemMode;
     newItemDefaults: any;
@@ -1452,4 +1454,19 @@ export class GetTaskDto {
     projects: Project[];
     users: Pair[];
     currentUser: ID;
+}
+
+export class Feedback {
+    _id: ID;
+    clientIp: string;
+    agent: string;
+    locale: Locale;
+    country: string;
+    url: string;
+    time: Date;
+    tag: string;
+    path: string;
+    comment: string;
+    value: string;
+    user: ID;
 }
