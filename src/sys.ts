@@ -1189,6 +1189,12 @@ function initializePackages() {
 
     for (const db of enabledDbs()) {
         let config = glob.appConfig[db];
+        if (!config) {
+            error(`appConfig for db '${db}' is empty!`);
+            glob.systemConfig.dbs.find(d => d.name == db).enabled = false;
+            continue;
+        }
+
         for (const app of (config.apps || [])) {
             app._ = {db};
             app.dependencies = app.dependencies || [];

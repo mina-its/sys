@@ -1033,6 +1033,11 @@ function initializePackages() {
     let sysTemplateRender = templateRender(types_1.Constants.sysDb, sysTemplate);
     for (const db of enabledDbs()) {
         let config = exports.glob.appConfig[db];
+        if (!config) {
+            error(`appConfig for db '${db}' is empty!`);
+            exports.glob.systemConfig.dbs.find(d => d.name == db).enabled = false;
+            continue;
+        }
         for (const app of (config.apps || [])) {
             app._ = { db };
             app.dependencies = app.dependencies || [];
