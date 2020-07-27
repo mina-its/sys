@@ -294,6 +294,7 @@ async function put(cn, objectName, data, options) {
         default:
             let command = { $addToSet: {} };
             assert(data._id, `_id expected for inserting!`);
+            delete data._new;
             let rootId = portions[1].itemId;
             let pth = await portionsToMongoPath(cn, rootId, portions, portions.length);
             command.$addToSet[pth] = data;
@@ -806,6 +807,7 @@ function error(message, err) {
 exports.error = error;
 function fatal(message) {
     logger.log('fatal', message);
+    process.exit();
 }
 exports.fatal = fatal;
 function getFullname(pack, name) {
@@ -858,8 +860,20 @@ async function loadPackagesInfo() {
     }
 }
 async function loadSystemConfig() {
-    let collection = await getCollection({ db: types_1.Constants.sysDb }, types_1.Objects.systemConfig);
-    exports.glob.systemConfig = await collection.findOne({});
+    if (!process.env.DB_ADDRESS)
+        fatal("Environment variable 'DB_ADDRESS' is needed.");
+    try {
+        let dbc = await mongodb_1.MongoClient.connect(process.env.DB_ADDRESS, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            poolSize: types_1.Constants.mongodbPoolSize
+        });
+        let collection = dbc.db(types_1.Constants.sysDb).collection(types_1.Objects.systemConfig);
+        exports.glob.systemConfig = await collection.findOne({});
+    }
+    catch (ex) {
+        fatal("Error connecting to the database: " + ex.message);
+    }
 }
 function applyAmazonConfig() {
     AWS.config.accessKeyId = process.env.AWS_ACCESS_KEY_ID;

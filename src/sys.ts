@@ -357,6 +357,7 @@ export async function put(cn: Context, objectName: string, data: any, options?: 
         default: // Insert / Update not root item
             let command = {$addToSet: {}};
             assert(data._id, `_id expected for inserting!`);
+            delete data._new; // we add _new in new inline item either
             let rootId = portions[1].itemId;
             let pth: string = await portionsToMongoPath(cn, rootId, portions, portions.length);
             command.$addToSet[pth] = data;
@@ -929,6 +930,7 @@ export function error(message: string, err?: Error | ErrorObject) {
 
 export function fatal(message) {
     logger.log('fatal', message);
+    process.exit();
 }
 
 export function getFullname(pack: string, name: string): string {
@@ -988,8 +990,21 @@ async function loadPackagesInfo() {
 }
 
 async function loadSystemConfig() {
-    let collection = await getCollection({db: Constants.sysDb} as Context, Objects.systemConfig);
-    glob.systemConfig = await collection.findOne({});
+    if (!process.env.DB_ADDRESS)
+        fatal("Environment variable 'DB_ADDRESS' is needed.");
+
+    try {
+        let dbc = await MongoClient.connect(process.env.DB_ADDRESS, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            poolSize: Constants.mongodbPoolSize
+        });
+
+        let collection = dbc.db(Constants.sysDb).collection(Objects.systemConfig);
+        glob.systemConfig = await collection.findOne({});
+    } catch (ex) {
+        fatal("Error connecting to the database: " + ex.message);
+    }
 }
 
 function applyAmazonConfig() {
