@@ -955,6 +955,7 @@ export enum Objects {
     hosts = "hosts",
     menus = "menus",
     drives = "drives",
+    notes = "notes",
     forms = "forms",
     enums = "enums",
 }
@@ -1136,6 +1137,15 @@ export enum DirFileType {
     File = 1,
     Folder = 2,
     Drive = 3,
+}
+
+export class Note {
+    _id: ID;
+    url: string;
+    content: string;
+    time: Date;
+    author: ID;
+    access: Access;
 }
 
 export class DirFile {
