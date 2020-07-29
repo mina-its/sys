@@ -83,6 +83,14 @@ export class Country {
     localName: string;
 }
 
+export enum TextEditor {
+    Html = 1,
+    Javascript = 2,
+    Css = 3,
+    Markdown = 4,
+    Xml = 5,
+}
+
 export class Global {
     postClientCommandCallback: (cn: Context, ...args: any[]) => void;
     dbs: { [packAndCs: string]: any } = {}; // any not mongodb.Db because of client side reference
@@ -94,6 +102,7 @@ export class Global {
     rootDir: string;
     entities: Entity[];
     drives: Drive[];
+    suspendService: boolean = false;
     auditTypes: AuditType[];
     timeZones: TimeZone[];
     dictionary: { [id: string]: string | MultilangText };
@@ -262,7 +271,7 @@ export class Property implements IProperties {
     text: {
         markdown: boolean;
         multiLine: boolean;
-        htmlEditor: boolean;
+        editor: TextEditor;
         multiLanguage: boolean;
         password: boolean;
         isPhone: boolean;
@@ -361,6 +370,7 @@ export enum ObjectViewType {
 }
 
 export class Elem {
+    _id: ID;
     id: string;
     type: ElemType;
     toolbar?: boolean;
@@ -399,6 +409,7 @@ export class Elem {
     func?: {
         ref: any;
         clientSide: boolean;
+        showParams: boolean;
         exec?
     };
     image?: {

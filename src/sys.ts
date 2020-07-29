@@ -118,6 +118,7 @@ async function initHosts() {
 export async function reload(cn?: Context) {
     let startTime = moment();
     log(`reload ...`);
+    glob.suspendService = true;
 
     await loadSystemConfig();
     await loadPackagesInfo();
@@ -130,6 +131,8 @@ export async function reload(cn?: Context) {
     await initHosts();
     await initializeRoles();
     await initializeEntities();
+
+    glob.suspendService = false;
 
     let period = moment().diff(startTime, 'ms', true);
     info(`reload done in '${period}' ms.`);

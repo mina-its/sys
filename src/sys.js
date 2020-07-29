@@ -62,6 +62,7 @@ async function initHosts() {
 async function reload(cn) {
     let startTime = moment();
     log(`reload ...`);
+    exports.glob.suspendService = true;
     await loadSystemConfig();
     await loadPackagesInfo();
     await applyAmazonConfig();
@@ -73,6 +74,7 @@ async function reload(cn) {
     await initHosts();
     await initializeRoles();
     await initializeEntities();
+    exports.glob.suspendService = false;
     let period = moment().diff(startTime, 'ms', true);
     info(`reload done in '${period}' ms.`);
 }
