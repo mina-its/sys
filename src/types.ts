@@ -89,6 +89,7 @@ export enum TextEditor {
     Css = 3,
     Markdown = 4,
     Xml = 5,
+    Json = 6,
 }
 
 export class Global {
@@ -135,7 +136,7 @@ export class mObject extends Entity implements IProperties {
     titleProperty: string;
     sortDefaultProperty: string;
     query: any;
-    referType: ObjectReferType;
+    referType: ReferType;
     filterObject: ID;
     source: SourceType;
     rowHeaderStyle: GridRowHeaderStyle;
@@ -770,7 +771,6 @@ export enum LogType {
 
 export enum LinkType {
     Auto = 0,
-    Help = 1,
     PropertyGroupLink = 2,
 }
 
@@ -928,11 +928,11 @@ export enum TimeFormat {
     DayMonthNameYear = 6,
 }
 
-export enum ObjectReferType {
-    similar = 0,
-    filter = 1,
-    aggregate = 2,
-    value = 3,
+export enum ReferType {
+    Filter = 1,
+    Similar = 2,
+    SimilarJustProps = 3,
+    Aggregate = 4,
 }
 
 export enum RedirectType {

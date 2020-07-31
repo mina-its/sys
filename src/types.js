@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Feedback = exports.GetTaskDto = exports.ProjectView = exports.UserCustomization = exports.TaskInboxGroup = exports.TaskView = exports.Project = exports.Task = exports.TaskDueDate = exports.TaskReminder = exports.TaskLogType = exports.TaskPriority = exports.TaskStatus = exports.UserProfile = exports.SysDashboardInfo = exports.ApiDoc = exports.ApiDocEnum = exports.ApiDocSchema = exports.ApiDocBlock = exports.ApiDocOperation = exports.ApiDocParameter = exports.ReqParams = exports.FunctionDec = exports.ObjectDec = exports.EntityMeta = exports.NotificationInfo = exports.AjaxConfig = exports.Context = exports.YesNo = exports.ObjectListsViewType = exports.ObjectDetailsViewType = exports.ClientCommand = exports.DirFile = exports.Note = exports.DirFileType = exports.UnitTestObject = exports.WebMethod = exports.AppStateConfig = exports.WebResponse = exports.RequestMode = exports.EnvMode = exports.PropertyConditionBehavior = exports.Constants = exports.GridRowHeaderStyle = exports.PType = exports.SystemProperty = exports.SysAuditTypes = exports.Document = exports.DocumentDirectory = exports.DocumentDirectoryItem = exports.DocStatus = exports.Objects = exports.FileType = exports.RedirectType = exports.ObjectReferType = exports.TimeFormat = exports.RefPortionType = exports.GlobalType = exports.PropertyReferType = exports.NewItemMode = exports.ChangeFrequency = exports.FunctionMode = exports.SourceType = exports.Locale = exports.Keys = exports.PropertyEditMode = exports.PropertyViewMode = exports.AccessPermission = exports.EntityType = exports.ElemType = exports.Orientation = exports.PanelType = exports.LinkType = exports.LogType = exports.UploadedFile = exports.StatusCode = exports.GetOptions = exports.DelOptions = exports.PatchOptions = exports.PutOptions = exports.Point = exports.GeoLocation = exports.RefPortion = exports.TimeZone = exports.Text = exports.mFile = exports.PackageAddressRule = exports.PackageType = exports.PackageInfo = exports.SystemConfig = exports.AppConfig = exports.EmailAccount = exports.SmsAccount = exports.MultilangText = exports.EnumItem = exports.Enum = exports.Host = exports.SystemConfigStaticPackage = exports.App = exports.TreePair = exports.Pair = exports.MenuItem = exports.Menu = exports.AccessItem = exports.Access = exports.ChartSeries = exports.ErrorObject = exports.Elem = exports.ObjectViewType = exports.EntityLink = exports.FunctionTestSample = exports.Drive = exports.Property = exports.ObjectModifyType = exports.SendSmsParams = exports.SendEmailParams = exports.EmailTemplateConfig = exports.ObjectModifyState = exports.FormDto = exports.Form = exports.Function = exports.mObject = exports.Entity = exports.Global = exports.TextEditor = exports.Country = exports.SmsProvider = exports.AuditType = exports.User = exports.Role = exports.AuditArgs = exports.ID = void 0;
+exports.Feedback = exports.GetTaskDto = exports.ProjectView = exports.UserCustomization = exports.TaskInboxGroup = exports.TaskView = exports.Project = exports.Task = exports.TaskDueDate = exports.TaskReminder = exports.TaskLogType = exports.TaskPriority = exports.TaskStatus = exports.UserProfile = exports.SysDashboardInfo = exports.ApiDoc = exports.ApiDocEnum = exports.ApiDocSchema = exports.ApiDocBlock = exports.ApiDocOperation = exports.ApiDocParameter = exports.ReqParams = exports.FunctionDec = exports.ObjectDec = exports.EntityMeta = exports.NotificationInfo = exports.AjaxConfig = exports.Context = exports.YesNo = exports.ObjectListsViewType = exports.ObjectDetailsViewType = exports.ClientCommand = exports.DirFile = exports.Note = exports.DirFileType = exports.UnitTestObject = exports.WebMethod = exports.AppStateConfig = exports.WebResponse = exports.RequestMode = exports.EnvMode = exports.PropertyConditionBehavior = exports.Constants = exports.GridRowHeaderStyle = exports.PType = exports.SystemProperty = exports.SysAuditTypes = exports.Document = exports.DocumentDirectory = exports.DocumentDirectoryItem = exports.DocStatus = exports.Objects = exports.FileType = exports.RedirectType = exports.ReferType = exports.TimeFormat = exports.RefPortionType = exports.GlobalType = exports.PropertyReferType = exports.NewItemMode = exports.ChangeFrequency = exports.FunctionMode = exports.SourceType = exports.Locale = exports.Keys = exports.PropertyEditMode = exports.PropertyViewMode = exports.AccessPermission = exports.EntityType = exports.ElemType = exports.Orientation = exports.PanelType = exports.LinkType = exports.LogType = exports.UploadedFile = exports.StatusCode = exports.GetOptions = exports.DelOptions = exports.PatchOptions = exports.PutOptions = exports.Point = exports.GeoLocation = exports.RefPortion = exports.TimeZone = exports.Text = exports.mFile = exports.PackageAddressRule = exports.PackageType = exports.PackageInfo = exports.SystemConfig = exports.AppConfig = exports.EmailAccount = exports.SmsAccount = exports.MultilangText = exports.EnumItem = exports.Enum = exports.Host = exports.SystemConfigStaticPackage = exports.App = exports.TreePair = exports.Pair = exports.MenuItem = exports.Menu = exports.AccessItem = exports.Access = exports.ChartSeries = exports.ErrorObject = exports.Elem = exports.ObjectViewType = exports.EntityLink = exports.FunctionTestSample = exports.Drive = exports.Property = exports.ObjectModifyType = exports.SendSmsParams = exports.SendEmailParams = exports.EmailTemplateConfig = exports.ObjectModifyState = exports.FormDto = exports.Form = exports.Function = exports.mObject = exports.Entity = exports.Global = exports.TextEditor = exports.Country = exports.SmsProvider = exports.AuditType = exports.User = exports.Role = exports.AuditArgs = exports.ID = void 0;
 const bson_util_1 = require("bson-util");
 Object.defineProperty(exports, "ID", { enumerable: true, get: function () { return bson_util_1.ID; } });
 class AuditArgs {
@@ -33,10 +33,11 @@ var TextEditor;
     TextEditor[TextEditor["Css"] = 3] = "Css";
     TextEditor[TextEditor["Markdown"] = 4] = "Markdown";
     TextEditor[TextEditor["Xml"] = 5] = "Xml";
+    TextEditor[TextEditor["Json"] = 6] = "Json";
 })(TextEditor = exports.TextEditor || (exports.TextEditor = {}));
 class Global {
     constructor() {
-        this.dbs = {};
+        this.dbs = {}; // any not mongodb.Db because of client side reference
         this.countries = {};
         this.packageInfo = {};
         this.appConfig = {};
@@ -260,13 +261,13 @@ var LogType;
 var LinkType;
 (function (LinkType) {
     LinkType[LinkType["Auto"] = 0] = "Auto";
-    LinkType[LinkType["Help"] = 1] = "Help";
     LinkType[LinkType["PropertyGroupLink"] = 2] = "PropertyGroupLink";
 })(LinkType = exports.LinkType || (exports.LinkType = {}));
 var PanelType;
 (function (PanelType) {
     PanelType[PanelType["Stack"] = 1] = "Stack";
     PanelType[PanelType["Dock"] = 2] = "Dock";
+    // Grid = 3,
     PanelType[PanelType["Wrap"] = 4] = "Wrap";
     PanelType[PanelType["Flex"] = 5] = "Flex";
     PanelType[PanelType["Modal"] = 6] = "Modal";
@@ -448,13 +449,13 @@ var TimeFormat;
     TimeFormat[TimeFormat["YearMonthDay"] = 5] = "YearMonthDay";
     TimeFormat[TimeFormat["DayMonthNameYear"] = 6] = "DayMonthNameYear";
 })(TimeFormat = exports.TimeFormat || (exports.TimeFormat = {}));
-var ObjectReferType;
-(function (ObjectReferType) {
-    ObjectReferType[ObjectReferType["similar"] = 0] = "similar";
-    ObjectReferType[ObjectReferType["filter"] = 1] = "filter";
-    ObjectReferType[ObjectReferType["aggregate"] = 2] = "aggregate";
-    ObjectReferType[ObjectReferType["value"] = 3] = "value";
-})(ObjectReferType = exports.ObjectReferType || (exports.ObjectReferType = {}));
+var ReferType;
+(function (ReferType) {
+    ReferType[ReferType["Filter"] = 1] = "Filter";
+    ReferType[ReferType["Similar"] = 2] = "Similar";
+    ReferType[ReferType["SimilarJustProps"] = 3] = "SimilarJustProps";
+    ReferType[ReferType["Aggregate"] = 4] = "Aggregate";
+})(ReferType = exports.ReferType || (exports.ReferType = {}));
 var RedirectType;
 (function (RedirectType) {
     RedirectType[RedirectType["Permanent"] = 0] = "Permanent";
