@@ -90,6 +90,7 @@ export enum TextEditor {
     Markdown = 4,
     Xml = 5,
     Json = 6,
+    HtmlText = 7,
 }
 
 export class Global {

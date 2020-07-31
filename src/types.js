@@ -34,6 +34,7 @@ var TextEditor;
     TextEditor[TextEditor["Markdown"] = 4] = "Markdown";
     TextEditor[TextEditor["Xml"] = 5] = "Xml";
     TextEditor[TextEditor["Json"] = 6] = "Json";
+    TextEditor[TextEditor["HtmlText"] = 7] = "HtmlText";
 })(TextEditor = exports.TextEditor || (exports.TextEditor = {}));
 class Global {
     constructor() {
