@@ -1377,6 +1377,7 @@ export class Task {
     parent: ID;
     priority: TaskPriority;
     favorite: boolean;
+    collapse: boolean;
     categories: string[];
     archive: boolean;
     comments: {
@@ -1394,7 +1395,6 @@ export class Task {
     owner: ID;
     _z: number;
     _: {
-        expand?: boolean;
         multiPlace?: boolean;
         dirty?: boolean;
         dragging?: boolean;
