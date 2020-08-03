@@ -37,6 +37,7 @@ import {
     App,
     AppConfig,
     AuditArgs,
+    BusinessApp,
     ClientCommand,
     Constants,
     Context,
@@ -44,7 +45,7 @@ import {
     DelOptions,
     DirFile,
     DirFileType,
-    Drive,
+    Drive, DriveConfig,
     Entity,
     EntityType,
     Enum,
@@ -98,19 +99,25 @@ const bcrypt = require('bcrypt');
 
 async function initHosts() {
     for (const host of glob.hosts) {
-        if (host.drive) {
-            let drive = glob.drives.find(d => d._id.equals(host.drive));
-            if (drive) {
-                drive._.uri = host.address;
-                host._.drive = drive;
-            } else
-                error(`drive for host '${host.address}' not found!`);
-        } else if (host.app) {
-            let app = glob.apps.find(d => d._id.equals(host.app));
-            if (app) {
-                host._.app = app;
-            } else
-                error(`app for host '${host.address}' not found!`);
+        assert(host.prefixes && host.prefixes.length, `Prefixes for host '${host.address}' must be configured.`);
+
+        host.aliases = host.aliases || [];
+        for (let prefix of host.prefixes) {
+            prefix._ = {};
+            if (prefix.drive) {
+                let drive = glob.drives.find(d => d._id.equals(prefix.drive));
+                if (drive) {
+                    // drive._.uri = joinUri(host.address, prefix.prefix);
+                    prefix._.drive = drive;
+                } else
+                    error(`drive for prefix '${host.address}/${prefix.prefix}' not found!`);
+            } else if (prefix.app) {
+                let app = glob.apps.find(d => d._id.equals(prefix.app));
+                if (app) {
+                    prefix._.app = app;
+                } else
+                    error(`app for prefix '${host.address}/${prefix.prefix}' not found!`);
+            }
         }
     }
 }
@@ -131,11 +138,16 @@ export async function reload(cn?: Context) {
     await initHosts();
     await initializeRoles();
     await initializeEntities();
+    await loadBusinessApps();
 
     glob.suspendService = false;
 
     let period = moment().diff(startTime, 'ms', true);
     info(`reload done in '${period}' ms.`);
+}
+
+export async function loadBusinessApps() {
+    glob.businessApps = await get({db: Constants.sysDb, locale: Locale.en}, Objects.businessApps);
 }
 
 export async function start() {
@@ -202,6 +214,9 @@ export async function audit(cn: Context, auditType: string, args: AuditArgs) {
 
         if (type && type.disabled) return;
         await put(cn, Objects.audits, args);
+
+        // exist on FaTAL ERROR
+        // process.exit();
     } catch (e) {
         error(`Audit '${auditType}' error: ${e.stack}`);
     }
@@ -755,7 +770,8 @@ export async function putFile(drive: Drive, relativePath: string, file: Buffer) 
         case SourceType.S3:
             try {
                 let sdk = getS3DriveSdk(drive);
-                let s3 = new sdk.S3({apiVersion: Constants.amazonS3ApiVersion, region: drive.s3.region});
+                let driveConfig = glob.systemConfig.drives.find(d => d.drive.equals(drive._id));
+                let s3 = new sdk.S3({apiVersion: Constants.amazonS3ApiVersion, region: driveConfig.s3.region});
                 const config = {
                     Bucket: drive.address,
                     Key: relativePath,
@@ -795,6 +811,7 @@ export async function listDir(drive: Drive, dir: string): Promise<DirFile[]> {
 
         case SourceType.S3:
             let sdk = getS3DriveSdk(drive);
+            let driveConfig = glob.systemConfig.drives.find(d => d.drive.equals(drive._id));
             let s3 = new sdk.S3({apiVersion: Constants.amazonS3ApiVersion});
             const s3params = {
                 Bucket: drive.address,
@@ -806,7 +823,7 @@ export async function listDir(drive: Drive, dir: string): Promise<DirFile[]> {
                 s3.listObjectsV2(s3params, (err, data) => {
                     if (err) {
                         if (err.code == "InvalidAccessKeyId")
-                            reject(`Invalid AccessKeyId '${drive.s3.accessKeyId}': ${err.message}`);
+                            reject(`Invalid AccessKeyId '${driveConfig.s3.accessKeyId}': ${err.message}`);
                         else
                             reject(err);
                     } else {
@@ -894,20 +911,21 @@ export function joinUri(...parts: string[]): string {
 }
 
 function getS3DriveSdk(drive: Drive) {
-    assert(drive.s3, `S3 for drive '${drive.name}' must be configured!`);
-    if (drive.s3._sdk) return drive.s3._sdk;
+    let driveConfig = glob.systemConfig.drives.find(d => d.drive.equals(drive._id));
+    assert(driveConfig.s3, `S3 for drive '${drive.name}' must be configured!`);
+    if (driveConfig.s3._sdk) return driveConfig.s3._sdk;
 
     let sdk = require('aws-sdk');
-    if (!drive.s3.accessKeyId)
+    if (!driveConfig.s3.accessKeyId)
         throwError(StatusCode.ConfigurationProblem, `s3 accessKeyId for drive package '${drive._.db}' must be configured.`);
     else
-        sdk.config.accessKeyId = drive.s3.accessKeyId;
+        sdk.config.accessKeyId = driveConfig.s3.accessKeyId;
 
-    if (!drive.s3.secretAccessKey)
+    if (!driveConfig.s3.secretAccessKey)
         throwError(StatusCode.ConfigurationProblem, `s3 secretAccessKey for drive package '${drive._.db}' must be configured.`);
     else
-        sdk.config.secretAccessKey = drive.s3.secretAccessKey;
-    drive.s3._sdk = sdk;
+        sdk.config.secretAccessKey = driveConfig.s3.secretAccessKey;
+    driveConfig.s3._sdk = sdk;
     return sdk;
 }
 
@@ -933,7 +951,6 @@ export function error(message: string, err?: Error | ErrorObject) {
 
 export function fatal(message) {
     logger.log('fatal', message);
-    process.exit();
 }
 
 export function getFullname(pack: string, name: string): string {

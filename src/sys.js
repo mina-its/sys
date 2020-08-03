@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.saveUserCustomization = exports.deleteUserCustomization = exports.getUserCustomization = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getPackageInfo = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.initializeRoles = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.extractRefPortions = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
+exports.saveUserCustomization = exports.deleteUserCustomization = exports.getUserCustomization = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getPackageInfo = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.initializeRoles = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.extractRefPortions = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.loadBusinessApps = exports.reload = exports.glob = void 0;
 let index = {
     "Start                                              ": reload,
     "Load Packages package.json file                    ": loadPackagesInfo,
@@ -40,22 +40,26 @@ const fsPromises = fs.promises;
 const bcrypt = require('bcrypt');
 async function initHosts() {
     for (const host of exports.glob.hosts) {
-        if (host.drive) {
-            let drive = exports.glob.drives.find(d => d._id.equals(host.drive));
-            if (drive) {
-                drive._.uri = host.address;
-                host._.drive = drive;
+        assert(host.prefixes && host.prefixes.length, `Prefixes for host '${host.address}' must be configured.`);
+        host.aliases = host.aliases || [];
+        for (let prefix of host.prefixes) {
+            prefix._ = {};
+            if (prefix.drive) {
+                let drive = exports.glob.drives.find(d => d._id.equals(prefix.drive));
+                if (drive) {
+                    prefix._.drive = drive;
+                }
+                else
+                    error(`drive for prefix '${host.address}/${prefix.prefix}' not found!`);
             }
-            else
-                error(`drive for host '${host.address}' not found!`);
-        }
-        else if (host.app) {
-            let app = exports.glob.apps.find(d => d._id.equals(host.app));
-            if (app) {
-                host._.app = app;
+            else if (prefix.app) {
+                let app = exports.glob.apps.find(d => d._id.equals(prefix.app));
+                if (app) {
+                    prefix._.app = app;
+                }
+                else
+                    error(`app for prefix '${host.address}/${prefix.prefix}' not found!`);
             }
-            else
-                error(`app for host '${host.address}' not found!`);
         }
     }
 }
@@ -74,11 +78,16 @@ async function reload(cn) {
     await initHosts();
     await initializeRoles();
     await initializeEntities();
+    await loadBusinessApps();
     exports.glob.suspendService = false;
     let period = moment().diff(startTime, 'ms', true);
     info(`reload done in '${period}' ms.`);
 }
 exports.reload = reload;
+async function loadBusinessApps() {
+    exports.glob.businessApps = await get({ db: types_1.Constants.sysDb, locale: types_1.Locale.en }, types_1.Objects.businessApps);
+}
+exports.loadBusinessApps = loadBusinessApps;
 async function start() {
     try {
         process.on('uncaughtException', async (err) => await audit({ db: types_1.Constants.sysDb }, types_1.SysAuditTypes.uncaughtException, {
@@ -668,7 +677,8 @@ async function putFile(drive, relativePath, file) {
         case types_1.SourceType.S3:
             try {
                 let sdk = getS3DriveSdk(drive);
-                let s3 = new sdk.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion, region: drive.s3.region });
+                let driveConfig = exports.glob.systemConfig.drives.find(d => d.drive.equals(drive._id));
+                let s3 = new sdk.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion, region: driveConfig.s3.region });
                 const config = {
                     Bucket: drive.address,
                     Key: relativePath,
@@ -706,6 +716,7 @@ async function listDir(drive, dir) {
             throw types_1.StatusCode.NotImplemented;
         case types_1.SourceType.S3:
             let sdk = getS3DriveSdk(drive);
+            let driveConfig = exports.glob.systemConfig.drives.find(d => d.drive.equals(drive._id));
             let s3 = new sdk.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion });
             const s3params = {
                 Bucket: drive.address,
@@ -717,7 +728,7 @@ async function listDir(drive, dir) {
                 s3.listObjectsV2(s3params, (err, data) => {
                     if (err) {
                         if (err.code == "InvalidAccessKeyId")
-                            reject(`Invalid AccessKeyId '${drive.s3.accessKeyId}': ${err.message}`);
+                            reject(`Invalid AccessKeyId '${driveConfig.s3.accessKeyId}': ${err.message}`);
                         else
                             reject(err);
                     }
@@ -772,19 +783,20 @@ function joinUri(...parts) {
 }
 exports.joinUri = joinUri;
 function getS3DriveSdk(drive) {
-    assert(drive.s3, `S3 for drive '${drive.name}' must be configured!`);
-    if (drive.s3._sdk)
-        return drive.s3._sdk;
+    let driveConfig = exports.glob.systemConfig.drives.find(d => d.drive.equals(drive._id));
+    assert(driveConfig.s3, `S3 for drive '${drive.name}' must be configured!`);
+    if (driveConfig.s3._sdk)
+        return driveConfig.s3._sdk;
     let sdk = require('aws-sdk');
-    if (!drive.s3.accessKeyId)
+    if (!driveConfig.s3.accessKeyId)
         throwError(types_1.StatusCode.ConfigurationProblem, `s3 accessKeyId for drive package '${drive._.db}' must be configured.`);
     else
-        sdk.config.accessKeyId = drive.s3.accessKeyId;
-    if (!drive.s3.secretAccessKey)
+        sdk.config.accessKeyId = driveConfig.s3.accessKeyId;
+    if (!driveConfig.s3.secretAccessKey)
         throwError(types_1.StatusCode.ConfigurationProblem, `s3 secretAccessKey for drive package '${drive._.db}' must be configured.`);
     else
-        sdk.config.secretAccessKey = drive.s3.secretAccessKey;
-    drive.s3._sdk = sdk;
+        sdk.config.secretAccessKey = driveConfig.s3.secretAccessKey;
+    driveConfig.s3._sdk = sdk;
     return sdk;
 }
 function silly(...message) {
@@ -809,7 +821,6 @@ function error(message, err) {
 exports.error = error;
 function fatal(message) {
     logger.log('fatal', message);
-    process.exit();
 }
 exports.fatal = fatal;
 function getFullname(pack, name) {
