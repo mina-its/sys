@@ -110,6 +110,7 @@ export class Global {
     dictionary: { [id: string]: string | MultilangText };
     menus: Menu[];
     apps: App[];
+    businessApps: BusinessApp[];
     hosts: Host[];
     enums: Enum[];
     enumTexts: { [id: string]: any; };
@@ -331,16 +332,22 @@ export class Drive {
     comment: string | MultilangText;
     address: string;
     access: Access;
+    _: {
+        db: string;
+        uri?: string;
+    }
+}
+
+export class DriveConfig {
+    _id: ID;
+    uri: string;
+    drive: ID;
     s3: {
         region: string;
         accessKeyId: string;
         secretAccessKey: string;
         _sdk: any;
     };
-    _: {
-        db: string;
-        uri?: string;
-    }
 }
 
 export class FunctionTestSample {
@@ -509,6 +516,13 @@ export class TreePair {
     _cs?: string;
 }
 
+export class BusinessApp {
+    _id: ID;
+    title: string | MultilangText;
+    icon: string;
+    headline: string;
+}
+
 export class App {
     _id: ID;
     home: string;
@@ -549,13 +563,18 @@ export class SystemConfigStaticPackage {
 export class Host {
     _id: ID;
     address: string;
-    app?: ID;
-    drive?: ID;
-    vars: { name: string, value: string }[];
+    aliases: string[];
+    prefixes: {
+        prefix: string;
+        app: ID;
+        drive: ID;
+        _: {
+            app?: App;
+            drive?: Drive;
+        }
+    }[];
     _: {
         db: string;
-        app?: App;
-        drive?: Drive;
     }
 }
 
@@ -624,6 +643,7 @@ export class SystemConfig {
         name: string;
         enabled: boolean;
     }[];
+    drives: DriveConfig[];
     sessionsPath: string;
 }
 
@@ -953,6 +973,7 @@ export enum Objects {
     projects = "projects",
     userCustomizations = "userCustomizations",
     tasks = "tasks",
+    businessApps = "businessApps",
     devConfig = "devConfig",
     dictionary = "dictionary",
     auditTypes = "auditTypes",
@@ -1102,6 +1123,7 @@ export class AppStateConfig {
     localeTitle: string = null;
     defaultLocale?: string = null;
     rtl: boolean = false;
+    businessApps: BusinessApp[];
     appLocales: Pair[] = [];
     user: {
         loginTitle?: string;
@@ -1384,6 +1406,7 @@ export class Task {
     parent: ID;
     priority: TaskPriority;
     favorite: boolean;
+    collapse: boolean;
     categories: string[];
     archive: boolean;
     comments: {
@@ -1401,7 +1424,6 @@ export class Task {
     owner: ID;
     _z: number;
     _: {
-        expand?: boolean;
         multiPlace?: boolean;
         dirty?: boolean;
         dragging?: boolean;
