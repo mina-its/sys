@@ -37,7 +37,6 @@ import {
     App,
     AppConfig,
     AuditArgs,
-    BusinessApp,
     ClientCommand,
     Constants,
     Context,
@@ -138,16 +137,11 @@ export async function reload(cn?: Context) {
     await initHosts();
     await initializeRoles();
     await initializeEntities();
-    await loadBusinessApps();
 
     glob.suspendService = false;
 
     let period = moment().diff(startTime, 'ms', true);
     info(`reload done in '${period}' ms.`);
-}
-
-export async function loadBusinessApps() {
-    glob.businessApps = await get({db: Constants.sysDb, locale: Locale.en}, Objects.businessApps);
 }
 
 export async function start() {

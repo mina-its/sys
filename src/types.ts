@@ -110,7 +110,6 @@ export class Global {
     dictionary: { [id: string]: string | MultilangText };
     menus: Menu[];
     apps: App[];
-    businessApps: BusinessApp[];
     hosts: Host[];
     enums: Enum[];
     enumTexts: { [id: string]: any; };
@@ -515,13 +514,6 @@ export class TreePair {
     _cs?: string;
 }
 
-export class BusinessApp {
-    _id: ID;
-    title: string | MultilangText;
-    icon: string;
-    headline: string;
-}
-
 export class App {
     _id: ID;
     home: string;
@@ -545,6 +537,9 @@ export class App {
     brandingLogo: string;
     interactive: boolean;
     signInUri: string;
+    iconStyle: string;
+    navColor: string;
+    iconColor: string;
     _: {
         db?: string;
         menu?: Menu;
@@ -972,7 +967,6 @@ export enum Objects {
     projects = "projects",
     userCustomizations = "userCustomizations",
     tasks = "tasks",
-    businessApps = "businessApps",
     devConfig = "devConfig",
     dictionary = "dictionary",
     auditTypes = "auditTypes",
@@ -1115,14 +1109,20 @@ export class WebResponse implements IError {
 
 export class AppStateConfig {
     host?: string;
+    prefix?: string;
     version: string = "";
     appTitle: string = "";
     brandingLogo: string = "";
+    apps: {
+        iconStyle: string;
+        iconColor: string;
+        title: string;
+        prefix: string;
+    }[];
     locale: string = null;
     localeTitle: string = null;
     defaultLocale?: string = null;
     rtl: boolean = false;
-    businessApps: BusinessApp[];
     appLocales: Pair[] = [];
     user: {
         loginTitle?: string;
