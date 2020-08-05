@@ -1051,8 +1051,7 @@ function templateRender(pack, template) {
 }
 function initializePackages() {
     log(`initializePackages: ${exports.glob.systemConfig.packages.map(p => p.name).join(' , ')}`);
-    let sysTemplate = exports.glob.appConfig[types_1.Constants.sysDb].apps[0].template;
-    let sysTemplateRender = templateRender(types_1.Constants.sysDb, sysTemplate);
+    let sysTemplateRender = templateRender(types_1.Constants.sysDb, types_1.Constants.DEFAULT_APP_TEMPLATE);
     for (const db of enabledDbs()) {
         let config = exports.glob.appConfig[db];
         if (!config) {

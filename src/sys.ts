@@ -1213,8 +1213,7 @@ function templateRender(pack, template) {
 function initializePackages() {
     log(`initializePackages: ${glob.systemConfig.packages.map(p => p.name).join(' , ')}`);
 
-    let sysTemplate = glob.appConfig[Constants.sysDb].apps[0].template;
-    let sysTemplateRender = templateRender(Constants.sysDb, sysTemplate);
+    let sysTemplateRender = templateRender(Constants.sysDb, Constants.DEFAULT_APP_TEMPLATE);
 
     for (const db of enabledDbs()) {
         let config = glob.appConfig[db];
