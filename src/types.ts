@@ -266,6 +266,7 @@ export class Property implements IProperties {
     detailsViewType: ObjectDetailsViewType;
     listsViewType: ObjectListsViewType;
     referType: PropertyReferType;
+    description: string;
     dependsOn: string;
     condition: string;
     conditionBehavior: PropertyConditionBehavior;
@@ -1292,11 +1293,12 @@ export enum ReqParams {
 }
 
 export class ApiDocParameter {
-    title: string;
+    title?: string;
     name: string;
     type: string;
-    required: boolean;
-    comment: string;
+    required?: boolean;
+    value: string;
+    comment?: string;
 }
 
 export class ApiDocOperation {
@@ -1312,13 +1314,18 @@ export class ApiDocBlock {
     operations: ApiDocOperation[] = [];
 }
 
+export class ApiDocProprty {
+    name: string;
+    type: string;
+    required: boolean;
+    description: string;
+    sample: any;
+    properties?: Array<ApiDocProprty>;
+}
+
 export class ApiDocSchema {
     name: string;
-    properties: Array<{
-        name: string;
-        type: string;
-        required: boolean;
-    }>;
+    properties: Array<ApiDocProprty>;
 }
 
 export class ApiDocEnum {
