@@ -983,6 +983,8 @@ export enum Objects {
     hosts = "hosts",
     menus = "menus",
     drives = "drives",
+    flowcharts = "flowcharts",
+    flowchartsDeclarations = "flowchartsDeclarations",
     notes = "notes",
     forms = "forms",
     enums = "enums",
@@ -1525,3 +1527,55 @@ export class Feedback {
     value: string;
     user: ID;
 }
+
+export class FlowchartNodeLink {
+    type: string;
+    value: string;
+    node: number;
+}
+
+export class FlowchartNode {
+    title: string | MultilangText;
+    tag: number;
+    point: Point;
+    type: string;
+    params: any;
+    nexts: FlowchartNodeLink[];
+    _: {
+        dec: FlowchartNodeDeclare;
+    }
+}
+
+export class FlowchartNodeDeclare {
+    title: string | MultilangText;
+    comment: string | MultilangText;
+    name: string;
+    params: Property[];
+    icon: string;
+    nexts: {
+        title: string | MultilangText;
+        name: string;
+        parametric: boolean;
+    }[];
+    defaultResultType: ID;
+    nodeStyle: string;
+    nodeColor: string;
+}
+
+export class FlowchartDeclaration {
+    title: string | MultilangText;
+    comment: string | MultilangText;
+    nodes: FlowchartNodeDeclare[];
+}
+
+export class Flowchart {
+    _id: ID;
+    title: string | MultilangText;
+    comment: string | MultilangText;
+    type: ID;
+    nodes: FlowchartNode[];
+    _: {
+        type: FlowchartDeclaration;
+    }
+}
+

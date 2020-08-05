@@ -1243,7 +1243,7 @@ function initializePackages() {
     }
 }
 
-function checkPropertyGtype(prop: Property, entity: Entity, parentProperty: Property = null) {
+export function checkPropertyGtype(prop: Property, entity: Entity, parentProperty: Property = null) {
     if (!prop.type) {
         if (prop.properties && prop.properties.length) {
             prop._.gtype = GlobalType.object;
