@@ -643,7 +643,7 @@ export async function getDriveStatus(drive: Drive) {
 }
 
 export function findDrive(cn: Context, driveName: string): Drive {
-    return glob.drives.find(drive => drive._.db == cn.db && drive.name == driveName);
+    return glob.drives.find(drive => drive._.db == cn.db && drive.title == driveName);
 }
 
 export function toAsync(fn) {
@@ -774,7 +774,7 @@ export async function putFile(drive: Drive, relativePath: string, file: Buffer) 
                 };
                 return await s3.upload(config).promise();
             } catch (ex) {
-                error(`putFile error, drive: ${drive.name}`, ex);
+                error(`putFile error, drive: ${drive.title}`, ex);
                 throwError(StatusCode.ConfigurationProblem, `Could not save the file due to a problem.`);
             }
             break;
@@ -906,7 +906,7 @@ export function joinUri(...parts: string[]): string {
 
 function getS3DriveSdk(drive: Drive) {
     let driveConfig = glob.systemConfig.drives.find(d => d.drive.equals(drive._id));
-    assert(driveConfig.s3, `S3 for drive '${drive.name}' must be configured!`);
+    assert(driveConfig.s3, `S3 for drive '${drive.title}' must be configured!`);
     if (driveConfig.s3._sdk) return driveConfig.s3._sdk;
 
     let sdk = require('aws-sdk');
