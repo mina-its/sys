@@ -326,7 +326,7 @@ export class Property implements IProperties {
 
 export class Drive {
     _id: ID;
-    name: string;
+    title: string;
     type: SourceType;
     comment: string | MultilangText;
     address: string;
@@ -386,6 +386,10 @@ export class Elem {
     comment?: string;
     styles?: string;
     title?: string;
+
+    _: {
+        ref: string;
+    };
 
     panel?: {
         type: PanelType;
@@ -1119,6 +1123,7 @@ export class AppStateConfig {
     brandingLogo: string = "";
     apps: {
         iconStyle: string;
+        navColor: string;
         iconColor: string;
         title: string;
         prefix: string;
@@ -1563,8 +1568,8 @@ export class FlowchartNodeDeclare {
 }
 
 export class FlowchartDeclaration {
-    title: string | MultilangText;
-    comment: string | MultilangText;
+    title?: string | MultilangText;
+    comment?: string | MultilangText;
     nodes: FlowchartNodeDeclare[];
 }
 
