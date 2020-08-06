@@ -1543,6 +1543,8 @@ export class FlowchartNode {
     title: string | MultilangText;
     tag: number;
     point: Point;
+    width: number;
+    height: number;
     type: string;
     params: any;
     nexts: FlowchartNodeLink[];
