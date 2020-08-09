@@ -174,7 +174,8 @@ export class Form extends Entity {
     keywords: string;
     changeFrequency: ChangeFrequency;
     breadcrumb: Pair[];
-    isPublic: boolean;
+    publish: boolean;
+    cached: string;
     locale: Locale;
     openGraph;
     elems: Elem[] = [];
@@ -1030,6 +1031,7 @@ export class Document {
     status: DocStatus;
     keywords: string[];
     publish: boolean;
+    lastModified: Date;
 }
 
 export enum SysAuditTypes {
@@ -1101,6 +1103,7 @@ export enum EnvMode {
 }
 
 export enum RequestMode {
+    Direct = 0,
     inline = 1,
     download = 2,
     api = 3,
