@@ -50,7 +50,7 @@ async function initHosts() {
                     prefix._.drive = drive;
                 }
                 else
-                    error(`drive for prefix '${host.address}/${prefix.prefix}' not found!`);
+                    error(`drive for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
             }
             else if (prefix.app) {
                 let app = exports.glob.apps.find(d => d._id.equals(prefix.app));
@@ -58,7 +58,7 @@ async function initHosts() {
                     prefix._.app = app;
                 }
                 else
-                    error(`app for prefix '${host.address}/${prefix.prefix}' not found!`);
+                    error(`app for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
             }
         }
     }
@@ -1069,8 +1069,6 @@ function initializePackages() {
                 app._.templateRender = sysTemplateRender;
             if (app.menu)
                 app._.menu = exports.glob.menus.find(menu => menu._id.equals(app.menu));
-            if (app.navmenu)
-                app._.navmenu = exports.glob.menus.find(menu => menu._id.equals(app.navmenu));
             if (validateApp(db, app)) {
                 exports.glob.apps.push(app);
             }

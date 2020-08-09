@@ -109,13 +109,13 @@ async function initHosts() {
                     // drive._.uri = joinUri(host.address, prefix.prefix);
                     prefix._.drive = drive;
                 } else
-                    error(`drive for prefix '${host.address}/${prefix.prefix}' not found!`);
+                    error(`drive for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
             } else if (prefix.app) {
                 let app = glob.apps.find(d => d._id.equals(prefix.app));
                 if (app) {
                     prefix._.app = app;
                 } else
-                    error(`app for prefix '${host.address}/${prefix.prefix}' not found!`);
+                    error(`app for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
             }
         }
     }
@@ -1234,7 +1234,6 @@ function initializePackages() {
                 app._.templateRender = sysTemplateRender;
 
             if (app.menu) app._.menu = glob.menus.find(menu => menu._id.equals(app.menu));
-            if (app.navmenu) app._.navmenu = glob.menus.find(menu => menu._id.equals(app.navmenu));
 
             if (validateApp(db, app)) {
                 glob.apps.push(app);

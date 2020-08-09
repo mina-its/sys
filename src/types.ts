@@ -171,7 +171,7 @@ export class Function extends Entity implements IProperties {
 
 export class Form extends Entity {
     template: string;
-    keywords: string;
+    keywords: string[];
     changeFrequency: ChangeFrequency;
     breadcrumb: Pair[];
     publish: boolean;
@@ -529,7 +529,7 @@ export class App {
     defaultLocale: Locale;
     redirect: RedirectType;
     menu: ID;
-    navmenu: ID;
+    headerMenu: boolean;
     title: string;
     gridPageSize: number;
     addressRules: PackageAddressRule[];
@@ -549,7 +549,6 @@ export class App {
     _: {
         db?: string;
         menu?: Menu;
-        navmenu?: Menu;
         templateRender?: any;
     }
 }
@@ -1107,8 +1106,7 @@ export enum RequestMode {
 export class WebResponse implements IError {
     data: any;
     form: FormDto;
-    keywords: string;
-    openGraph;
+    keywords: string[];
     description: string;
     redirect: string;
     message: string;
@@ -1146,7 +1144,7 @@ export class AppStateConfig {
     };
     interactive: boolean = false;
     menu: MenuItem[] = [];
-    navmenu: MenuItem[] = [];
+    headerMenu: boolean = false;
     style: string;
 }
 
@@ -1241,6 +1239,7 @@ export class Context {
 
 export class AjaxConfig {
     method?: WebMethod;
+    showProgress?: boolean = false;
 }
 
 export class NotificationInfo {
