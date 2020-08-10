@@ -644,6 +644,13 @@ export class SystemConfig {
     }[];
     drives: DriveConfig[];
     sessionsPath: string;
+    google: {
+        signin: {
+            clientId: string;
+            clientSecret: string;
+            callbackUrl: string;
+        }
+    }
 }
 
 export class PackageInfo {
