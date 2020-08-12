@@ -38,28 +38,34 @@ const { exec } = require("child_process");
 exports.glob = new types_1.Global();
 const fsPromises = fs.promises;
 const bcrypt = require('bcrypt');
-async function initHosts() {
-    for (const host of exports.glob.hosts) {
-        assert(host.prefixes && host.prefixes.length, `Prefixes for host '${host.address}' must be configured.`);
-        host.aliases = host.aliases || [];
-        for (let prefix of host.prefixes) {
-            prefix._ = {};
-            if (prefix.drive) {
-                let drive = exports.glob.drives.find(d => d._id.equals(prefix.drive));
-                if (drive) {
-                    prefix._.drive = drive;
+async function loadHosts() {
+    exports.glob.hosts = [];
+    for (const client of exports.glob.systemConfig.clients) {
+        let hosts = await get({ db: client, locale: types_1.Locale.en }, types_1.Objects.hosts);
+        for (const host of hosts) {
+            assert(host.prefixes && host.prefixes.length, `Prefixes for host '${host.address}' must be configured.`);
+            host._ = { db: client };
+            host.aliases = host.aliases || [];
+            for (let prefix of host.prefixes) {
+                prefix._ = {};
+                if (prefix.drive) {
+                    let drive = exports.glob.drives.find(d => d._id.equals(prefix.drive));
+                    if (drive) {
+                        prefix._.drive = drive;
+                    }
+                    else
+                        error(`drive for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
                 }
-                else
-                    error(`drive for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
-            }
-            else if (prefix.app) {
-                let app = exports.glob.apps.find(d => d._id.equals(prefix.app));
-                if (app) {
-                    prefix._.app = app;
+                else if (prefix.app) {
+                    let app = exports.glob.apps.find(d => d._id.equals(prefix.app));
+                    if (app) {
+                        prefix._.app = app;
+                    }
+                    else
+                        error(`app for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
                 }
-                else
-                    error(`app for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
             }
+            exports.glob.hosts.push(host);
         }
     }
 }
@@ -75,7 +81,7 @@ async function reload(cn) {
     await loadAuditTypes();
     await initializeEnums();
     await initializePackages();
-    await initHosts();
+    await loadHosts();
     await initializeRoles();
     await initializeEntities();
     exports.glob.suspendService = false;
@@ -853,31 +859,32 @@ async function loadAuditTypes() {
     log('loadAuditTypes ...');
     exports.glob.auditTypes = await get({ db: types_1.Constants.sysDb }, types_1.Objects.auditTypes);
 }
-function getEnabledPackages() {
-    return exports.glob.systemConfig.packages.filter(pack => pack.enabled).map(pack => pack.name);
-}
 async function loadPackagesInfo() {
-    for (const pack of getEnabledPackages()) {
+    for (const pack of exports.glob.systemConfig.packages) {
         try {
             exports.glob.packageInfo[pack] = require(getAbsolutePath('./' + pack, `package.json`));
         }
         catch (ex) {
             error(`Loading package.json for package '${pack}' failed: ${ex.message}`);
-            exports.glob.systemConfig.packages.find(p => p.name == pack).enabled = false;
+            exports.glob.systemConfig.packages.splice(exports.glob.systemConfig.packages.indexOf(pack), 1);
         }
     }
 }
 async function loadSystemConfig() {
     if (!process.env.DB_ADDRESS)
         fatal("Environment variable 'DB_ADDRESS' is needed.");
+    if (!process.env.MS_NAME)
+        fatal("Environment variable 'MS_NAME' is needed.");
     try {
         let dbc = await mongodb_1.MongoClient.connect(process.env.DB_ADDRESS, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
             poolSize: types_1.Constants.mongodbPoolSize
         });
-        let collection = dbc.db(types_1.Constants.sysDb).collection(types_1.Objects.systemConfig);
+        let collection = dbc.db(process.env.MS_NAME).collection(types_1.Objects.systemConfig);
         exports.glob.systemConfig = await collection.findOne({});
+        exports.glob.systemConfig.clients = exports.glob.systemConfig.clients || [];
+        exports.glob.systemConfig.clients.unshift(process.env.MS_NAME);
     }
     catch (ex) {
         fatal("Error connecting to the database: " + ex.message);
@@ -890,11 +897,6 @@ function applyAmazonConfig() {
 async function loadPackageSystemCollections(db) {
     log(`Loading system collections db '${db}' ...`);
     let cn = { db };
-    let hosts = await get(cn, types_1.Objects.hosts);
-    for (const host of hosts) {
-        host._ = { db };
-        exports.glob.hosts.push(host);
-    }
     let objects = await get(cn, types_1.Objects.objects);
     for (const object of objects) {
         object._ = { db };
@@ -940,9 +942,6 @@ function onlyUnique(value, index, self) {
     return self.indexOf(value) === index;
 }
 exports.onlyUnique = onlyUnique;
-function enabledDbs() {
-    return exports.glob.systemConfig.dbs.filter(db => db.enabled).map(db => db.name);
-}
 async function loadSystemCollections() {
     exports.glob.entities = [];
     exports.glob.dictionary = {};
@@ -950,8 +949,8 @@ async function loadSystemCollections() {
     exports.glob.roles = [];
     exports.glob.drives = [];
     exports.glob.apps = [];
-    exports.glob.hosts = [];
-    for (const db of enabledDbs()) {
+    let dbs = [...exports.glob.systemConfig.services, ...exports.glob.systemConfig.clients];
+    for (const db of dbs) {
         try {
             await loadPackageSystemCollections(db);
         }
@@ -1050,13 +1049,13 @@ function templateRender(pack, template) {
     }
 }
 function initializePackages() {
-    log(`initializePackages: ${exports.glob.systemConfig.packages.map(p => p.name).join(' , ')}`);
+    log(`initializePackages: ${exports.glob.systemConfig.packages.join(' , ')}`);
     let sysTemplateRender = templateRender(types_1.Constants.sysDb, types_1.Constants.DEFAULT_APP_TEMPLATE);
-    for (const db of enabledDbs()) {
+    let dbs = [...exports.glob.systemConfig.services, ...exports.glob.systemConfig.clients];
+    for (const db of dbs) {
         let config = exports.glob.appConfig[db];
         if (!config) {
             error(`appConfig for db '${db}' is empty!`);
-            exports.glob.systemConfig.dbs.find(d => d.name == db).enabled = false;
             continue;
         }
         for (const app of (config.apps || [])) {
@@ -1197,7 +1196,7 @@ async function initializeEnums() {
     log('initializeEnums ...');
     exports.glob.enums = [];
     exports.glob.enumTexts = {};
-    for (const db of enabledDbs()) {
+    for (const db of exports.glob.systemConfig.services) {
         let enums = await get({ db }, types_1.Objects.enums);
         for (const theEnum of enums) {
             theEnum._ = { db };
@@ -1231,7 +1230,8 @@ async function initializeEntities() {
     for (const obj of allObjs) {
         await initObject(obj);
     }
-    for (const db of enabledDbs()) {
+    let dbs = [...exports.glob.systemConfig.services, ...exports.glob.systemConfig.clients];
+    for (const db of dbs) {
         let config = exports.glob.appConfig[db];
         let obj = findObject(db, types_1.Objects.appConfig);
         await makeObjectReady({ db }, obj.properties, config);
