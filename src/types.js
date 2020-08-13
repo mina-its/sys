@@ -474,7 +474,6 @@ var Objects;
     Objects["users"] = "users";
     Objects["projects"] = "projects";
     Objects["userCustomizations"] = "userCustomizations";
-    Objects["tasks"] = "tasks";
     Objects["devConfig"] = "devConfig";
     Objects["dictionary"] = "dictionary";
     Objects["auditTypes"] = "auditTypes";
@@ -602,7 +601,7 @@ class AppStateConfig {
         this.appLocales = [];
         this.interactive = false;
         this.menu = [];
-        this.navmenu = [];
+        this.headerMenu = false;
     }
 }
 exports.AppStateConfig = AppStateConfig;
@@ -664,6 +663,9 @@ class Context {
 }
 exports.Context = Context;
 class AjaxConfig {
+    constructor() {
+        this.showProgress = false;
+    }
 }
 exports.AjaxConfig = AjaxConfig;
 class NotificationInfo {
@@ -724,84 +726,9 @@ exports.SysDashboardInfo = SysDashboardInfo;
 class UserProfile {
 }
 exports.UserProfile = UserProfile;
-var TaskStatus;
-(function (TaskStatus) {
-    TaskStatus[TaskStatus["Todo"] = 1] = "Todo";
-    TaskStatus[TaskStatus["Doing"] = 2] = "Doing";
-    TaskStatus[TaskStatus["Done"] = 3] = "Done";
-    TaskStatus[TaskStatus["OnHold"] = 4] = "OnHold";
-    TaskStatus[TaskStatus["Verify"] = 5] = "Verify";
-})(TaskStatus = exports.TaskStatus || (exports.TaskStatus = {}));
-var TaskPriority;
-(function (TaskPriority) {
-    TaskPriority[TaskPriority["Urgent"] = 1] = "Urgent";
-    TaskPriority[TaskPriority["High"] = 2] = "High";
-    TaskPriority[TaskPriority["Normal"] = 3] = "Normal";
-    TaskPriority[TaskPriority["Low"] = 4] = "Low";
-})(TaskPriority = exports.TaskPriority || (exports.TaskPriority = {}));
-var TaskLogType;
-(function (TaskLogType) {
-    TaskLogType[TaskLogType["Edit"] = 1] = "Edit";
-})(TaskLogType = exports.TaskLogType || (exports.TaskLogType = {}));
-var TaskReminder;
-(function (TaskReminder) {
-    TaskReminder[TaskReminder["m0"] = 1] = "m0";
-    TaskReminder[TaskReminder["m5"] = 2] = "m5";
-    TaskReminder[TaskReminder["m15"] = 3] = "m15";
-    TaskReminder[TaskReminder["h1"] = 4] = "h1";
-    TaskReminder[TaskReminder["h2"] = 5] = "h2";
-    TaskReminder[TaskReminder["d0"] = 6] = "d0";
-    TaskReminder[TaskReminder["d1"] = 7] = "d1";
-    TaskReminder[TaskReminder["d2"] = 8] = "d2";
-})(TaskReminder = exports.TaskReminder || (exports.TaskReminder = {}));
-class TaskDueDate {
-}
-exports.TaskDueDate = TaskDueDate;
-class Task {
-}
-exports.Task = Task;
-class Project {
-}
-exports.Project = Project;
-var TaskView;
-(function (TaskView) {
-    TaskView[TaskView["Start"] = 1] = "Start";
-    TaskView[TaskView["Status"] = 2] = "Status";
-    TaskView[TaskView["DueDate"] = 3] = "DueDate";
-    TaskView[TaskView["Assignee"] = 4] = "Assignee";
-    TaskView[TaskView["Priority"] = 5] = "Priority";
-    TaskView[TaskView["Project"] = 6] = "Project";
-    TaskView[TaskView["Category"] = 8] = "Category";
-    TaskView[TaskView["MileStone"] = 9] = "MileStone";
-    TaskView[TaskView["Grid"] = 10] = "Grid";
-})(TaskView = exports.TaskView || (exports.TaskView = {}));
-var TaskInboxGroup;
-(function (TaskInboxGroup) {
-    TaskInboxGroup[TaskInboxGroup["Brainstorm"] = 1] = "Brainstorm";
-    TaskInboxGroup[TaskInboxGroup["Todo"] = 2] = "Todo";
-    TaskInboxGroup[TaskInboxGroup["Doing"] = 3] = "Doing";
-    TaskInboxGroup[TaskInboxGroup["Urgent"] = 4] = "Urgent";
-    TaskInboxGroup[TaskInboxGroup["Overdue"] = 5] = "Overdue";
-    TaskInboxGroup[TaskInboxGroup["Favorite"] = 6] = "Favorite";
-})(TaskInboxGroup = exports.TaskInboxGroup || (exports.TaskInboxGroup = {}));
 class UserCustomization {
 }
 exports.UserCustomization = UserCustomization;
-class ProjectView {
-    constructor() {
-        this.concern = TaskView.Start;
-        this.project = null;
-        this.coloring = null;
-        this.calendarOffset = 0;
-        this.filter = {
-            statuses: null
-        };
-    }
-}
-exports.ProjectView = ProjectView;
-class GetTaskDto {
-}
-exports.GetTaskDto = GetTaskDto;
 class Feedback {
 }
 exports.Feedback = Feedback;
