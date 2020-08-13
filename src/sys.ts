@@ -1,3 +1,5 @@
+import * as Url from "url";
+
 let index = {
     "Start                                              ": reload,
     "Load Packages package.json file                    ": loadPackagesInfo,
@@ -12,6 +14,7 @@ let index = {
 };
 
 
+import qs = require('qs');
 import logger = require('winston');
 import https = require('https');
 import mongodb = require('mongodb');
@@ -28,7 +31,7 @@ import sourceMapSupport = require('source-map-support');
 import ejs = require('ejs');
 import AWS = require('aws-sdk');
 import rimraf = require("rimraf");
-import {ID} from 'bson-util';
+import {ID, stringify} from 'bson-util';
 import {promises as fsAsync} from "fs";
 import {MongoClient, ObjectId} from 'mongodb';
 import maxmind, {CountryResponse} from 'maxmind';
@@ -86,7 +89,14 @@ import {
     SystemProperty,
     Text,
     UploadedFile,
-    UserCustomization,
+    ObjectViewType,
+    AccessPermission,
+    User,
+    AccessItem,
+    EntityLink,
+    ObjectDec,
+    Access,
+    ReqParams,
 } from './types';
 
 const nodemailer = require('nodemailer');
@@ -100,7 +110,7 @@ async function loadHosts() {
     glob.hosts = [];
 
     for (const client of glob.systemConfig.clients) {
-        let hosts: Host[] = await get({db: client, locale: Locale.en}, Objects.hosts);
+        let hosts: Host[] = await get({db: client}, Objects.hosts);
         for (const host of hosts) {
             assert(host.prefixes && host.prefixes.length, `Prefixes for host '${host.address}' must be configured.`);
 
@@ -325,7 +335,7 @@ export async function getOne(cn: Context, objectName: string) {
     return get(cn, objectName, {count: 1});
 }
 
-async function getCollection(cn: Context, objectName: string) {
+export async function getCollection(cn: Context, objectName: string) {
     let db = await dbConnection(cn);
     return db.collection(objectName);
 }
@@ -1178,7 +1188,7 @@ export async function downloadLogFiles(cn: Context) {
     archive.directory(logDir, false);
     archive.finalize();
     await new Promise(resolve => archive.pipe(stream).on("finish", resolve));
-    cn.res = cn.res || {};
+    cn.res = cn.res || {} as any;
     cn.res.redirect = `/@default/temp/${fileName}`;
 }
 
@@ -1564,7 +1574,7 @@ function compareParentProperties(properties: Property[], parentProperties: Prope
             try {
                 let propertyParentObject = findEntity(property.type) as mObject;
                 if (!propertyParentObject) {
-                    error(`(HandleSimilarProperty) Object '${property.type}' not found as property ${property.title} reference.`);
+                    error(`(HandleSimilarProperty) Property '${entity.name}.${property.name}' type not found!`);
                     continue;
                 }
 
@@ -1957,7 +1967,7 @@ async function getInnerPropertyReferenceValues(cn: Context, foreignObj: mObject,
 
     let val = instance ? instance[prop.dependsOn] : null;
     if (!val) return [];
-    let result = await get({db, locale: cn.locale}, foreignObj.name, {itemId: val});
+    let result = await get({db}, foreignObj.name, {itemId: val});
     if (!result) return [];
 
     let foreignProp = foreignObj.properties.find(p => p.name == prop.foreignProperty);
@@ -2395,41 +2405,473 @@ export async function hashPassword(password: string): Promise<string> {
     });
 }
 
-export async function getUserCustomization(cn: Context): Promise<UserCustomization> {
-    let customize: UserCustomization = await get(cn, Objects.userCustomizations, {query: {user: cn.user._id}, count: 1});
-    if (!customize) {
-        customize = {user: cn.user._id, time: new Date()} as UserCustomization;
-        let result = await put(cn, Objects.userCustomizations, customize);
-        customize._id = result.itemId;
-    }
-    return customize;
-}
+export function getPortionProperties(cn: Context, obj: mObject, portion: RefPortion, data, viewType: ObjectViewType): Property[] {
+    let props: Property[];
+    switch (portion.type) {
+        case RefPortionType.entity:
+            props = _.cloneDeep(obj.properties);
+            break;
 
-export async function deleteUserCustomization(cn: Context, property: string, itemID: ID) {
-    let collection = await getCollection(cn, Objects.userCustomizations);
-    let filter = {user: cn.user._id} as any;
-    let command = {$pull: {}} as any;
-    command.$pull[property] = {_id: itemID};
-    let result = await collection.updateOne(filter, command);
-    return result.modifiedCount == 1;
-}
+        case RefPortionType.item:
+            return getPortionProperties(cn, obj, portion.pre, data, viewType);
 
-export async function saveUserCustomization(cn: Context, property: string, item: any) {
-    let collection = await getCollection(cn, Objects.userCustomizations);
-    let command = {} as any;
-    let filter = {user: cn.user._id} as any;
-
-    if (item._new) {
-        delete item._new;
-        command.$addToSet = {};
-        command.$addToSet[property] = item;
-    } else {
-        command.$set = {};
-        command.$set[property + ".$"] = item;
-        filter[property + "._id"] = item._id;
-        // options = {arrayFilters: [{item: item._id}]} as any;
+        case RefPortionType.property:
+            props = _.cloneDeep(portion.property.properties);
+            break;
     }
 
-    let result = await collection.updateOne(filter, command);
-    return result.modifiedCount == 1;
+    return filterAndSortProperties(cn, props, true, _.isArray(data), viewType);
+}
+
+export function filterAndSortProperties(cn: Context, properties: Property[], root: boolean, gridView: boolean, viewType: ObjectViewType): Property[] {
+    if (!properties || !properties.length) return properties;
+
+    let result = properties.filter(p => p.viewMode !== PropertyViewMode.Hidden);
+    if (viewType != ObjectViewType.TreeView && gridView)
+        result = result.filter(p => {
+            return p.viewMode !== PropertyViewMode.DetailViewVisible &&
+                p.type &&
+                (!p.text || !p.text.password) &&
+                (p._.gtype != GlobalType.object) &&  // Access  || !p.isList
+                (p.referType != PropertyReferType.inlineData || !p._.isRef || glob.enums[getEntityName(p.type)]) &&
+                (root || !(p.isList && p.properties && p.properties.length > 0));
+        });
+
+    if (viewType != ObjectViewType.TreeView)
+        result = result.filter(p => checkPropertyPermission(p, cn.user) != AccessPermission.None);
+
+    result = _.sortBy(result, "_z");
+
+    for (const prop of result) {
+        if (prop._.sorted) continue;
+        prop._.sorted = true;
+
+        if (prop.properties)
+            prop.properties = filterAndSortProperties(cn, prop.properties, false, prop.isList, viewType);
+    }
+
+    return result;
+}
+
+function checkPropertyPermission(property: Property, user: User): AccessPermission {
+    try {
+        if (!property.access)
+            return AccessPermission.Full;
+
+        //sys.info(`Property ${property.Name}`);
+
+        let permission = property.access.defaultPermission || AccessPermission.None;
+
+        if (user && property.access && property.access.items) {
+            property.access.items.forEach(function (access: AccessItem) {
+                if (user._id.equals(access.user)) {
+                    permission = access.permission;
+                }
+                if (access.role && _.some(user.roles, function (g) {
+                    return access.role.equals(g);
+                })) {
+                    permission = access.permission;
+                }
+            });
+        }
+
+        if (!permission && !property.access.items)
+            permission = AccessPermission.Full;
+
+        //sys.info(`Permission ${permission}`);
+
+        return permission as AccessPermission;
+    } catch (ex) {
+        error("checkPropertyPermission", ex);
+        return AccessPermission.None;
+    }
+}
+
+export async function createDeclare(cn: Context, ref: string, properties: Property[], data: any, partial, obj: mObject, links: EntityLink[]): Promise<ObjectDec> {
+    let dec = {
+        ref,
+        properties: _.cloneDeep(properties),
+        pages: cn.pages,
+        count: cn.count,
+        page: cn.page,
+        comment: $t(cn, obj.comment),
+        access: cn["access"],
+        links,
+        rowHeaderStyle: obj.rowHeaderStyle,
+        reorderable: obj.reorderable,
+    } as ObjectDec;
+
+    let portion = cn.portions[cn.portions.length - 1];
+    if (portion.type == RefPortionType.entity && obj.newItemMode)
+        dec.newItemMode = obj.newItemMode;
+
+    if (obj.detailsViewType)
+        dec.detailsViewType = obj.detailsViewType;
+
+    if (obj.listsViewType)
+        dec.listsViewType = obj.listsViewType;
+
+    if (Array.isArray(data) && cn["pages"] && cn.portions.length == 1) // When it is not a direct GET, cn.pages would be empty
+        dec.pageLinks = getPageLinks(cn, dec.ref);
+
+    for (const prop of dec.properties) {
+        await preparePropertyDeclare(cn, ref, prop, data, partial, dec.access);
+    }
+
+    await handleObjectDeclareFilter(obj, cn, ref, dec);
+    return dec;
+}
+
+async function handleObjectDeclareFilter(obj: mObject, cn: Context, ref: string, dec: ObjectDec) {
+    if (obj._.filterObject) {
+        let filterProperties = _.cloneDeep(obj._.filterObject.properties.filter(p => p.viewMode != PropertyViewMode.Hidden));
+
+        let filterData;
+        if (cn.query)
+            filterData = cn.query;
+        else {
+            filterData = {};
+            await applyPropertiesDefaultValue(cn, filterData, filterProperties);
+        }
+
+        for (const prop of filterProperties) {
+            await preparePropertyDeclare(cn, ref, prop, filterData, false, dec.access);
+            if (filterData[prop.name] == undefined)
+                filterData[prop.name] = null;
+        }
+
+        dec.filterDec = {properties: filterProperties};
+        dec.filterData = filterData;
+    }
+}
+
+export async function applyPropertiesDefaultValue(cn: Context, instance: any, properties: Property[]) {
+    if (!properties) return;
+    for (let property of properties) {
+        if (property.defaultValue != null) {
+            if (instance[property.name] == null) {
+                let value = getPropertySpecialValue(cn, property, property.defaultValue);
+                if (value != null) instance[property.name] = value;
+            }
+        } else if (property.number && property.number.autoIncrement && !instance[property.name]) {
+            if (property._.sequence == null)
+                property._.sequence = await max(cn, (cn["entity"] as mObject).name, property.name) || property.number.seed || 1;
+            instance[property.name] = ++property._.sequence;
+        } else if (property.properties) {
+            let val = {};
+            await applyPropertiesDefaultValue(cn, val, property.properties);
+            if (!_.isEmpty(val))
+                instance[property.name] = val;
+        }
+    }
+}
+
+function getPropertySpecialValue(cn: Context, property: Property, value: string) {
+    if (!value || !property.type)
+        return value;
+
+    if (property._.isRef) {
+        if (value == "_new_")
+            return new ObjectId();
+        else if (value == "_user_")
+            return cn.user ? cn.user._id : null;
+    } else if (property.type.toString() === PType.time) {
+        switch (value.toLowerCase()) {
+            case "_now_": {
+                let now = new Date();
+                return now;
+            }
+
+            case "_today_":
+                let now = new Date();
+                return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+            case "_tomorrow_":
+                now = new Date();
+                return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        }
+    }
+
+    return getPropertyTypedValue(property, value);
+}
+
+export function getPageLinks(cn: Context, ref: string) {
+    let start = Math.max(2, cn.page - 1);
+    let end = Math.min(cn.pages - 1, cn.page + 3);
+    let list = [];
+    list.push(1);
+    if (start == 3)
+        list.push(2);
+    else if (start > 2)
+        list.push(0); // ...
+
+    for (let i = start; i <= end; i++)
+        list.push(i);
+
+    if (start < cn.pages - 1 && end < cn.pages - 1)
+        list.push(0); // ...
+
+    list.push(cn.pages);
+    let result = [];
+
+    let url = Url.parse(ref);
+    let search = qs.parse(_.trim(url.search, '?'));
+    if (cn.query) search.q = stringify(cn.query, true);
+
+    for (let i = 0; i < list.length; i++) {
+        if (list[i] != 1) search.p = list[i].toString();
+        if (list[i])
+            result.push({
+                title: list[i].toString(),
+                active: list[i] == cn.page,
+                ref: prepareUrl(cn, url.pathname + "?" + qs.stringify(search))
+            });
+        else
+            result.push({
+                title: "...",
+                ref: "javascript:;"
+            });
+    }
+    return result;
+}
+
+function stringifySortUri(sort: any): string {
+    let parts = [];
+    for (const key in sort) {
+        if (sort[key] === 1)
+            parts.push(key);
+        else
+            parts.push("-" + key);
+    }
+    return parts.join(';');
+}
+
+export function prepareUrl(cn: Context, ref: string): string {
+    if (!ref) return ref;
+    ref = _.trim(ref, "?");
+    let separator = ref.indexOf('?') == -1 ? "?" : "&";
+    let search = [];
+    if (cn.locale !== cn["app"].defaultLocale)
+        search.push(`${ReqParams.locale}=${Locale[cn.locale]}`);
+    if (cn.sort)
+        search.push(`${ReqParams.sort}=${stringifySortUri(cn.sort)}`);
+    let url = "/" + ref + (search.join("&") ? separator : "") + search.join("&");
+    if (cn.prefix)
+        url = `/${cn.prefix}${url}`;
+    return url;
+}
+
+function getPropertyRef(prop: Property, parentRef: string) {
+    return parentRef + "/" + prop.name;
+}
+
+export async function preparePropertyDeclare(cn: Context, ref: string, prop: Property, instance: any, partial: boolean, parentAccess: AccessPermission) {
+    if (prop._.ref) return;
+
+    prop._.ref = getPropertyRef(prop, ref);
+    // todo: preparePropertyDeclare instance needs to improve
+    instance = (cn.res.data ? cn.res.data[prop._.ref] : null) || instance; // when property has subproperty its value already deleted from instance and is put in cn.res.data
+    prop.title = $t(cn, prop.title);
+    let group = $t(cn, prop.group) || (prop._.gtype == GlobalType.object ? prop.title : $t(cn, "prop-public-group", true));
+    prop.group = $t(cn, group);
+    if (prop.links && prop.links.length) prop.links = makeLinksReady(cn, ref, instance, prop.links);
+
+    if (prop._.gtype == GlobalType.object)
+        await prepareObjectPropertyDeclare(cn, ref, prop, instance, partial, parentAccess);
+    else {
+        prop.editMode = getPropertyEditMode(cn, prop);
+        prop.comment = $t(cn, prop.comment);
+
+        if (prop._.isRef) {
+            let items = await getPropertyReferenceValues(cn, prop, instance, null, null);
+            if (items) {
+                for (const item of items) {
+                    (item as any).hover = false; // because of vue-js state
+                }
+                prop._.items = items;
+            } else
+                prop._.items = [];
+        }
+    }
+}
+
+function getPropertyEditMode(cn: Context, prop: Property): PropertyEditMode {
+    if (prop.access && prop.access.defaultPermission) {
+        let editable = checkAccess(cn, prop.access) & AccessPermission.Edit;
+        if (!editable) return PropertyEditMode.Readonly;
+    }
+    return prop.editMode;
+}
+
+export function checkAccess(cn: Context, entityAccess: Access): AccessPermission {
+    if (!entityAccess) return AccessPermission.None;
+    let permission = (entityAccess.defaultPermission || AccessPermission.None) as AccessPermission;
+    if (!cn.user) return permission;
+
+    for (let accessItem of (entityAccess.items || [])) {
+        if (
+            (accessItem.user && cn.user._id.equals(accessItem.user)) ||
+            (accessItem.role && cn.user.roles && cn.user.roles.some(r => r.equals(accessItem.role)))
+        ) {
+            switch (accessItem.permission) {
+                case AccessPermission.Full:
+                    permission = AccessPermission.Full;
+                    break;
+
+                case AccessPermission.View:
+                    permission = permission | AccessPermission.View;
+                    break;
+
+                case AccessPermission.Edit:
+                    permission = permission | AccessPermission.View | AccessPermission.Edit;
+                    break;
+
+                case AccessPermission.NewItem:
+                    permission = permission | AccessPermission.View | AccessPermission.NewItem;
+                    break;
+
+                case AccessPermission.DeleteItem:
+                    permission = permission | AccessPermission.View | AccessPermission.DeleteItem;
+                    break;
+            }
+        }
+    }
+
+    return permission;
+}
+
+export function makeLinksReady(cn: Context, ref: string, data: any, links: EntityLink[]): EntityLink[] {
+    links = JSON.parse(JSON.stringify(links || []));
+
+    for (let link of links) {
+        if (link.condition && !evalExpression(data, link.condition))
+            link.disable = true;
+
+        link.title = $t(cn, link.title);
+        link.comment = $t(cn, link.comment);
+
+        if (typeof link.address != "string") {
+            error(`Link for ref '${ref}' invalid address`);
+            link.address = "";
+        } else {
+            let reg = /\{([\w\.]+)\}/g;
+            let result;
+            while ((result = reg.exec(link.address)) !== null) {
+                if (Array.isArray(data)) {
+                    link.disable = true;
+                    break;
+                }
+                let key = result[1];
+                switch (key) {
+                    case "id":
+                        link.address = link.address.replace(/\{id\}/g, data._id);
+                        break;
+
+                    case "ref":
+                        link.address = link.address.replace(/\{ref\}/g, ref);
+                        break;
+
+                    default:
+                        let reg = new RegExp(`\{${key}\}`, "g");
+                        link.address = link.address.replace(reg, data[key]);
+                        break;
+                }
+            }
+        }
+
+        if (!/^http/.test(link.address) && !/^\//.test(link.address))
+            link.address = "/" + link.address;
+    }
+    return links;
+}
+
+async function prepareObjectPropertyDeclare(cn: Context, ref: string, prop: Property, instance: any, partial: boolean, parentAccess: AccessPermission) {
+    if (prop.documentView) return;
+
+    let objectProp = _.cloneDeep(prop) as Property;
+    objectProp.properties = objectProp.properties || [];
+    if (partial) {
+        let propObjectDec = {
+            title: prop.title,
+            properties: objectProp.properties,
+            ref: prop._.ref,
+            access: parentAccess,
+            reorderable: objectProp.reorderable
+        } as ObjectDec;
+        if (objectProp.listsViewType) propObjectDec.listsViewType = objectProp.listsViewType;
+        if (cn.res.form)
+            cn.res.form.declarations[prop._.ref] = propObjectDec;
+        else
+            warn(`preparePropertyDeclare form is empty for set the declaration for property ${prop.name}`);
+    }
+
+    for (const subProp of objectProp.properties) {
+        subProp._.ref = null;
+        await preparePropertyDeclare(cn, prop._.ref, subProp, instance, partial, parentAccess);
+    }
+
+    Object.keys(prop).forEach(k => delete prop[k]);
+    prop.name = objectProp.name;
+    prop.title = objectProp.title;
+    if (!partial)
+        prop.properties = objectProp.properties;
+    prop.condition = objectProp.condition;
+    prop._ = {ref: objectProp._.ref, gtype: objectProp._.gtype};
+    prop.isList = objectProp.isList;
+    prop.group = objectProp.group || objectProp.title;
+    if (prop.isList) prop.referType = objectProp.referType;
+    if (objectProp.commentStyle) prop.commentStyle = objectProp.commentStyle;
+    if (objectProp.reorderable) prop.reorderable = objectProp.reorderable;
+    if (objectProp.listsViewType) prop.listsViewType = objectProp.listsViewType;
+    if (objectProp.filter) prop.filter = objectProp.filter;
+}
+
+function getPropertyTypedValue(prop: Property, value, ignoreArray?): any {
+    if (value === "" && prop.type.toString() != PType.text)
+        return null;
+
+    if (value == null || value === "" || !prop.type)
+        return value;
+
+    if (prop.isList && !ignoreArray)
+        return value.map(item => getPropertyTypedValue(prop, item, true));
+
+    if (prop.type.toString() == PType.file)
+        value._fsid = new ObjectId(value._fsid);
+
+    if (typeof value != "string") return value;
+
+    switch (prop.type.toString()) {
+        case PType.number:
+            if (prop.number && prop.number.float)
+                value = parseFloat(value);
+            else
+                value = parseInt(value);
+            if (isNaN(value))
+                throw "Invalid format for property " + prop.name;
+            return value;
+
+        case PType.boolean:
+            return value.toLowerCase() == "true" || value == "1";
+
+        case PType.id:
+            return new ObjectId(value);
+
+        case PType.time:
+            let date = parseDate(Locale.fa, value);
+            if (value && !date)
+                throw "Invalid date format for property " + prop.name;
+            return date;
+
+        default:
+            if (prop._.isRef) {
+                if (prop._.enum)
+                    return parseInt(value);
+                else if (Constants.objectIdRegex.test(value))
+                    return new ObjectId(value);
+                else
+                    return value == "0" ? null : value;
+            } else
+                return value;
+    }
 }

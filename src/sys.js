@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.saveUserCustomization = exports.deleteUserCustomization = exports.getUserCustomization = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getPackageInfo = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.checkPropertyGtype = exports.initializeRoles = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.extractRefPortions = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
+exports.makeLinksReady = exports.checkAccess = exports.preparePropertyDeclare = exports.prepareUrl = exports.getPageLinks = exports.applyPropertiesDefaultValue = exports.createDeclare = exports.filterAndSortProperties = exports.getPortionProperties = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getPackageInfo = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.checkPropertyGtype = exports.initializeRoles = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.extractRefPortions = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getCollection = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
+const Url = require("url");
 let index = {
     "Start                                              ": reload,
     "Load Packages package.json file                    ": loadPackagesInfo,
@@ -11,6 +12,7 @@ let index = {
     "patch                                              ": patch,
     "put                                                ": put,
 };
+const qs = require("qs");
 const logger = require("winston");
 const https = require("https");
 const mongodb = require("mongodb");
@@ -27,6 +29,7 @@ const sourceMapSupport = require("source-map-support");
 const ejs = require("ejs");
 const AWS = require("aws-sdk");
 const rimraf = require("rimraf");
+const bson_util_1 = require("bson-util");
 const fs_1 = require("fs");
 const mongodb_1 = require("mongodb");
 const maxmind_1 = require("maxmind");
@@ -41,7 +44,7 @@ const bcrypt = require('bcrypt');
 async function loadHosts() {
     exports.glob.hosts = [];
     for (const client of exports.glob.systemConfig.clients) {
-        let hosts = await get({ db: client, locale: types_1.Locale.en }, types_1.Objects.hosts);
+        let hosts = await get({ db: client }, types_1.Objects.hosts);
         for (const host of hosts) {
             assert(host.prefixes && host.prefixes.length, `Prefixes for host '${host.address}' must be configured.`);
             host._ = { db: client };
@@ -257,6 +260,7 @@ async function getCollection(cn, objectName) {
     let db = await dbConnection(cn);
     return db.collection(objectName);
 }
+exports.getCollection = getCollection;
 async function put(cn, objectName, data, options) {
     let collection = await getCollection(cn, objectName);
     data = data || {};
@@ -1372,7 +1376,7 @@ function compareParentProperties(properties, parentProperties, entity) {
             try {
                 let propertyParentObject = findEntity(property.type);
                 if (!propertyParentObject) {
-                    error(`(HandleSimilarProperty) Object '${property.type}' not found as property ${property.title} reference.`);
+                    error(`(HandleSimilarProperty) Property '${entity.name}.${property.name}' type not found!`);
                     continue;
                 }
                 if (!propertyParentObject._.inited)
@@ -1737,7 +1741,7 @@ async function getInnerPropertyReferenceValues(cn, foreignObj, db, prop, instanc
     let val = instance ? instance[prop.dependsOn] : null;
     if (!val)
         return [];
-    let result = await get({ db, locale: cn.locale }, foreignObj.name, { itemId: val });
+    let result = await get({ db }, foreignObj.name, { itemId: val });
     if (!result)
         return [];
     let foreignProp = foreignObj.properties.find(p => p.name == prop.foreignProperty);
@@ -2152,41 +2156,429 @@ async function hashPassword(password) {
     });
 }
 exports.hashPassword = hashPassword;
-async function getUserCustomization(cn) {
-    let customize = await get(cn, types_1.Objects.userCustomizations, { query: { user: cn.user._id }, count: 1 });
-    if (!customize) {
-        customize = { user: cn.user._id, time: new Date() };
-        let result = await put(cn, types_1.Objects.userCustomizations, customize);
-        customize._id = result.itemId;
+function getPortionProperties(cn, obj, portion, data, viewType) {
+    let props;
+    switch (portion.type) {
+        case types_1.RefPortionType.entity:
+            props = _.cloneDeep(obj.properties);
+            break;
+        case types_1.RefPortionType.item:
+            return getPortionProperties(cn, obj, portion.pre, data, viewType);
+        case types_1.RefPortionType.property:
+            props = _.cloneDeep(portion.property.properties);
+            break;
     }
-    return customize;
+    return filterAndSortProperties(cn, props, true, _.isArray(data), viewType);
 }
-exports.getUserCustomization = getUserCustomization;
-async function deleteUserCustomization(cn, property, itemID) {
-    let collection = await getCollection(cn, types_1.Objects.userCustomizations);
-    let filter = { user: cn.user._id };
-    let command = { $pull: {} };
-    command.$pull[property] = { _id: itemID };
-    let result = await collection.updateOne(filter, command);
-    return result.modifiedCount == 1;
-}
-exports.deleteUserCustomization = deleteUserCustomization;
-async function saveUserCustomization(cn, property, item) {
-    let collection = await getCollection(cn, types_1.Objects.userCustomizations);
-    let command = {};
-    let filter = { user: cn.user._id };
-    if (item._new) {
-        delete item._new;
-        command.$addToSet = {};
-        command.$addToSet[property] = item;
+exports.getPortionProperties = getPortionProperties;
+function filterAndSortProperties(cn, properties, root, gridView, viewType) {
+    if (!properties || !properties.length)
+        return properties;
+    let result = properties.filter(p => p.viewMode !== types_1.PropertyViewMode.Hidden);
+    if (viewType != types_1.ObjectViewType.TreeView && gridView)
+        result = result.filter(p => {
+            return p.viewMode !== types_1.PropertyViewMode.DetailViewVisible &&
+                p.type &&
+                (!p.text || !p.text.password) &&
+                (p._.gtype != types_1.GlobalType.object) &&
+                (p.referType != types_1.PropertyReferType.inlineData || !p._.isRef || exports.glob.enums[getEntityName(p.type)]) &&
+                (root || !(p.isList && p.properties && p.properties.length > 0));
+        });
+    if (viewType != types_1.ObjectViewType.TreeView)
+        result = result.filter(p => checkPropertyPermission(p, cn.user) != types_1.AccessPermission.None);
+    result = _.sortBy(result, "_z");
+    for (const prop of result) {
+        if (prop._.sorted)
+            continue;
+        prop._.sorted = true;
+        if (prop.properties)
+            prop.properties = filterAndSortProperties(cn, prop.properties, false, prop.isList, viewType);
     }
+    return result;
+}
+exports.filterAndSortProperties = filterAndSortProperties;
+function checkPropertyPermission(property, user) {
+    try {
+        if (!property.access)
+            return types_1.AccessPermission.Full;
+        let permission = property.access.defaultPermission || types_1.AccessPermission.None;
+        if (user && property.access && property.access.items) {
+            property.access.items.forEach(function (access) {
+                if (user._id.equals(access.user)) {
+                    permission = access.permission;
+                }
+                if (access.role && _.some(user.roles, function (g) {
+                    return access.role.equals(g);
+                })) {
+                    permission = access.permission;
+                }
+            });
+        }
+        if (!permission && !property.access.items)
+            permission = types_1.AccessPermission.Full;
+        return permission;
+    }
+    catch (ex) {
+        error("checkPropertyPermission", ex);
+        return types_1.AccessPermission.None;
+    }
+}
+async function createDeclare(cn, ref, properties, data, partial, obj, links) {
+    let dec = {
+        ref,
+        properties: _.cloneDeep(properties),
+        pages: cn.pages,
+        count: cn.count,
+        page: cn.page,
+        comment: $t(cn, obj.comment),
+        access: cn["access"],
+        links,
+        rowHeaderStyle: obj.rowHeaderStyle,
+        reorderable: obj.reorderable,
+    };
+    let portion = cn.portions[cn.portions.length - 1];
+    if (portion.type == types_1.RefPortionType.entity && obj.newItemMode)
+        dec.newItemMode = obj.newItemMode;
+    if (obj.detailsViewType)
+        dec.detailsViewType = obj.detailsViewType;
+    if (obj.listsViewType)
+        dec.listsViewType = obj.listsViewType;
+    if (Array.isArray(data) && cn["pages"] && cn.portions.length == 1)
+        dec.pageLinks = getPageLinks(cn, dec.ref);
+    for (const prop of dec.properties) {
+        await preparePropertyDeclare(cn, ref, prop, data, partial, dec.access);
+    }
+    await handleObjectDeclareFilter(obj, cn, ref, dec);
+    return dec;
+}
+exports.createDeclare = createDeclare;
+async function handleObjectDeclareFilter(obj, cn, ref, dec) {
+    if (obj._.filterObject) {
+        let filterProperties = _.cloneDeep(obj._.filterObject.properties.filter(p => p.viewMode != types_1.PropertyViewMode.Hidden));
+        let filterData;
+        if (cn.query)
+            filterData = cn.query;
+        else {
+            filterData = {};
+            await applyPropertiesDefaultValue(cn, filterData, filterProperties);
+        }
+        for (const prop of filterProperties) {
+            await preparePropertyDeclare(cn, ref, prop, filterData, false, dec.access);
+            if (filterData[prop.name] == undefined)
+                filterData[prop.name] = null;
+        }
+        dec.filterDec = { properties: filterProperties };
+        dec.filterData = filterData;
+    }
+}
+async function applyPropertiesDefaultValue(cn, instance, properties) {
+    if (!properties)
+        return;
+    for (let property of properties) {
+        if (property.defaultValue != null) {
+            if (instance[property.name] == null) {
+                let value = getPropertySpecialValue(cn, property, property.defaultValue);
+                if (value != null)
+                    instance[property.name] = value;
+            }
+        }
+        else if (property.number && property.number.autoIncrement && !instance[property.name]) {
+            if (property._.sequence == null)
+                property._.sequence = await max(cn, cn["entity"].name, property.name) || property.number.seed || 1;
+            instance[property.name] = ++property._.sequence;
+        }
+        else if (property.properties) {
+            let val = {};
+            await applyPropertiesDefaultValue(cn, val, property.properties);
+            if (!_.isEmpty(val))
+                instance[property.name] = val;
+        }
+    }
+}
+exports.applyPropertiesDefaultValue = applyPropertiesDefaultValue;
+function getPropertySpecialValue(cn, property, value) {
+    if (!value || !property.type)
+        return value;
+    if (property._.isRef) {
+        if (value == "_new_")
+            return new mongodb_1.ObjectId();
+        else if (value == "_user_")
+            return cn.user ? cn.user._id : null;
+    }
+    else if (property.type.toString() === types_1.PType.time) {
+        switch (value.toLowerCase()) {
+            case "_now_": {
+                let now = new Date();
+                return now;
+            }
+            case "_today_":
+                let now = new Date();
+                return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            case "_tomorrow_":
+                now = new Date();
+                return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        }
+    }
+    return getPropertyTypedValue(property, value);
+}
+function getPageLinks(cn, ref) {
+    let start = Math.max(2, cn.page - 1);
+    let end = Math.min(cn.pages - 1, cn.page + 3);
+    let list = [];
+    list.push(1);
+    if (start == 3)
+        list.push(2);
+    else if (start > 2)
+        list.push(0);
+    for (let i = start; i <= end; i++)
+        list.push(i);
+    if (start < cn.pages - 1 && end < cn.pages - 1)
+        list.push(0);
+    list.push(cn.pages);
+    let result = [];
+    let url = Url.parse(ref);
+    let search = qs.parse(_.trim(url.search, '?'));
+    if (cn.query)
+        search.q = bson_util_1.stringify(cn.query, true);
+    for (let i = 0; i < list.length; i++) {
+        if (list[i] != 1)
+            search.p = list[i].toString();
+        if (list[i])
+            result.push({
+                title: list[i].toString(),
+                active: list[i] == cn.page,
+                ref: prepareUrl(cn, url.pathname + "?" + qs.stringify(search))
+            });
+        else
+            result.push({
+                title: "...",
+                ref: "javascript:;"
+            });
+    }
+    return result;
+}
+exports.getPageLinks = getPageLinks;
+function stringifySortUri(sort) {
+    let parts = [];
+    for (const key in sort) {
+        if (sort[key] === 1)
+            parts.push(key);
+        else
+            parts.push("-" + key);
+    }
+    return parts.join(';');
+}
+function prepareUrl(cn, ref) {
+    if (!ref)
+        return ref;
+    ref = _.trim(ref, "?");
+    let separator = ref.indexOf('?') == -1 ? "?" : "&";
+    let search = [];
+    if (cn.locale !== cn["app"].defaultLocale)
+        search.push(`${types_1.ReqParams.locale}=${types_1.Locale[cn.locale]}`);
+    if (cn.sort)
+        search.push(`${types_1.ReqParams.sort}=${stringifySortUri(cn.sort)}`);
+    let url = "/" + ref + (search.join("&") ? separator : "") + search.join("&");
+    if (cn.prefix)
+        url = `/${cn.prefix}${url}`;
+    return url;
+}
+exports.prepareUrl = prepareUrl;
+function getPropertyRef(prop, parentRef) {
+    return parentRef + "/" + prop.name;
+}
+async function preparePropertyDeclare(cn, ref, prop, instance, partial, parentAccess) {
+    if (prop._.ref)
+        return;
+    prop._.ref = getPropertyRef(prop, ref);
+    instance = (cn.res.data ? cn.res.data[prop._.ref] : null) || instance;
+    prop.title = $t(cn, prop.title);
+    let group = $t(cn, prop.group) || (prop._.gtype == types_1.GlobalType.object ? prop.title : $t(cn, "prop-public-group", true));
+    prop.group = $t(cn, group);
+    if (prop.links && prop.links.length)
+        prop.links = makeLinksReady(cn, ref, instance, prop.links);
+    if (prop._.gtype == types_1.GlobalType.object)
+        await prepareObjectPropertyDeclare(cn, ref, prop, instance, partial, parentAccess);
     else {
-        command.$set = {};
-        command.$set[property + ".$"] = item;
-        filter[property + "._id"] = item._id;
+        prop.editMode = getPropertyEditMode(cn, prop);
+        prop.comment = $t(cn, prop.comment);
+        if (prop._.isRef) {
+            let items = await getPropertyReferenceValues(cn, prop, instance, null, null);
+            if (items) {
+                for (const item of items) {
+                    item.hover = false;
+                }
+                prop._.items = items;
+            }
+            else
+                prop._.items = [];
+        }
     }
-    let result = await collection.updateOne(filter, command);
-    return result.modifiedCount == 1;
 }
-exports.saveUserCustomization = saveUserCustomization;
+exports.preparePropertyDeclare = preparePropertyDeclare;
+function getPropertyEditMode(cn, prop) {
+    if (prop.access && prop.access.defaultPermission) {
+        let editable = checkAccess(cn, prop.access) & types_1.AccessPermission.Edit;
+        if (!editable)
+            return types_1.PropertyEditMode.Readonly;
+    }
+    return prop.editMode;
+}
+function checkAccess(cn, entityAccess) {
+    if (!entityAccess)
+        return types_1.AccessPermission.None;
+    let permission = (entityAccess.defaultPermission || types_1.AccessPermission.None);
+    if (!cn.user)
+        return permission;
+    for (let accessItem of (entityAccess.items || [])) {
+        if ((accessItem.user && cn.user._id.equals(accessItem.user)) ||
+            (accessItem.role && cn.user.roles && cn.user.roles.some(r => r.equals(accessItem.role)))) {
+            switch (accessItem.permission) {
+                case types_1.AccessPermission.Full:
+                    permission = types_1.AccessPermission.Full;
+                    break;
+                case types_1.AccessPermission.View:
+                    permission = permission | types_1.AccessPermission.View;
+                    break;
+                case types_1.AccessPermission.Edit:
+                    permission = permission | types_1.AccessPermission.View | types_1.AccessPermission.Edit;
+                    break;
+                case types_1.AccessPermission.NewItem:
+                    permission = permission | types_1.AccessPermission.View | types_1.AccessPermission.NewItem;
+                    break;
+                case types_1.AccessPermission.DeleteItem:
+                    permission = permission | types_1.AccessPermission.View | types_1.AccessPermission.DeleteItem;
+                    break;
+            }
+        }
+    }
+    return permission;
+}
+exports.checkAccess = checkAccess;
+function makeLinksReady(cn, ref, data, links) {
+    links = JSON.parse(JSON.stringify(links || []));
+    for (let link of links) {
+        if (link.condition && !evalExpression(data, link.condition))
+            link.disable = true;
+        link.title = $t(cn, link.title);
+        link.comment = $t(cn, link.comment);
+        if (typeof link.address != "string") {
+            error(`Link for ref '${ref}' invalid address`);
+            link.address = "";
+        }
+        else {
+            let reg = /\{([\w\.]+)\}/g;
+            let result;
+            while ((result = reg.exec(link.address)) !== null) {
+                if (Array.isArray(data)) {
+                    link.disable = true;
+                    break;
+                }
+                let key = result[1];
+                switch (key) {
+                    case "id":
+                        link.address = link.address.replace(/\{id\}/g, data._id);
+                        break;
+                    case "ref":
+                        link.address = link.address.replace(/\{ref\}/g, ref);
+                        break;
+                    default:
+                        let reg = new RegExp(`\{${key}\}`, "g");
+                        link.address = link.address.replace(reg, data[key]);
+                        break;
+                }
+            }
+        }
+        if (!/^http/.test(link.address) && !/^\//.test(link.address))
+            link.address = "/" + link.address;
+    }
+    return links;
+}
+exports.makeLinksReady = makeLinksReady;
+async function prepareObjectPropertyDeclare(cn, ref, prop, instance, partial, parentAccess) {
+    if (prop.documentView)
+        return;
+    let objectProp = _.cloneDeep(prop);
+    objectProp.properties = objectProp.properties || [];
+    if (partial) {
+        let propObjectDec = {
+            title: prop.title,
+            properties: objectProp.properties,
+            ref: prop._.ref,
+            access: parentAccess,
+            reorderable: objectProp.reorderable
+        };
+        if (objectProp.listsViewType)
+            propObjectDec.listsViewType = objectProp.listsViewType;
+        if (cn.res.form)
+            cn.res.form.declarations[prop._.ref] = propObjectDec;
+        else
+            warn(`preparePropertyDeclare form is empty for set the declaration for property ${prop.name}`);
+    }
+    for (const subProp of objectProp.properties) {
+        subProp._.ref = null;
+        await preparePropertyDeclare(cn, prop._.ref, subProp, instance, partial, parentAccess);
+    }
+    Object.keys(prop).forEach(k => delete prop[k]);
+    prop.name = objectProp.name;
+    prop.title = objectProp.title;
+    if (!partial)
+        prop.properties = objectProp.properties;
+    prop.condition = objectProp.condition;
+    prop._ = { ref: objectProp._.ref, gtype: objectProp._.gtype };
+    prop.isList = objectProp.isList;
+    prop.group = objectProp.group || objectProp.title;
+    if (prop.isList)
+        prop.referType = objectProp.referType;
+    if (objectProp.commentStyle)
+        prop.commentStyle = objectProp.commentStyle;
+    if (objectProp.reorderable)
+        prop.reorderable = objectProp.reorderable;
+    if (objectProp.listsViewType)
+        prop.listsViewType = objectProp.listsViewType;
+    if (objectProp.filter)
+        prop.filter = objectProp.filter;
+}
+function getPropertyTypedValue(prop, value, ignoreArray) {
+    if (value === "" && prop.type.toString() != types_1.PType.text)
+        return null;
+    if (value == null || value === "" || !prop.type)
+        return value;
+    if (prop.isList && !ignoreArray)
+        return value.map(item => getPropertyTypedValue(prop, item, true));
+    if (prop.type.toString() == types_1.PType.file)
+        value._fsid = new mongodb_1.ObjectId(value._fsid);
+    if (typeof value != "string")
+        return value;
+    switch (prop.type.toString()) {
+        case types_1.PType.number:
+            if (prop.number && prop.number.float)
+                value = parseFloat(value);
+            else
+                value = parseInt(value);
+            if (isNaN(value))
+                throw "Invalid format for property " + prop.name;
+            return value;
+        case types_1.PType.boolean:
+            return value.toLowerCase() == "true" || value == "1";
+        case types_1.PType.id:
+            return new mongodb_1.ObjectId(value);
+        case types_1.PType.time:
+            let date = parseDate(types_1.Locale.fa, value);
+            if (value && !date)
+                throw "Invalid date format for property " + prop.name;
+            return date;
+        default:
+            if (prop._.isRef) {
+                if (prop._.enum)
+                    return parseInt(value);
+                else if (types_1.Constants.objectIdRegex.test(value))
+                    return new mongodb_1.ObjectId(value);
+                else
+                    return value == "0" ? null : value;
+            }
+            else
+                return value;
+    }
+}
 //# sourceMappingURL=sys.js.map
