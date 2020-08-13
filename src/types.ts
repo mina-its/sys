@@ -3,14 +3,19 @@ import {ID} from 'bson-util';
 export {ID};
 
 export interface Context {
-    locale: Locale;
+    locale?: Locale;
     user?: User;
     sessionID?: string;
+    portions?: RefPortion[];
     db?: string;
+    sort?: any;
+    query?: any;
+    prefix?: string;
+    page?: number;
+    pages?: number;
+    count?: number;
     req?: any;
-    res?: {
-        redirect?: string;
-    };
+    res?: WebResponse;
     url?: URL;
 }
 
@@ -964,8 +969,6 @@ export enum FileType {
 export enum Objects {
     audits = "audits",
     users = "users",
-    projects = "projects",
-    userCustomizations = "userCustomizations",
     devConfig = "devConfig",
     dictionary = "dictionary",
     auditTypes = "auditTypes",
@@ -1061,6 +1064,7 @@ export enum GridRowHeaderStyle {
 export const Constants = {
     urlPortionApi: "api",
     referenceValuesLoadCount: 10,
+    objectIdRegex: /^(?=[a-f\d]{24}$)(\d+[a-f]|[a-f]+\d)/i,
     sysDb: "sys",
     titlePropertyName: "title",
     defaultAddress: "_default",
@@ -1225,12 +1229,6 @@ export enum YesNo {
     No = 2,
 }
 
-export class Context {
-    data?: any;
-    event?: any;
-    name?: string;
-}
-
 export class AjaxConfig {
     method?: WebMethod;
     showProgress?: boolean = false;
@@ -1359,13 +1357,6 @@ export class UserProfile {
     email: string;
 }
 
-
-export class UserCustomization {
-    _id: ID;
-    user: ID;
-    time: Date;
-    projectViews: ProjectView[];
-}
 
 export class Feedback {
     _id: ID;
