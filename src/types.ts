@@ -54,7 +54,7 @@ export class User {
     lastOffline: Date;
     time: Date;
     _: {
-        pack?: string;
+        db?: string;
         isOnline?: boolean;
         roles?: ID[];
     }
@@ -171,7 +171,7 @@ export class Function extends Entity implements IProperties {
 
 export class Form extends Entity {
     template: string;
-    keywords: string;
+    keywords: string[];
     changeFrequency: ChangeFrequency;
     breadcrumb: Pair[];
     publish: boolean;
@@ -529,7 +529,7 @@ export class App {
     defaultLocale: Locale;
     redirect: RedirectType;
     menu: ID;
-    navmenu: ID;
+    headerMenu: boolean;
     title: string;
     gridPageSize: number;
     addressRules: PackageAddressRule[];
@@ -549,7 +549,6 @@ export class App {
     _: {
         db?: string;
         menu?: Menu;
-        navmenu?: Menu;
         templateRender?: any;
     }
 }
@@ -635,22 +634,11 @@ export class AppConfig {
 }
 
 export class SystemConfig {
-    dbs: {
-        name: string;
-        enabled: boolean;
-    }[];
-    packages: {
-        name: string;
-        enabled: boolean;
-    }[];
+    services: string[];
+    packages: string[];
     drives: DriveConfig[];
+    clients: string[];
     sessionsPath: string;
-    google : {
-        clientId: string;
-        clientSecret: string;
-        callbackUrl:string;
-
-    }
 }
 
 export class PackageInfo {
@@ -978,7 +966,6 @@ export enum Objects {
     users = "users",
     projects = "projects",
     userCustomizations = "userCustomizations",
-    tasks = "tasks",
     devConfig = "devConfig",
     dictionary = "dictionary",
     auditTypes = "auditTypes",
@@ -1113,8 +1100,7 @@ export enum RequestMode {
 export class WebResponse implements IError {
     data: any;
     form: FormDto;
-    keywords: string;
-    openGraph;
+    keywords: string[];
     description: string;
     redirect: string;
     message: string;
@@ -1152,7 +1138,7 @@ export class AppStateConfig {
     };
     interactive: boolean = false;
     menu: MenuItem[] = [];
-    navmenu: MenuItem[] = [];
+    headerMenu: boolean = false;
     style: string;
 }
 
@@ -1247,6 +1233,7 @@ export class Context {
 
 export class AjaxConfig {
     method?: WebMethod;
+    showProgress?: boolean = false;
 }
 
 export class NotificationInfo {
@@ -1372,159 +1359,12 @@ export class UserProfile {
     email: string;
 }
 
-export enum TaskStatus {
-    Todo = 1,
-    Doing = 2,
-    Done = 3,
-    OnHold = 4,
-    Verify = 5,
-}
-
-export enum TaskPriority {
-    Urgent = 1,
-    High = 2,
-    Normal = 3,
-    Low = 4,
-}
-
-export enum TaskLogType {
-    Edit = 1,
-}
-
-export enum TaskReminder {
-    m0 = 1,
-    m5 = 2,
-    m15 = 3,
-    h1 = 4,
-    h2 = 5,
-    d0 = 6,
-    d1 = 7,
-    d2 = 8,
-}
-
-export class TaskDueDate {
-    _id: ID;
-    time: Date;
-    setTime?: boolean;
-    reminder?: TaskReminder;
-}
-
-export class Task {
-    _id: ID;
-    no: number;
-    title: string;
-    dueDates: TaskDueDate[];
-    description: string;
-    assignee: ID;
-    project: ID;
-    milestone: ID;
-    time: Date;
-    status: TaskStatus;
-    parent: ID;
-    priority: TaskPriority;
-    favorite: boolean;
-    collapse: boolean;
-    categories: string[];
-    archive: boolean;
-    comments: {
-        _id: ID;
-        time: Date;
-        user: ID;
-        content: string;
-        attachments?: mFile[];
-    }[];
-    logs: {
-        time: Date;
-        user: ID;
-        type: TaskLogType;
-    }[];
-    owner: ID;
-    _z: number;
-    _: {
-        multiPlace?: boolean;
-        dirty?: boolean;
-        dragging?: boolean;
-        color?: string;
-        bgColor?: string;
-        parent?: Task;
-    }
-}
-
-export class Project {
-    _id: ID;
-    title: string;
-    comment?: string;
-    createDate?: Date;
-    team?: {
-        user: ID,
-        editAccess: boolean;
-    }[];
-    categories: string[];
-    milestones: {
-        _id: ID,
-        title: string,
-        dueDate: Date,
-        objectives: string;
-    }[];
-}
-
-export enum TaskView {
-    Start = 1,
-    Status = 2,
-    DueDate = 3,
-    Assignee = 4,
-    Priority = 5,
-    Project = 6,
-    Category = 8,
-    MileStone = 9,
-    Grid = 10,
-}
-
-export enum TaskInboxGroup {
-    Brainstorm = 1,
-    Todo = 2,
-    Doing = 3,
-    Urgent = 4,
-    Overdue = 5,
-    Favorite = 6,
-}
 
 export class UserCustomization {
     _id: ID;
     user: ID;
     time: Date;
     projectViews: ProjectView[];
-}
-
-export class ProjectView {
-    _id: ID;
-    title: string;
-    concern: TaskView = TaskView.Start;
-    project: ID = null;
-    primary: boolean;
-    coloring: TaskView = null;
-    calendarOffset: number = 0;
-    filter: {
-        statuses?: number[];
-        priorities?: number[];
-        assignees?: ID[];
-        projects?: ID[];
-        milestones?: ID[];
-        categories?: string[];
-    } = {
-        statuses: null
-    }
-}
-
-export class GetTaskDto {
-    tasks: Task[];
-    views: ProjectView[];
-    favorites: ID[];
-    tasksDec: ObjectDec;
-    dueDatesDec: ObjectDec;
-    projects: Project[];
-    users: Pair[];
-    currentUser: ID;
 }
 
 export class Feedback {

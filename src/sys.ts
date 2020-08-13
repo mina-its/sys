@@ -44,7 +44,7 @@ import {
     DelOptions,
     DirFile,
     DirFileType,
-    Drive, DriveConfig,
+    Drive,
     Entity,
     EntityType,
     Enum,
@@ -96,27 +96,35 @@ export let glob = new Global();
 const fsPromises = fs.promises;
 const bcrypt = require('bcrypt');
 
-async function initHosts() {
-    for (const host of glob.hosts) {
-        assert(host.prefixes && host.prefixes.length, `Prefixes for host '${host.address}' must be configured.`);
+async function loadHosts() {
+    glob.hosts = [];
 
-        host.aliases = host.aliases || [];
-        for (let prefix of host.prefixes) {
-            prefix._ = {};
-            if (prefix.drive) {
-                let drive = glob.drives.find(d => d._id.equals(prefix.drive));
-                if (drive) {
-                    // drive._.uri = joinUri(host.address, prefix.prefix);
-                    prefix._.drive = drive;
-                } else
-                    error(`drive for prefix '${host.address}/${prefix.prefix}' not found!`);
-            } else if (prefix.app) {
-                let app = glob.apps.find(d => d._id.equals(prefix.app));
-                if (app) {
-                    prefix._.app = app;
-                } else
-                    error(`app for prefix '${host.address}/${prefix.prefix}' not found!`);
+    for (const client of glob.systemConfig.clients) {
+        let hosts: Host[] = await get({db: client, locale: Locale.en}, Objects.hosts);
+        for (const host of hosts) {
+            assert(host.prefixes && host.prefixes.length, `Prefixes for host '${host.address}' must be configured.`);
+
+            host._ = {db: client};
+            host.aliases = host.aliases || [];
+            for (let prefix of host.prefixes) {
+                prefix._ = {};
+                if (prefix.drive) {
+                    let drive = glob.drives.find(d => d._id.equals(prefix.drive));
+                    if (drive) {
+                        // drive._.uri = joinUri(host.address, prefix.prefix);
+                        prefix._.drive = drive;
+                    } else
+                        error(`drive for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
+                } else if (prefix.app) {
+                    let app = glob.apps.find(d => d._id.equals(prefix.app));
+                    if (app) {
+                        prefix._.app = app;
+                    } else
+                        error(`app for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
+                }
             }
+
+            glob.hosts.push(host);
         }
     }
 }
@@ -134,7 +142,7 @@ export async function reload(cn?: Context) {
     await loadAuditTypes();
     await initializeEnums();
     await initializePackages();
-    await initHosts();
+    await loadHosts();
     await initializeRoles();
     await initializeEntities();
 
@@ -985,12 +993,8 @@ async function loadAuditTypes() {
     glob.auditTypes = await get({db: Constants.sysDb} as Context, Objects.auditTypes);
 }
 
-function getEnabledPackages(): string[] {
-    return glob.systemConfig.packages.filter(pack => pack.enabled).map(pack => pack.name);
-}
-
 async function loadPackagesInfo() {
-    for (const pack of getEnabledPackages()) {
+    for (const pack of glob.systemConfig.packages) {
         try {
             glob.packageInfo[pack] = require(getAbsolutePath('./' + pack, `package.json`));
             // glob.packages[pack.name] = require(getAbsolutePath('./' + pack.name));
@@ -998,7 +1002,7 @@ async function loadPackagesInfo() {
             //     error(`Error loading package ${pack.name}!`);
         } catch (ex) {
             error(`Loading package.json for package '${pack}' failed: ${ex.message}`);
-            glob.systemConfig.packages.find(p => p.name == pack).enabled = false;
+            glob.systemConfig.packages.splice(glob.systemConfig.packages.indexOf(pack), 1);
         }
     }
 }
@@ -1007,6 +1011,9 @@ async function loadSystemConfig() {
     if (!process.env.DB_ADDRESS)
         fatal("Environment variable 'DB_ADDRESS' is needed.");
 
+    if (!process.env.MS_NAME)
+        fatal("Environment variable 'MS_NAME' is needed.");
+
     try {
         let dbc = await MongoClient.connect(process.env.DB_ADDRESS, {
             useNewUrlParser: true,
@@ -1014,8 +1021,12 @@ async function loadSystemConfig() {
             poolSize: Constants.mongodbPoolSize
         });
 
-        let collection = dbc.db(Constants.sysDb).collection(Objects.systemConfig);
+        let collection = dbc.db(process.env.MS_NAME).collection(Objects.systemConfig);
         glob.systemConfig = await collection.findOne({});
+
+        glob.systemConfig.clients = glob.systemConfig.clients || [];
+        glob.systemConfig.clients.unshift(process.env.MS_NAME);
+
     } catch (ex) {
         fatal("Error connecting to the database: " + ex.message);
     }
@@ -1029,12 +1040,6 @@ function applyAmazonConfig() {
 async function loadPackageSystemCollections(db: string) {
     log(`Loading system collections db '${db}' ...`);
     let cn = {db} as Context;
-
-    let hosts: Host[] = await get(cn, Objects.hosts);
-    for (const host of hosts) {
-        host._ = {db};
-        glob.hosts.push(host);
-    }
 
     let objects: mObject[] = await get(cn, Objects.objects);
     for (const object of objects) {
@@ -1089,10 +1094,6 @@ export function onlyUnique(value, index, self) {
     return self.indexOf(value) === index;
 }
 
-function enabledDbs() {
-    return glob.systemConfig.dbs.filter(db => db.enabled).map(db => db.name);
-}
-
 async function loadSystemCollections() {
     glob.entities = [];
     glob.dictionary = {};
@@ -1100,9 +1101,9 @@ async function loadSystemCollections() {
     glob.roles = [];
     glob.drives = [];
     glob.apps = [];
-    glob.hosts = [];
 
-    for (const db of enabledDbs()) {
+    let dbs = [...glob.systemConfig.services, ...glob.systemConfig.clients];
+    for (const db of dbs) {
         try {
             await loadPackageSystemCollections(db);
         } catch (err) {
@@ -1211,15 +1212,15 @@ function templateRender(pack, template) {
 }
 
 function initializePackages() {
-    log(`initializePackages: ${glob.systemConfig.packages.map(p => p.name).join(' , ')}`);
+    log(`initializePackages: ${glob.systemConfig.packages.join(' , ')}`);
 
     let sysTemplateRender = templateRender(Constants.sysDb, Constants.DEFAULT_APP_TEMPLATE);
 
-    for (const db of enabledDbs()) {
+    let dbs = [...glob.systemConfig.services, ...glob.systemConfig.clients];
+    for (const db of dbs) {
         let config = glob.appConfig[db];
         if (!config) {
             error(`appConfig for db '${db}' is empty!`);
-            glob.systemConfig.dbs.find(d => d.name == db).enabled = false;
             continue;
         }
 
@@ -1234,7 +1235,6 @@ function initializePackages() {
                 app._.templateRender = sysTemplateRender;
 
             if (app.menu) app._.menu = glob.menus.find(menu => menu._id.equals(app.menu));
-            if (app.navmenu) app._.navmenu = glob.menus.find(menu => menu._id.equals(app.navmenu));
 
             if (validateApp(db, app)) {
                 glob.apps.push(app);
@@ -1374,7 +1374,7 @@ export async function initializeEnums() {
     glob.enums = [];
     glob.enumTexts = {};
 
-    for (const db of enabledDbs()) {
+    for (const db of glob.systemConfig.services) {
         let enums: Enum[] = await get({db} as Context, Objects.enums);
         for (const theEnum of enums) {
             theEnum._ = {db};
@@ -1411,7 +1411,8 @@ async function initializeEntities() {
         await initObject(obj);
     }
 
-    for (const db of enabledDbs()) {
+    let dbs = [...glob.systemConfig.services, ...glob.systemConfig.clients];
+    for (const db of dbs) {
         let config = glob.appConfig[db];
         let obj = findObject(db, Objects.appConfig);
         await makeObjectReady({db} as Context, obj.properties, config);
