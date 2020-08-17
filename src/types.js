@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Flowchart = exports.FlowchartDeclaration = exports.FlowchartNodeDeclare = exports.FlowchartNode = exports.FlowchartNodeLink = exports.Feedback = exports.UserProfile = exports.SysDashboardInfo = exports.ApiDoc = exports.ApiDocEnum = exports.ApiDocSchema = exports.ApiDocProprty = exports.ApiDocBlock = exports.ApiDocOperation = exports.ApiDocParameter = exports.ReqParams = exports.FunctionDec = exports.ObjectDec = exports.EntityMeta = exports.NotificationInfo = exports.AjaxConfig = exports.YesNo = exports.ObjectListsViewType = exports.ObjectDetailsViewType = exports.ClientCommand = exports.DirFile = exports.Note = exports.DirFileType = exports.UnitTestObject = exports.WebMethod = exports.AppStateConfig = exports.WebResponse = exports.RequestMode = exports.EnvMode = exports.PropertyConditionBehavior = exports.Constants = exports.GridRowHeaderStyle = exports.PType = exports.SystemProperty = exports.SysAuditTypes = exports.Document = exports.DocumentDirectory = exports.DocumentDirectoryItem = exports.DocStatus = exports.Objects = exports.FileType = exports.RedirectType = exports.ReferType = exports.TimeFormat = exports.RefPortionType = exports.GlobalType = exports.PropertyReferType = exports.NewItemMode = exports.ChangeFrequency = exports.FunctionMode = exports.SourceType = exports.Locale = exports.Keys = exports.PropertyEditMode = exports.PropertyViewMode = exports.AccessPermission = exports.EntityType = exports.ElemType = exports.Orientation = exports.PanelType = exports.LinkType = exports.LogType = exports.UploadedFile = exports.StatusCode = exports.GetOptions = exports.DelOptions = exports.PatchOptions = exports.PutOptions = exports.Point = exports.GeoLocation = exports.RefPortion = exports.TimeZone = exports.Text = exports.mFile = exports.PackageAddressRule = exports.PackageType = exports.PackageInfo = exports.SystemConfig = exports.AppConfig = exports.EmailAccount = exports.SmsAccount = exports.MultilangText = exports.EnumItem = exports.Enum = exports.Host = exports.SystemConfigStaticPackage = exports.App = exports.TreePair = exports.Pair = exports.MenuItem = exports.Menu = exports.AccessItem = exports.Access = exports.ChartSeries = exports.ErrorObject = exports.Elem = exports.ObjectViewType = exports.EntityLink = exports.FunctionTestSample = exports.DriveConfig = exports.Drive = exports.Property = exports.ObjectModifyType = exports.SendSmsParams = exports.SendEmailParams = exports.EmailTemplateConfig = exports.ObjectModifyState = exports.FormDto = exports.Form = exports.Function = exports.mObject = exports.Entity = exports.Global = exports.TextEditor = exports.Country = exports.SmsProvider = exports.AuditType = exports.User = exports.Role = exports.AuditArgs = exports.ID = void 0;
+exports.Client = exports.Flowchart = exports.FlowchartDeclaration = exports.FlowchartNodeDeclare = exports.FlowchartNode = exports.FlowchartNodeLink = exports.Feedback = exports.UserProfile = exports.SysDashboardInfo = exports.ApiDoc = exports.ApiDocEnum = exports.ApiDocSchema = exports.ApiDocProprty = exports.ApiDocBlock = exports.ApiDocOperation = exports.ApiDocParameter = exports.ReqParams = exports.FunctionDec = exports.ObjectDec = exports.EntityMeta = exports.NotificationInfo = exports.AjaxConfig = exports.YesNo = exports.ObjectListsViewType = exports.ObjectDetailsViewType = exports.ClientCommand = exports.DirFile = exports.Note = exports.DirFileType = exports.UnitTestObject = exports.WebMethod = exports.AppStateConfig = exports.WebResponse = exports.RequestMode = exports.EnvMode = exports.PropertyConditionBehavior = exports.Constants = exports.GridRowHeaderStyle = exports.PType = exports.SystemProperty = exports.SysAuditTypes = exports.Document = exports.DocumentDirectory = exports.DocumentDirectoryItem = exports.DocStatus = exports.Objects = exports.ObjectIDs = exports.FileType = exports.RedirectType = exports.ReferType = exports.TimeFormat = exports.RefPortionType = exports.GlobalType = exports.PropertyReferType = exports.NewItemMode = exports.ChangeFrequency = exports.FunctionMode = exports.SourceType = exports.Locale = exports.Keys = exports.PropertyEditMode = exports.PropertyViewMode = exports.AccessPermission = exports.EntityType = exports.ElemType = exports.Orientation = exports.PanelType = exports.LinkType = exports.LogType = exports.UploadedFile = exports.StatusCode = exports.GetOptions = exports.DelOptions = exports.PatchOptions = exports.PutOptions = exports.Point = exports.GeoLocation = exports.RefPortion = exports.TimeZone = exports.Text = exports.mFile = exports.PackageAddressRule = exports.PackageInfo = exports.NodeConfig = exports.ClientConfig = exports.EmailAccount = exports.SmsAccount = exports.MultilangText = exports.EnumItem = exports.Enum = exports.Host = exports.App = exports.TreePair = exports.Pair = exports.MenuItem = exports.Menu = exports.AccessItem = exports.Access = exports.ChartSeries = exports.ErrorObject = exports.Elem = exports.ObjectViewType = exports.EntityLink = exports.FunctionTestSample = exports.DriveConfig = exports.Drive = exports.Property = exports.ObjectModifyType = exports.SendSmsParams = exports.SendEmailParams = exports.EmailTemplateConfig = exports.ObjectModifyState = exports.FormDto = exports.Form = exports.Function = exports.mObject = exports.Entity = exports.Global = exports.TextEditor = exports.Country = exports.SmsProvider = exports.AuditType = exports.User = exports.Role = exports.AuditArgs = exports.ID = void 0;
 const bson_util_1 = require("bson-util");
 Object.defineProperty(exports, "ID", { enumerable: true, get: function () { return bson_util_1.ID; } });
 class AuditArgs {
@@ -13,6 +13,7 @@ class User {
     constructor() {
         this.roles = [];
         this.disabled = false;
+        this.time = new Date();
     }
 }
 exports.User = User;
@@ -38,10 +39,10 @@ var TextEditor;
 })(TextEditor = exports.TextEditor || (exports.TextEditor = {}));
 class Global {
     constructor() {
-        this.dbs = {}; // any not mongodb.Db because of client side reference
+        this.dbs = {};
         this.countries = {};
         this.packageInfo = {};
-        this.appConfig = {};
+        this.clientConfig = {};
         this.clientQuestionCallbacks = {};
         this.suspendService = false;
     }
@@ -151,9 +152,6 @@ exports.TreePair = TreePair;
 class App {
 }
 exports.App = App;
-class SystemConfigStaticPackage {
-}
-exports.SystemConfigStaticPackage = SystemConfigStaticPackage;
 class Host {
 }
 exports.Host = Host;
@@ -172,20 +170,15 @@ exports.SmsAccount = SmsAccount;
 class EmailAccount {
 }
 exports.EmailAccount = EmailAccount;
-class AppConfig {
+class ClientConfig {
 }
-exports.AppConfig = AppConfig;
-class SystemConfig {
+exports.ClientConfig = ClientConfig;
+class NodeConfig {
 }
-exports.SystemConfig = SystemConfig;
+exports.NodeConfig = NodeConfig;
 class PackageInfo {
 }
 exports.PackageInfo = PackageInfo;
-var PackageType;
-(function (PackageType) {
-    PackageType["StaticWebsite"] = "static-website";
-    PackageType["Code"] = "code";
-})(PackageType = exports.PackageType || (exports.PackageType = {}));
 class PackageAddressRule {
 }
 exports.PackageAddressRule = PackageAddressRule;
@@ -271,7 +264,6 @@ var PanelType;
 (function (PanelType) {
     PanelType[PanelType["Stack"] = 1] = "Stack";
     PanelType[PanelType["Dock"] = 2] = "Dock";
-    // Grid = 3,
     PanelType[PanelType["Wrap"] = 4] = "Wrap";
     PanelType[PanelType["Flex"] = 5] = "Flex";
     PanelType[PanelType["Modal"] = 6] = "Modal";
@@ -470,6 +462,20 @@ var FileType;
     FileType[FileType["Csv"] = 2] = "Csv";
     FileType[FileType["Pdf"] = 3] = "Pdf";
 })(FileType = exports.FileType || (exports.FileType = {}));
+exports.ObjectIDs = {
+    users: "54985ac730c392589b16d3c3",
+    roles: "54985d4830c392589b16d3c5",
+    objects: "54a3c8d630c3a4889881b336",
+    apps: "5f36756d4547dff5188a5ebb",
+    dictionary: "549fcd25d3ca1b10fc490fcc",
+    functions: "54a51cefd3ca1b12e0e9374d",
+    hosts: "5e9b159b3ec11637ec8c3b02",
+    menus: "58e61fb7f2ace02e40cf2c94",
+    drives: "5e32f5a10207102778ce1f96",
+    forms: "54993f3430c33d6e6e9dd0d4",
+    enums: "5daa0b11e1635a1e6862baac",
+    clientConfig: "5e3c2de67447070638c9c0c1",
+};
 var Objects;
 (function (Objects) {
     Objects["audits"] = "audits";
@@ -484,8 +490,10 @@ var Objects;
     Objects["objects"] = "objects";
     Objects["functions"] = "functions";
     Objects["roles"] = "roles";
-    Objects["appConfig"] = "appConfig";
-    Objects["systemConfig"] = "systemConfig";
+    Objects["apps"] = "apps";
+    Objects["clientConfig"] = "clientConfig";
+    Objects["clients"] = "clients";
+    Objects["nodeConfig"] = "nodeConfig";
     Objects["hosts"] = "hosts";
     Objects["menus"] = "menus";
     Objects["drives"] = "drives";
@@ -549,12 +557,10 @@ var GridRowHeaderStyle;
     GridRowHeaderStyle[GridRowHeaderStyle["select"] = 2] = "select";
 })(GridRowHeaderStyle = exports.GridRowHeaderStyle || (exports.GridRowHeaderStyle = {}));
 exports.Constants = {
-    urlPortionApi: "api",
     referenceValuesLoadCount: 10,
     objectIdRegex: /^(?=[a-f\d]{24}$)(\d+[a-f]|[a-f]+\d)/i,
     sysDb: "sys",
     titlePropertyName: "title",
-    defaultAddress: "_default",
     indexProperty: "_z",
     amazonS3ApiVersion: "2006-03-01",
     ClassStyle_Object: "cs-obj",
@@ -742,4 +748,10 @@ exports.FlowchartDeclaration = FlowchartDeclaration;
 class Flowchart {
 }
 exports.Flowchart = Flowchart;
+class Client {
+    constructor() {
+        this.time = new Date();
+    }
+}
+exports.Client = Client;
 //# sourceMappingURL=types.js.map

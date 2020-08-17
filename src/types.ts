@@ -1,4 +1,5 @@
 import {ID} from 'bson-util';
+import {newID} from "./sys";
 
 export {ID};
 
@@ -8,6 +9,7 @@ export interface Context {
     sessionID?: string;
     portions?: RefPortion[];
     db?: string;
+    app?: App;
     sort?: any;
     query?: any;
     prefix?: string;
@@ -57,7 +59,7 @@ export class User {
     mobile: string;
     lastOnline: Date;
     lastOffline: Date;
-    time: Date;
+    time: Date = new Date();
     _: {
         db?: string;
         isOnline?: boolean;
@@ -101,10 +103,12 @@ export enum TextEditor {
 export class Global {
     postClientCommandCallback: (cn: Context, ...args: any[]) => void;
     dbs: { [packAndCs: string]: any } = {}; // any not mongodb.Db because of client side reference
-    systemConfig: SystemConfig;
+    dbsList: string[];
+    nodeConfig: NodeConfig;
+    clients: Client[];
     countries: { [code: string]: Country; } = {};
     packageInfo: { [pack: string]: PackageInfo; } = {};
-    appConfig: { [db: string]: AppConfig; } = {};
+    clientConfig: { [db: string]: ClientConfig; } = {};
     clientQuestionCallbacks: { [sessionId: string]: (answer: number | null) => void; } = {};
     rootDir: string;
     entities: Entity[];
@@ -126,6 +130,7 @@ export class Entity {
     _id: ID;
     title: string | MultilangText;
     name: string;
+    icon: string;
     comment: string | MultilangText;
     entityType: EntityType;
     access: Access;
@@ -147,6 +152,7 @@ export class mObject extends Entity implements IProperties {
     source: SourceType;
     rowHeaderStyle: GridRowHeaderStyle;
     reorderable: boolean;
+    serviceData: boolean;
     approximateCount: number;
     modified: ID;
     detailsViewType: ObjectDetailsViewType;
@@ -558,21 +564,16 @@ export class App {
     }
 }
 
-export class SystemConfigStaticPackage {
-    _id: ID;
-    name: string;
-    address: string;
-}
-
 export class Host {
     _id: ID;
     address: string;
     aliases: string[];
     prefixes: {
-        prefix: string;
-        app: ID;
-        drive: ID;
-        _: {
+        _id: ID;
+        prefix?: string;
+        app?: ID;
+        drive?: ID;
+        _?: {
             app?: App;
             drive?: Drive;
         }
@@ -626,10 +627,9 @@ export class EmailAccount {
     enabled: boolean;
 }
 
-export class AppConfig {
+export class ClientConfig {
     _id: ID;
     defaultPack: string;
-    apps: App[];
     emailAccounts: EmailAccount[];
     smsAccounts: SmsAccount[];
     emailVerificationTemplate: EmailTemplateConfig;
@@ -638,12 +638,10 @@ export class AppConfig {
     addressRules: PackageAddressRule[];
 }
 
-export class SystemConfig {
+export class NodeConfig {
     services: string[];
     packages: string[];
     drives: DriveConfig[];
-    clients: string[];
-    sessionsPath: string;
 }
 
 export class PackageInfo {
@@ -651,14 +649,8 @@ export class PackageInfo {
     repository: string;
     mina: {
         dependencies: [(pack: string) => string];
-        packageType: PackageType;
         version: string;
     }
-}
-
-export enum PackageType {
-    StaticWebsite = "static-website",
-    Code = "code"
 }
 
 export class PackageAddressRule {
@@ -966,6 +958,22 @@ export enum FileType {
     Pdf = 3,
 }
 
+export const ObjectIDs = {
+    users: "54985ac730c392589b16d3c3",
+    roles: "54985d4830c392589b16d3c5",
+    objects: "54a3c8d630c3a4889881b336",
+    apps: "5f36756d4547dff5188a5ebb",
+    dictionary: "549fcd25d3ca1b10fc490fcc",
+    functions: "54a51cefd3ca1b12e0e9374d",
+    hosts: "5e9b159b3ec11637ec8c3b02",
+    menus: "58e61fb7f2ace02e40cf2c94",
+    drives: "5e32f5a10207102778ce1f96",
+    forms: "54993f3430c33d6e6e9dd0d4",
+    enums: "5daa0b11e1635a1e6862baac",
+    clientConfig: "5e3c2de67447070638c9c0c1",
+}
+
+
 export enum Objects {
     audits = "audits",
     users = "users",
@@ -979,8 +987,10 @@ export enum Objects {
     objects = "objects",
     functions = "functions",
     roles = "roles",
-    appConfig = "appConfig",
-    systemConfig = "systemConfig",
+    apps = "apps",
+    clientConfig = "clientConfig",
+    clients = "clients",
+    nodeConfig = "nodeConfig",
     hosts = "hosts",
     menus = "menus",
     drives = "drives",
@@ -1062,12 +1072,10 @@ export enum GridRowHeaderStyle {
 }
 
 export const Constants = {
-    urlPortionApi: "api",
     referenceValuesLoadCount: 10,
     objectIdRegex: /^(?=[a-f\d]{24}$)(\d+[a-f]|[a-f]+\d)/i,
     sysDb: "sys",
     titlePropertyName: "title",
-    defaultAddress: "_default",
     indexProperty: "_z",
     amazonS3ApiVersion: "2006-03-01",
     ClassStyle_Object: "cs-obj",
@@ -1426,3 +1434,16 @@ export class Flowchart {
     }
 }
 
+
+export class Client {
+    _id: ID;
+    code: number;
+    name: string;
+    rootUser: ID;
+    rootEmail: string;
+    title: string;
+    time: Date = new Date();
+    _: {
+        db: string;
+    }
+}

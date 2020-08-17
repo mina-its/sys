@@ -33,12 +33,12 @@ import AWS = require('aws-sdk');
 import rimraf = require("rimraf");
 import {ID, stringify} from 'bson-util';
 import {promises as fsAsync} from "fs";
-import {MongoClient, ObjectId} from 'mongodb';
+import {MongoClient, MongoCountPreferences, ObjectId} from 'mongodb';
 import maxmind, {CountryResponse} from 'maxmind';
 import {fromCallback} from 'universalify';
 import {
     App,
-    AppConfig,
+    ClientConfig,
     AuditArgs,
     ClientCommand,
     Constants,
@@ -97,6 +97,8 @@ import {
     ObjectDec,
     Access,
     ReqParams,
+    ObjectIDs,
+    Client,
 } from './types';
 
 const nodemailer = require('nodemailer');
@@ -109,12 +111,13 @@ const bcrypt = require('bcrypt');
 async function loadHosts() {
     glob.hosts = [];
 
-    for (const client of glob.systemConfig.clients) {
-        let hosts: Host[] = await get({db: client}, Objects.hosts);
+    let clients = [process.env.NODE_NAME, ...glob.clients.map(cl => cl._.db)];
+    for (const db of clients) {
+        let hosts: Host[] = await get({db}, Objects.hosts);
         for (const host of hosts) {
             assert(host.prefixes && host.prefixes.length, `Prefixes for host '${host.address}' must be configured.`);
 
-            host._ = {db: client};
+            host._ = {db};
             host.aliases = host.aliases || [];
             for (let prefix of host.prefixes) {
                 prefix._ = {};
@@ -144,7 +147,7 @@ export async function reload(cn?: Context) {
     log(`reload ...`);
     glob.suspendService = true;
 
-    await loadSystemConfig();
+    await loadNodeConfig();
     await loadPackagesInfo();
     await applyAmazonConfig();
     await loadSystemCollections();
@@ -441,88 +444,8 @@ export async function portionsToMongoPath(cn: Context, rootId: ID, portions: Ref
 export async function count(cn: Context, objectName: string, options: GetOptions) {
     let collection = await getCollection(cn, objectName);
     options = options || {} as GetOptions;
-    return await collection.countDocuments(options);
-}
-
-export async function extractRefPortions(cn: Context, ref: string, _default?: string): Promise<RefPortion[]> {
-    try {
-        ref = _.trim(ref, '/');
-        if (ref == Constants.defaultAddress) ref = "";
-        ref = ref || _default;
-        if (!ref)
-            return null;
-
-        let portions: RefPortion[] = ref.split('/').map(portion => {
-            return {value: portion} as RefPortion;
-        });
-
-        if (portions.length === 0) return null;
-
-        if (portions[0].value === Constants.urlPortionApi) {
-            portions.shift();
-            cn["mode"] = RequestMode.api;
-            if (portions.length < 1) return null;
-            if (/^v\d/.test(portions[0].value))
-                cn["apiVersion"] = portions.shift().value;
-        }
-
-        for (let i = 1; i < portions.length; i++) {
-            portions[i].pre = portions[i - 1];
-        }
-
-        let entity = glob.entities.find(entity => entity._id.toString() === portions[0].value);
-        if (!entity)
-            entity = glob.entities.find(en => en._.db == cn.db && en.name == portions[0].value);
-
-        if (!entity)
-            entity = glob.entities.find(en => en.name === portions[0].value && cn["app"].dependencies.indexOf(en._.db) > -1);
-
-        if (entity) {
-            portions[0].entity = entity;
-            portions[0].type = RefPortionType.entity;
-        } else
-            return null;
-
-        if (entity.entityType == EntityType.Object && !(entity as mObject).isList && portions.length == 1) { // e.g. systemConfig
-            let item: any = await get(cn, entity.name, {count: 1});
-            let portion = {type: RefPortionType.item, pre: portions[0]} as RefPortion;
-            portions.push(portion);
-            if (item) {
-                portion.itemId = item._id;
-            } else { // not any item yet
-                let result: any = await put(cn, entity.name, item, null);
-                portion.itemId = result.itemId;
-            }
-            portion.value = portion.itemId.toString();
-            return portions;
-        } else if (entity.entityType !== EntityType.Object || portions.length < 2)
-            return portions;
-
-        let parent: any = entity;
-
-        for (let i = 1; i < portions.length; i++) {
-            let pr = portions[i];
-            if (parent == null) {
-                warn(`Invalid path '${ref}'`);
-                return null;
-            } else if (parent._.gtype == GlobalType.file) {
-                pr.type = RefPortionType.file;
-            } else if ((parent.entityType || parent.isList) && /[0-9a-f]{24}/.test(pr.value)) {
-                pr.type = RefPortionType.item;
-                let itemId = pr.value;
-                pr.itemId = newID(itemId);
-            } else {
-                pr.type = RefPortionType.property;
-                parent = pr.property = parent.properties.find(p => p.name == pr.value);
-                if (!pr.property)
-                    error(`Invalid property name '${pr.value}' in path '${ref}'`);
-            }
-        }
-
-        return portions;
-    } catch (ex) {
-        error("extractRefPortions", ex);
-    }
+    let query = options.query || {};
+    return await collection.countDocuments(query, null as MongoCountPreferences);
 }
 
 export async function patch(cn: Context, objectName: string, patchData: any, options?: PutOptions) {
@@ -782,7 +705,7 @@ export async function putFile(drive: Drive, relativePath: string, file: Buffer) 
         case SourceType.S3:
             try {
                 let sdk = getS3DriveSdk(drive);
-                let driveConfig = glob.systemConfig.drives.find(d => d.drive.equals(drive._id));
+                let driveConfig = glob.nodeConfig.drives.find(d => d.drive.equals(drive._id));
                 let s3 = new sdk.S3({apiVersion: Constants.amazonS3ApiVersion, region: driveConfig.s3.region});
                 const config = {
                     Bucket: drive.address,
@@ -823,7 +746,7 @@ export async function listDir(drive: Drive, dir: string): Promise<DirFile[]> {
 
         case SourceType.S3:
             let sdk = getS3DriveSdk(drive);
-            let driveConfig = glob.systemConfig.drives.find(d => d.drive.equals(drive._id));
+            let driveConfig = glob.nodeConfig.drives.find(d => d.drive.equals(drive._id));
             let s3 = new sdk.S3({apiVersion: Constants.amazonS3ApiVersion});
             const s3params = {
                 Bucket: drive.address,
@@ -923,7 +846,7 @@ export function joinUri(...parts: string[]): string {
 }
 
 function getS3DriveSdk(drive: Drive) {
-    let driveConfig = glob.systemConfig.drives.find(d => d.drive.equals(drive._id));
+    let driveConfig = glob.nodeConfig.drives.find(d => d.drive.equals(drive._id));
     assert(driveConfig.s3, `S3 for drive '${drive.title}' must be configured!`);
     if (driveConfig.s3._sdk) return driveConfig.s3._sdk;
 
@@ -1004,7 +927,7 @@ async function loadAuditTypes() {
 }
 
 async function loadPackagesInfo() {
-    for (const pack of glob.systemConfig.packages) {
+    for (const pack of glob.nodeConfig.packages) {
         try {
             glob.packageInfo[pack] = require(getAbsolutePath('./' + pack, `package.json`));
             // glob.packages[pack.name] = require(getAbsolutePath('./' + pack.name));
@@ -1012,17 +935,17 @@ async function loadPackagesInfo() {
             //     error(`Error loading package ${pack.name}!`);
         } catch (ex) {
             error(`Loading package.json for package '${pack}' failed: ${ex.message}`);
-            glob.systemConfig.packages.splice(glob.systemConfig.packages.indexOf(pack), 1);
+            glob.nodeConfig.packages.splice(glob.nodeConfig.packages.indexOf(pack), 1);
         }
     }
 }
 
-async function loadSystemConfig() {
+async function loadNodeConfig() {
     if (!process.env.DB_ADDRESS)
         fatal("Environment variable 'DB_ADDRESS' is needed.");
 
-    if (!process.env.MS_NAME)
-        fatal("Environment variable 'MS_NAME' is needed.");
+    if (!process.env.NODE_NAME)
+        fatal("Environment variable 'NODE_NAME' is needed.");
 
     try {
         let dbc = await MongoClient.connect(process.env.DB_ADDRESS, {
@@ -1031,12 +954,8 @@ async function loadSystemConfig() {
             poolSize: Constants.mongodbPoolSize
         });
 
-        let collection = dbc.db(process.env.MS_NAME).collection(Objects.systemConfig);
-        glob.systemConfig = await collection.findOne({});
-
-        glob.systemConfig.clients = glob.systemConfig.clients || [];
-        glob.systemConfig.clients.unshift(process.env.MS_NAME);
-
+        let collection = dbc.db(process.env.NODE_NAME).collection(Objects.nodeConfig);
+        glob.nodeConfig = await collection.findOne({});
     } catch (ex) {
         fatal("Error connecting to the database: " + ex.message);
     }
@@ -1065,9 +984,15 @@ async function loadPackageSystemCollections(db: string) {
         glob.entities.push(func as Entity);
     }
 
-    let config: AppConfig = await getOne(cn, Objects.appConfig);
+    let config: ClientConfig = await getOne(cn, Objects.clientConfig);
     if (config)
-        glob.appConfig[db] = config;
+        glob.clientConfig[db] = config;
+
+    let apps: App[] = await get(cn, Objects.apps);
+    for (const app of apps) {
+        app._ = {db};
+        glob.apps.push(app);
+    }
 
     let forms: Form[] = await get(cn, Objects.forms);
     for (const form of forms) {
@@ -1112,9 +1037,17 @@ async function loadSystemCollections() {
     glob.drives = [];
     glob.apps = [];
 
-    let dbs = [...glob.systemConfig.services, ...glob.systemConfig.clients];
-    for (const db of dbs) {
+    // Load clients list
+    glob.clients = await get({db: process.env.NODE_NAME}, Objects.clients);
+    for (let client of glob.clients) {
+        client._ = {db: client.name || ("c" + client.code)};
+    }
+
+    glob.dbsList = [process.env.NODE_NAME, ...glob.nodeConfig.services, ...glob.clients.map(cl => cl._.db)];
+
+    for (const db of glob.dbsList) {
         try {
+            glob.dbs[db] = null;
             await loadPackageSystemCollections(db);
         } catch (err) {
             error("loadSystemCollections", err);
@@ -1123,7 +1056,7 @@ async function loadSystemCollections() {
 }
 
 export function configureLogger(silent: boolean) {
-    let logDir = getAbsolutePath('./logs');
+    let logDir = getAbsolutePath(process.env.LOGS_PATH);
     const logLevels = {
         levels: {
             fatal: 0,
@@ -1192,10 +1125,6 @@ export async function downloadLogFiles(cn: Context) {
     cn.res.redirect = `/@default/temp/${fileName}`;
 }
 
-function validateApp(pack: string, app: App): boolean {
-    return true;
-}
-
 export function initializeRoles() {
     let g = new graphlib.Graph();
     for (const role of glob.roles) {
@@ -1222,34 +1151,20 @@ function templateRender(pack, template) {
 }
 
 function initializePackages() {
-    log(`initializePackages: ${glob.systemConfig.packages.join(' , ')}`);
+    log(`initializePackages: ${glob.nodeConfig.packages.join(' , ')}`);
 
     let sysTemplateRender = templateRender(Constants.sysDb, Constants.DEFAULT_APP_TEMPLATE);
 
-    let dbs = [...glob.systemConfig.services, ...glob.systemConfig.clients];
-    for (const db of dbs) {
-        let config = glob.appConfig[db];
-        if (!config) {
-            error(`appConfig for db '${db}' is empty!`);
-            continue;
-        }
+    for (const app of glob.apps) {
+        app.dependencies = app.dependencies || [];
+        app.dependencies.push(Constants.sysDb);
 
-        for (const app of (config.apps || [])) {
-            app._ = {db};
-            app.dependencies = app.dependencies || [];
-            app.dependencies.push(Constants.sysDb);
+        if (app.template)
+            app._.templateRender = templateRender(app._.db, app.template);
+        else
+            app._.templateRender = sysTemplateRender;
 
-            if (app.template)
-                app._.templateRender = templateRender(db, app.template);
-            else
-                app._.templateRender = sysTemplateRender;
-
-            if (app.menu) app._.menu = glob.menus.find(menu => menu._id.equals(app.menu));
-
-            if (validateApp(db, app)) {
-                glob.apps.push(app);
-            }
-        }
+        if (app.menu) app._.menu = glob.menus.find(menu => menu._id.equals(app.menu));
     }
 }
 
@@ -1384,7 +1299,7 @@ export async function initializeEnums() {
     glob.enums = [];
     glob.enumTexts = {};
 
-    for (const db of glob.systemConfig.services) {
+    for (const db of glob.dbsList) {
         let enums: Enum[] = await get({db} as Context, Objects.enums);
         for (const theEnum of enums) {
             theEnum._ = {db};
@@ -1421,11 +1336,14 @@ async function initializeEntities() {
         await initObject(obj);
     }
 
-    let dbs = [...glob.systemConfig.services, ...glob.systemConfig.clients];
-    for (const db of dbs) {
-        let config = glob.appConfig[db];
-        let obj = findObject(db, Objects.appConfig);
-        await makeObjectReady({db} as Context, obj.properties, config);
+    for (const client of glob.clients) {
+        let config = glob.clientConfig[client._.db];
+        let obj = findObject(client._.db, Objects.clientConfig);
+        if (!obj) {
+            error(`clientConfig for client '${client.code}' not found!`);
+            continue;
+        }
+        await makeObjectReady({db: "c" + client.code} as Context, obj.properties, config);
     }
 
     log(`Initializing '${allFunctions(null).length}' functions ...`);
@@ -1433,7 +1351,7 @@ async function initializeEntities() {
         try {
             func._.access = {};
             func._.access[func._.db] = func.access;
-            func.pack = func.pack || glob.appConfig[func._.db].defaultPack;
+            func.pack = func.pack || glob.clientConfig[func._.db].defaultPack;
             assert(func.pack, `Function needs unknown pack, or default pack in PackageConfig needed!`);
             await initProperties(func.properties, func, func.title, null);
         } catch (ex) {
@@ -1627,9 +1545,9 @@ export function getText(cn: Context, text, useDictionary?: boolean): string {
 }
 
 export async function verifyEmailAccounts(cn: Context) {
-    assert(glob.appConfig[cn.db].emailAccounts, `Email accounts is empty`);
+    assert(glob.clientConfig[cn.db].emailAccounts, `Email accounts is empty`);
 
-    for (const account of glob.appConfig[cn.db].emailAccounts) {
+    for (const account of glob.clientConfig[cn.db].emailAccounts) {
         const transporter = nodemailer.createTransport({
             //service: 'gmail',
             host: account.smtpServer,
@@ -1652,9 +1570,9 @@ export async function verifyEmailAccounts(cn: Context) {
 }
 
 export async function sendEmail(cn: Context, from: string, to: string, subject: string, content: string, params?: SendEmailParams) {
-    assert(glob.appConfig[cn.db].emailAccounts, `Email accounts is empty`);
+    assert(glob.clientConfig[cn.db].emailAccounts, `Email accounts is empty`);
 
-    const account = glob.appConfig[cn.db].emailAccounts.find(account => account.email == from);
+    const account = glob.clientConfig[cn.db].emailAccounts.find(account => account.email == from);
     assert(account, `Email account for account '${from}' not found!`);
 
     const transporter = nodemailer.createTransport({
@@ -1695,8 +1613,8 @@ export async function sendEmail(cn: Context, from: string, to: string, subject: 
 }
 
 export async function sendSms(cn: Context, provider, from: string, to: string, text: string, params?: SendSmsParams): Promise<StatusCode> {
-    assert(glob.appConfig[cn.db].smsAccounts, `Sms accounts is empty`);
-    const account = glob.appConfig[cn.db].smsAccounts.find(account => account.provider.toLowerCase().trim() == provider.toLowerCase().trim())
+    assert(glob.clientConfig[cn.db].smsAccounts, `Sms accounts is empty`);
+    const account = glob.clientConfig[cn.db].smsAccounts.find(account => account.provider.toLowerCase().trim() == provider.toLowerCase().trim())
 
     return new Promise((resolve, reject) => {
         switch (provider) {
@@ -1733,7 +1651,7 @@ export function getEnumText(cn: Context, enumType: string, value: number): strin
     if (value == null)
         return "";
 
-    let theEnum = getEnumByName(cn.db, cn["app"] ? cn["app"].dependencies : null, enumType);
+    let theEnum = getEnumByName(cn.db, cn.app ? cn.app.dependencies : null, enumType);
     if (!theEnum)
         return value.toString();
 
@@ -1926,8 +1844,8 @@ export async function getTypes(cn: Context) {
     return types;
 }
 
-export function containsPack(cn: Context, pack: string): boolean {
-    return pack == cn.db || cn["app"].dependencies.indexOf(pack) > -1;
+export function containsPack(cn: Context, db: string): boolean {
+    return db == cn.db || cn.app.dependencies.indexOf(db) > -1;
 }
 
 export async function getDataEntities(cn: Context) {
@@ -1936,8 +1854,97 @@ export async function getDataEntities(cn: Context) {
 }
 
 export function getAllEntities(cn: Context) {
-    let entities = glob.entities.filter(en => containsPack(cn, en._.db));
+    let entities = glob.entities.filter(en => cn.db == en._.db || cn.app.dependencies.indexOf(en._.db) > -1);
+    let end = entities.find((e => e.name == "clients"));
     return makeEntityList(cn, entities);
+}
+
+export async function dropDatabase(dbName: string) {
+    let db = await dbConnection({db: dbName});
+    return db.dropDatabase();
+}
+
+export async function initializeMinaDb(cn: Context, dbName: string, adminUser: string, adminPassword: string, uiProjectName: string, serviceDb: boolean) {
+    let dbc = {db: dbName} as Context;
+    // roles
+    let adminRole = {_id: newID(), title: "Admin"} as Role;
+    let systemRole = {_id: newID(), title: "System", roles: [adminRole._id]} as Role;
+    await put(dbc, Objects.roles, [systemRole, adminRole]);
+
+    // users
+    if (adminUser)
+        await put(dbc, Objects.users, [
+            {firstName: "Admin", time: new Date(), email: adminUser, password: await hashPassword(adminPassword), roles: [adminRole._id]} as User
+        ]);
+
+    // drives
+    let defaultDrive = {title: "Default", type: SourceType.File, address: `./${uiProjectName}/public`} as Drive;
+    await put(dbc, Objects.drives, [defaultDrive]);
+
+    let sysDrive = {title: "Sys Public", type: SourceType.File, address: `./sys-ui/public`} as Drive;
+    await put(dbc, Objects.drives, [sysDrive]);
+
+    // forms
+    await put(dbc, Objects.forms, [{name: "home", title: "Home", elems: [{type: 1, _id: newID(), text: {"content": "## Welcome!\n", "markdown": true}, styles: "p-4"}], publish: true}]);
+
+    // objects
+    let obj_objects = {_id: newID(), name: "objects", title: {"en": "Objects"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.objects), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
+    let obj_functions = {_id: newID(), name: "functions", title: {"en": "Functions"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.functions), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
+    let obj_roles = {_id: newID(), name: "roles", title: {"en": "Roles"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.roles), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
+    let obj_menus = {_id: newID(), name: "menus", title: {"en": "Menus"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.menus), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
+    let obj_apps = {_id: newID(), name: "apps", title: {"en": "Apps"}, source: 1, isList: false, referType: 0, reference: newID(ObjectIDs.apps), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
+    let obj_dictionary = {_id: newID(), name: "dictionary", title: {"en": "Dictionary"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.dictionary), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
+    let obj_forms = {_id: newID(), name: "forms", title: {"en": "Forms"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.forms), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
+    let obj_enums = {_id: newID(), name: "enums", title: {"en": "Enums"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.enums), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
+    let obj_drives = {_id: newID(), name: "drives", title: {"en": "Drives"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.drives), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
+    let obj_users = {_id: newID(), name: "users", title: {"en": "Users"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.users), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
+    let obj_hosts = {_id: newID(), name: "hosts", title: {"en": "Hosts"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.hosts), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
+    let obj_clientConfig = {_id: newID(), name: "hosts", title: {"en": "Client Config"}, source: 1, isList: false, referType: 0, reference: newID(ObjectIDs.clientConfig), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
+
+    await put(dbc, "objects", [obj_functions, obj_objects, obj_roles, obj_dictionary, obj_forms, obj_enums, obj_apps, obj_drives, obj_menus]);
+    if (!serviceDb)
+        await put(dbc, "objects", [obj_users, obj_hosts, obj_clientConfig]);
+
+    // menus
+    let menuItems = [
+        {"entity": obj_objects._id, "_id": newID()},
+        {"entity": obj_functions._id, "_id": newID()},
+        {"entity": obj_forms._id, "_id": newID()},
+        {"title": "-", "_id": newID()},
+        {"entity": obj_apps._id, "_id": newID()},
+        {"entity": obj_drives._id, "_id": newID()},
+        {"entity": obj_menus._id, "_id": newID()},
+        {"entity": obj_enums._id, "_id": newID()},
+        {"entity": obj_dictionary._id, "_id": newID()},
+        {"title": "-", "_id": newID()},
+        {"_id": newID(), "entity": obj_roles._id},
+    ];
+
+    if (!serviceDb) {
+        menuItems = menuItems.concat([
+            {"entity": obj_users._id, "_id": newID()},
+            {"entity": obj_hosts._id, "_id": newID()},
+            {"entity": obj_clientConfig._id, "_id": newID()}
+        ]);
+    }
+    let menu = {_id: newID(), title: "Default", items: menuItems};
+    await put(dbc, Objects.menus, [menu]);
+
+    // appConfig
+    let appSys = {
+        _id: newID(),
+        title: "Default",
+        menu: menu._id,
+        locales: [1033, 1025, 1055, 1065],
+        defaultLocale: 1033,
+        home: "home",
+        iconStyle: "fad fa-cogs",
+        navColor: "#666",
+        iconColor: "#666",
+    } as App;
+    await put(dbc, Objects.apps, [appSys]);
+
+    return {defaultDrive, sysDrive, appSys};
 }
 
 export function makeEntityList(cn: Context, entities: Entity[]) {
@@ -2238,8 +2245,6 @@ export async function invoke(cn: Context, func: Function, args: any[]) {
     else
         result = await action(cn, ...args);
     return result;
-
-
 }
 
 export async function getUploadedFiles(cn: Context, readBuffer: boolean): Promise<UploadedFile[]> {
@@ -2460,7 +2465,7 @@ function checkPropertyPermission(property: Property, user: User): AccessPermissi
         if (!property.access)
             return AccessPermission.Full;
 
-        //sys.info(`Property ${property.Name}`);
+        //info(`Property ${property.Name}`);
 
         let permission = property.access.defaultPermission || AccessPermission.None;
 
@@ -2653,7 +2658,7 @@ export function prepareUrl(cn: Context, ref: string): string {
     ref = _.trim(ref, "?");
     let separator = ref.indexOf('?') == -1 ? "?" : "&";
     let search = [];
-    if (cn.locale !== cn["app"].defaultLocale)
+    if (cn.locale !== cn.app.defaultLocale)
         search.push(`${ReqParams.locale}=${Locale[cn.locale]}`);
     if (cn.sort)
         search.push(`${ReqParams.sort}=${stringifySortUri(cn.sort)}`);
