@@ -1,5 +1,3 @@
-import * as Url from "url";
-
 let index = {
     "Start                                              ": reload,
 
@@ -35,6 +33,7 @@ import {promises as fsAsync} from "fs";
 import {MongoClient, MongoCountPreferences, ObjectId} from 'mongodb';
 import maxmind, {CountryResponse} from 'maxmind';
 import {fromCallback} from 'universalify';
+import * as Url from "url";
 import {
     App,
     ClientConfig,
@@ -88,9 +87,8 @@ import {
     Text,
     UploadedFile,
     ObjectViewType,
-    AccessPermission,
+    AccessAction,
     User,
-    AccessItem,
     EntityLink,
     ObjectDec,
     Access,
@@ -99,6 +97,7 @@ import {
     Client,
     ServiceConfig,
     Service,
+    PermissionResourceType,
 } from './types';
 
 const nodemailer = require('nodemailer');
@@ -115,8 +114,6 @@ async function loadHosts() {
 
     let hosts: Host[] = await get({db: process.env.NODE_NAME}, Objects.hosts);
     for (const host of hosts) {
-        assert(host.prefixes && host.prefixes.length, `Prefixes for host '${host.address}' must be configured.`);
-
         if (host.client) {
             let client = clients.find(c => c._id.equals(host.client));
             if (!client) {
@@ -127,24 +124,10 @@ async function loadHosts() {
         } else
             host._ = {db: process.env.NODE_NAME};
         host.aliases = host.aliases || [];
-        for (let prefix of host.prefixes) {
-            prefix._ = {};
-            if (prefix.drive) {
-                let drive = glob.drives.find(d => d._id.equals(prefix.drive));
-                if (drive) {
-                    // drive._.uri = joinUri(host.address, prefix.prefix);
-                    prefix._.drive = drive;
-                } else
-                    error(`drive for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
-            } else if (prefix.app) {
-                let app = glob.apps.find(d => d._id.equals(prefix.app));
-                if (app) {
-                    prefix._.app = app;
-                } else
-                    error(`app for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
-            }
-        }
+        if (!host.apps || !host.apps.length)
+            continue;
 
+        host._.apps = host.apps.map(ap => glob.apps.find(app => app._id.equals(ap)));
         glob.hosts.push(host);
     }
 }
@@ -164,6 +147,7 @@ export async function reload(cn?: Context) {
     await loadHosts();
     await initializeRoles();
     await initializeEntities();
+    await initializeRolePermissions();
 
     glob.suspendService = false;
 
@@ -1093,6 +1077,22 @@ export async function downloadLogFiles(cn: Context) {
     cn.res.redirect = `/@default/temp/${fileName}`;
 }
 
+export function initializeRolePermissions(justEntity?: ID) {
+    // Set objects access base on role access permissions
+    for (const role of glob.roles) {
+        if (!role.permissions) continue;
+
+        for (let permit of role.permissions) {
+            let entity = findEntity(permit.obj || permit.func || permit.form);
+            if (!entity || (justEntity && !justEntity.equals(entity._id))) continue;
+
+            entity._.permissions = entity._.permissions || [];
+            let permission: AccessAction = (permit.objAction || permit.funcAction || permit.formAction) as number;
+            entity._.permissions.push({role: role._id, permission} as Access);
+        }
+    }
+}
+
 export function initializeRoles() {
     let g = new graphlib.Graph();
     for (const role of glob.roles) {
@@ -1317,20 +1317,12 @@ async function initializeEntities() {
     log(`Initializing '${allFunctions(null).length}' functions ...`);
     for (const func of allFunctions(null)) {
         try {
-            func._.access = {};
-            func._.access[func._.db] = func.access;
             func.pack = func.pack || glob.services[func._.db].defaultPackage;
             assert(func.pack, `Function needs unknown pack, or default pack in PackageConfig needed!`);
             await initProperties(func.properties, func, func.title, null);
         } catch (ex) {
             error("Init functions, Module: " + func._.db + ", Action: " + func.name, ex);
         }
-    }
-
-    log(`Initializing forms ...`);
-    for (const form of allForms(null)) {
-        form._.access = {};
-        form._.access[form._.db] = form.access;
     }
 }
 
@@ -1379,8 +1371,6 @@ export function initObject(obj: mObject) {
         obj.properties = obj.properties || [];
         obj._.autoSetInsertTime = _.some(obj.properties, {name: SystemProperty.time});
         obj._.filterObject = findEntity(obj.filterObject) as mObject;
-        obj._.access = {};
-        obj._.access[obj._.db] = obj.access;
         initProperties(obj.properties, obj, null, null);
 
         if (obj.reference) {
@@ -2396,7 +2386,7 @@ export function filterAndSortProperties(cn: Context, properties: Property[], roo
         });
 
     if (viewType != ObjectViewType.TreeView)
-        result = result.filter(p => checkPropertyPermission(p, cn.user) != AccessPermission.None);
+        result = result.filter(p => checkPropertyPermission(p, cn.user) != AccessAction.None);
 
     result = _.sortBy(result, "_z");
 
@@ -2411,38 +2401,40 @@ export function filterAndSortProperties(cn: Context, properties: Property[], roo
     return result;
 }
 
-function checkPropertyPermission(property: Property, user: User): AccessPermission {
-    try {
-        if (!property.access)
-            return AccessPermission.Full;
-
-        //info(`Property ${property.Name}`);
-
-        let permission = property.access.defaultPermission || AccessPermission.None;
-
-        if (user && property.access && property.access.items) {
-            property.access.items.forEach(function (access: AccessItem) {
-                if (user._id.equals(access.user)) {
-                    permission = access.permission;
-                }
-                if (access.role && _.some(user.roles, function (g) {
-                    return access.role.equals(g);
-                })) {
-                    permission = access.permission;
-                }
-            });
-        }
-
-        if (!permission && !property.access.items)
-            permission = AccessPermission.Full;
-
-        //sys.info(`Permission ${permission}`);
-
-        return permission as AccessPermission;
-    } catch (ex) {
-        error("checkPropertyPermission", ex);
-        return AccessPermission.None;
-    }
+function checkPropertyPermission(property: Property, user: User): AccessAction {
+    return AccessAction.Full;
+    // TODO: property access control
+    // try {
+    //     if (!property.access)
+    //         return AccessAction.Full;
+    //
+    //     //info(`Property ${property.Name}`);
+    //
+    //     let permission = AccessAction.None;
+    //
+    //     if (user && property.access && property.access.items) {
+    //         property.access.items.forEach(function (access: AccessItem) {
+    //             if (user._id.equals(access.user)) {
+    //                 permission = access.permission;
+    //             }
+    //             if (access.role && _.some(user.roles, function (g) {
+    //                 return access.role.equals(g);
+    //             })) {
+    //                 permission = access.permission;
+    //             }
+    //         });
+    //     }
+    //
+    //     if (!permission && !property.access.items)
+    //         permission = AccessAction.Full;
+    //
+    //     //sys.info(`Permission ${permission}`);
+    //
+    //     return permission as AccessAction;
+    // } catch (ex) {
+    //     error("checkPropertyPermission", ex);
+    //     return AccessAction.None;
+    // }
 }
 
 export async function createDeclare(cn: Context, ref: string, properties: Property[], data: any, partial, obj: mObject, links: EntityLink[]): Promise<ObjectDec> {
@@ -2623,7 +2615,7 @@ function getPropertyRef(prop: Property, parentRef: string) {
     return parentRef + "/" + prop.name;
 }
 
-export async function preparePropertyDeclare(cn: Context, ref: string, prop: Property, instance: any, partial: boolean, parentAccess: AccessPermission) {
+export async function preparePropertyDeclare(cn: Context, ref: string, prop: Property, instance: any, partial: boolean, parentAccess: AccessAction) {
     if (prop._.ref) return;
 
     prop._.ref = getPropertyRef(prop, ref);
@@ -2654,42 +2646,44 @@ export async function preparePropertyDeclare(cn: Context, ref: string, prop: Pro
 }
 
 function getPropertyEditMode(cn: Context, prop: Property): PropertyEditMode {
-    if (prop.access && prop.access.defaultPermission) {
-        let editable = checkAccess(cn, prop.access) & AccessPermission.Edit;
-        if (!editable) return PropertyEditMode.Readonly;
-    }
+    // TODO: complete this
+    // if (prop.access) {
+    //     let editable = checkAccess(cn, prop.access) & AccessAction.Edit;
+    //     if (!editable) return PropertyEditMode.Readonly;
+    // }
     return prop.editMode;
 }
 
-export function checkAccess(cn: Context, entityAccess: Access): AccessPermission {
-    if (!entityAccess) return AccessPermission.None;
-    let permission = (entityAccess.defaultPermission || AccessPermission.None) as AccessPermission;
+export function checkAccess(cn: Context, entity: Entity): AccessAction {
+    let permissions: Access[] = entity._.permissions;
+    let permission = entity.guestAccess || AccessAction.None;
+    if (!permissions || !permissions.length) return permission;
     if (!cn.user) return permission;
 
-    for (let accessItem of (entityAccess.items || [])) {
+    for (let access of permissions) {
         if (
-            (accessItem.user && cn.user._id.equals(accessItem.user)) ||
-            (accessItem.role && cn.user.roles && cn.user.roles.some(r => r.equals(accessItem.role)))
+            (access.user && cn.user._id.equals(access.user)) ||
+            (access.role && cn.user.roles && cn.user.roles.some(r => r.equals(access.role)))
         ) {
-            switch (accessItem.permission) {
-                case AccessPermission.Full:
-                    permission = AccessPermission.Full;
+            switch (access.permission) {
+                case AccessAction.Full:
+                    permission = AccessAction.Full;
                     break;
 
-                case AccessPermission.View:
-                    permission = permission | AccessPermission.View;
+                case AccessAction.View:
+                    permission = permission | AccessAction.View;
                     break;
 
-                case AccessPermission.Edit:
-                    permission = permission | AccessPermission.View | AccessPermission.Edit;
+                case AccessAction.Edit:
+                    permission = permission | AccessAction.View | AccessAction.Edit;
                     break;
 
-                case AccessPermission.NewItem:
-                    permission = permission | AccessPermission.View | AccessPermission.NewItem;
+                case AccessAction.NewItem:
+                    permission = permission | AccessAction.View | AccessAction.NewItem;
                     break;
 
-                case AccessPermission.DeleteItem:
-                    permission = permission | AccessPermission.View | AccessPermission.DeleteItem;
+                case AccessAction.DeleteItem:
+                    permission = permission | AccessAction.View | AccessAction.DeleteItem;
                     break;
             }
         }
@@ -2743,7 +2737,7 @@ export function makeLinksReady(cn: Context, ref: string, data: any, links: Entit
     return links;
 }
 
-async function prepareObjectPropertyDeclare(cn: Context, ref: string, prop: Property, instance: any, partial: boolean, parentAccess: AccessPermission) {
+async function prepareObjectPropertyDeclare(cn: Context, ref: string, prop: Property, instance: any, partial: boolean, parentAccess: AccessAction) {
     if (prop.documentView) return;
 
     let objectProp = _.cloneDeep(prop) as Property;

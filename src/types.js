@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Client = exports.Flowchart = exports.FlowchartDeclaration = exports.FlowchartNodeDeclare = exports.FlowchartNode = exports.FlowchartNodeLink = exports.Feedback = exports.UserProfile = exports.SysDashboardInfo = exports.ApiDoc = exports.ApiDocEnum = exports.ApiDocSchema = exports.ApiDocProprty = exports.ApiDocBlock = exports.ApiDocOperation = exports.ApiDocParameter = exports.ReqParams = exports.FunctionDec = exports.ObjectDec = exports.EntityMeta = exports.NotificationInfo = exports.AjaxConfig = exports.YesNo = exports.ObjectListsViewType = exports.ObjectDetailsViewType = exports.ClientCommand = exports.DirFile = exports.Note = exports.DirFileType = exports.UnitTestObject = exports.WebMethod = exports.AppStateConfig = exports.WebResponse = exports.RequestMode = exports.EnvMode = exports.PropertyConditionBehavior = exports.Constants = exports.GridRowHeaderStyle = exports.PType = exports.SystemProperty = exports.SysAuditTypes = exports.Document = exports.DocumentDirectory = exports.DocumentDirectoryItem = exports.DocStatus = exports.Objects = exports.Service = exports.ObjectIDs = exports.FileType = exports.RedirectType = exports.ReferType = exports.TimeFormat = exports.RefPortionType = exports.GlobalType = exports.PropertyReferType = exports.NewItemMode = exports.ChangeFrequency = exports.FunctionMode = exports.SourceType = exports.Locale = exports.Keys = exports.PropertyEditMode = exports.PropertyViewMode = exports.AccessPermission = exports.EntityType = exports.ElemType = exports.Orientation = exports.PanelType = exports.LinkType = exports.LogType = exports.UploadedFile = exports.StatusCode = exports.GetOptions = exports.DelOptions = exports.PatchOptions = exports.PutOptions = exports.Point = exports.GeoLocation = exports.RefPortion = exports.TimeZone = exports.Text = exports.mFile = exports.PackageAddressRule = exports.ClientConfig = exports.EmailAccount = exports.SmsAccount = exports.MultilangText = exports.EnumItem = exports.Enum = exports.Host = exports.App = exports.TreePair = exports.Pair = exports.MenuItem = exports.Menu = exports.AccessItem = exports.Access = exports.ChartSeries = exports.ErrorObject = exports.Elem = exports.ObjectViewType = exports.EntityLink = exports.FunctionTestSample = exports.Drive = exports.Property = exports.ObjectModifyType = exports.SendSmsParams = exports.SendEmailParams = exports.EmailTemplateConfig = exports.ObjectModifyState = exports.FormDto = exports.Form = exports.Function = exports.mObject = exports.Entity = exports.Global = exports.ServiceConfig = exports.TextEditor = exports.Country = exports.SmsProvider = exports.AuditType = exports.User = exports.Role = exports.AuditArgs = exports.ID = void 0;
+exports.PermissionFormAction = exports.PermissionFunctionAction = exports.PermissionObjectAction = exports.PermissionResourceType = exports.Client = exports.Flowchart = exports.FlowchartDeclaration = exports.FlowchartNodeDeclare = exports.FlowchartNode = exports.FlowchartNodeLink = exports.Feedback = exports.UserProfile = exports.SysDashboardInfo = exports.ApiDoc = exports.ApiDocEnum = exports.ApiDocSchema = exports.ApiDocProprty = exports.ApiDocBlock = exports.ApiDocOperation = exports.ApiDocParameter = exports.ReqParams = exports.FunctionDec = exports.ObjectDec = exports.EntityMeta = exports.NotificationInfo = exports.AjaxConfig = exports.YesNo = exports.ObjectListsViewType = exports.ObjectDetailsViewType = exports.ClientCommand = exports.DirFile = exports.Note = exports.DirFileType = exports.UnitTestObject = exports.WebMethod = exports.AppStateConfig = exports.WebResponse = exports.RequestMode = exports.EnvMode = exports.PropertyConditionBehavior = exports.Constants = exports.GridRowHeaderStyle = exports.PType = exports.SystemProperty = exports.SysAuditTypes = exports.Document = exports.DocumentDirectory = exports.DocumentDirectoryItem = exports.DocStatus = exports.Objects = exports.Service = exports.ObjectIDs = exports.FileType = exports.RedirectType = exports.ReferType = exports.TimeFormat = exports.RefPortionType = exports.GlobalType = exports.PropertyReferType = exports.NewItemMode = exports.ChangeFrequency = exports.FunctionMode = exports.SourceType = exports.Locale = exports.Keys = exports.PropertyEditMode = exports.PropertyViewMode = exports.AccessAction = exports.EntityType = exports.ElemType = exports.Orientation = exports.PanelType = exports.LinkType = exports.LogType = exports.UploadedFile = exports.StatusCode = exports.GetOptions = exports.DelOptions = exports.PatchOptions = exports.PutOptions = exports.Point = exports.GeoLocation = exports.RefPortion = exports.TimeZone = exports.Text = exports.mFile = exports.PackageAddressRule = exports.ClientConfig = exports.EmailAccount = exports.SmsAccount = exports.MultilangText = exports.EnumItem = exports.Enum = exports.Host = exports.App = exports.TreePair = exports.Pair = exports.MenuItem = exports.Menu = exports.Access = exports.ChartSeries = exports.ErrorObject = exports.Elem = exports.ObjectViewType = exports.EntityLink = exports.FunctionTestSample = exports.Drive = exports.Property = exports.ObjectModifyType = exports.SendSmsParams = exports.SendEmailParams = exports.EmailTemplateConfig = exports.ObjectModifyState = exports.FormDto = exports.Form = exports.Function = exports.mObject = exports.Entity = exports.Global = exports.ServiceConfig = exports.TextEditor = exports.Country = exports.SmsProvider = exports.AuditType = exports.User = exports.AccessPermission = exports.Role = exports.AuditArgs = exports.ID = void 0;
 const bson_util_1 = require("bson-util");
 Object.defineProperty(exports, "ID", { enumerable: true, get: function () { return bson_util_1.ID; } });
 class AuditArgs {
@@ -9,6 +9,9 @@ exports.AuditArgs = AuditArgs;
 class Role {
 }
 exports.Role = Role;
+class AccessPermission {
+}
+exports.AccessPermission = AccessPermission;
 class User {
     constructor() {
         this.roles = [];
@@ -133,9 +136,6 @@ exports.ChartSeries = ChartSeries;
 class Access {
 }
 exports.Access = Access;
-class AccessItem {
-}
-exports.AccessItem = AccessItem;
 class Menu {
 }
 exports.Menu = Menu;
@@ -289,16 +289,18 @@ var EntityType;
     EntityType[EntityType["Function"] = 2] = "Function";
     EntityType[EntityType["Form"] = 3] = "Form";
 })(EntityType = exports.EntityType || (exports.EntityType = {}));
-var AccessPermission;
-(function (AccessPermission) {
-    AccessPermission[AccessPermission["None"] = 0] = "None";
-    AccessPermission[AccessPermission["View"] = 1] = "View";
-    AccessPermission[AccessPermission["Edit"] = 2] = "Edit";
-    AccessPermission[AccessPermission["NewItem"] = 4] = "NewItem";
-    AccessPermission[AccessPermission["DeleteItem"] = 8] = "DeleteItem";
-    AccessPermission[AccessPermission["Execute"] = 16] = "Execute";
-    AccessPermission[AccessPermission["Full"] = 255] = "Full";
-})(AccessPermission = exports.AccessPermission || (exports.AccessPermission = {}));
+var AccessAction;
+(function (AccessAction) {
+    AccessAction[AccessAction["None"] = 0] = "None";
+    AccessAction[AccessAction["View"] = 1] = "View";
+    AccessAction[AccessAction["Edit"] = 2] = "Edit";
+    AccessAction[AccessAction["NewItem"] = 4] = "NewItem";
+    AccessAction[AccessAction["DeleteItem"] = 8] = "DeleteItem";
+    AccessAction[AccessAction["Execute"] = 16] = "Execute";
+    AccessAction[AccessAction["Export"] = 32] = "Export";
+    AccessAction[AccessAction["Import"] = 64] = "Import";
+    AccessAction[AccessAction["Full"] = 255] = "Full";
+})(AccessAction = exports.AccessAction || (exports.AccessAction = {}));
 var PropertyViewMode;
 (function (PropertyViewMode) {
     PropertyViewMode[PropertyViewMode["Visible"] = 0] = "Visible";
@@ -751,4 +753,26 @@ class Client {
     }
 }
 exports.Client = Client;
+var PermissionResourceType;
+(function (PermissionResourceType) {
+    PermissionResourceType[PermissionResourceType["Object"] = 1] = "Object";
+    PermissionResourceType[PermissionResourceType["Function"] = 2] = "Function";
+    PermissionResourceType[PermissionResourceType["Form"] = 3] = "Form";
+})(PermissionResourceType = exports.PermissionResourceType || (exports.PermissionResourceType = {}));
+var PermissionObjectAction;
+(function (PermissionObjectAction) {
+    PermissionObjectAction[PermissionObjectAction["View"] = 1] = "View";
+    PermissionObjectAction[PermissionObjectAction["Edit"] = 2] = "Edit";
+    PermissionObjectAction[PermissionObjectAction["NewItem"] = 4] = "NewItem";
+    PermissionObjectAction[PermissionObjectAction["DeleteItem"] = 8] = "DeleteItem";
+    PermissionObjectAction[PermissionObjectAction["Full"] = 255] = "Full";
+})(PermissionObjectAction = exports.PermissionObjectAction || (exports.PermissionObjectAction = {}));
+var PermissionFunctionAction;
+(function (PermissionFunctionAction) {
+    PermissionFunctionAction[PermissionFunctionAction["Execute"] = 16] = "Execute";
+})(PermissionFunctionAction = exports.PermissionFunctionAction || (exports.PermissionFunctionAction = {}));
+var PermissionFormAction;
+(function (PermissionFormAction) {
+    PermissionFormAction[PermissionFormAction["View"] = 1] = "View";
+})(PermissionFormAction = exports.PermissionFormAction || (exports.PermissionFormAction = {}));
 //# sourceMappingURL=types.js.map

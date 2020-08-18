@@ -34,12 +34,23 @@ export class AuditArgs {
 export class Role {
     _id: ID;
     title: string | MultilangText;
-    // name: string;
     roles: ID[];
+    permissions: AccessPermission[];
     comment: string | MultilangText;
     _: {
         db: string;
     };
+}
+
+export class AccessPermission {
+    _id: ID;
+    resourceType: PermissionResourceType;
+    obj: ID;
+    func: ID;
+    form: ID;
+    objAction: PermissionObjectAction;
+    funcAction: PermissionFunctionAction;
+    formAction: PermissionFormAction;
 }
 
 export class User {
@@ -136,11 +147,12 @@ export class Entity {
     _id: ID;
     title: string | MultilangText;
     name: string;
+    expose: boolean;
     icon: string;
     comment: string | MultilangText;
     entityType: EntityType;
-    access: Access;
     links: EntityLink[];
+    guestAccess: AccessAction;
     _: IEntity;
 }
 
@@ -164,8 +176,8 @@ export class mObject extends Entity implements IProperties {
     detailsViewType: ObjectDetailsViewType;
     listsViewType: ObjectListsViewType;
     _: {
-        access?: { [db: string]: Access; };
         db: string;
+        permissions?: Access[];
         autoSetInsertTime?: boolean;
         inited?: boolean;
         filterObject?: mObject;
@@ -244,8 +256,8 @@ export enum ObjectModifyType {
 }
 
 export interface IEntity {
-    access?: { [pack: string]: Access; };
     db: string;
+    permissions?: Access[];
 }
 
 export interface IProperties {
@@ -348,6 +360,7 @@ export class Drive {
     type: SourceType;
     comment: string | MultilangText;
     address: string;
+    prefix: string;
     access: Access;
     _: {
         db: string;
@@ -492,16 +505,9 @@ export class ChartSeries {
 }
 
 export class Access {
-    defaultPermission?: AccessPermission;
-    items?: AccessItem[];
-    expose?: boolean;
-}
-
-export class AccessItem {
-    _id: ID;
     user: ID;
-    role?: ID;
-    permission: AccessPermission;
+    role: ID;
+    permission: AccessAction;
 }
 
 export class Menu {
@@ -538,8 +544,10 @@ export class TreePair {
 }
 
 export class App {
+    _z: number;
     _id: ID;
     home: string;
+    prefix: string;
     template: string;
     style: string;
     locales: Locale[];
@@ -550,7 +558,6 @@ export class App {
     title: string;
     gridPageSize: number;
     addressRules: PackageAddressRule[];
-    printingAccess: Access;
     userSingleSession: boolean;
     timeZone: TimeZone;
     timeOffset: number;
@@ -574,21 +581,12 @@ export class Host {
     _id: ID;
     address: string;
     defaultApp: ID;
+    apps: ID[];
     aliases: string[];
     client: ID;
-    prefixes: {
-        _id: ID;
-        _z?: number;
-        prefix?: string;
-        app?: ID;
-        drive?: ID;
-        _?: {
-            app?: App;
-            drive?: Drive;
-        }
-    }[];
     _: {
         defaultApp?: App;
+        apps?: App[];
         db: string;
     }
 }
@@ -819,13 +817,15 @@ export enum EntityType {
     // File = 4,
 }
 
-export enum AccessPermission {
+export enum AccessAction {
     None = 0,
     View = 1,
     Edit = 2,
     NewItem = 4,
     DeleteItem = 8,
     Execute = 16,
+    Export = 32,
+    Import = 64,
     Full = 255,
 }
 
@@ -1271,7 +1271,7 @@ export class ObjectDec {
         properties: Property[];
     };
     filterData: any;
-    access: AccessPermission;
+    access: AccessAction;
     count: number;
     pages: number;
     page: number;
@@ -1447,4 +1447,26 @@ export class Client {
     _: {
         db: string;
     }
+}
+
+export enum PermissionResourceType {
+    Object = 1,
+    Function = 2,
+    Form = 3,
+}
+
+export enum PermissionObjectAction {
+    View = 1,
+    Edit = 2,
+    NewItem = 4,
+    DeleteItem = 8,
+    Full = 255,
+}
+
+export enum PermissionFunctionAction {
+    Execute = 16,
+}
+
+export enum PermissionFormAction {
+    View = 1,
 }

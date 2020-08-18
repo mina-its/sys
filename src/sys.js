@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sessionSignin = exports.makeLinksReady = exports.checkAccess = exports.preparePropertyDeclare = exports.prepareUrl = exports.getPageLinks = exports.applyPropertiesDefaultValue = exports.createDeclare = exports.filterAndSortProperties = exports.getPortionProperties = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.initializeMinaDb = exports.dropDatabase = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.checkPropertyGtype = exports.initializeRoles = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getCollection = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
-const Url = require("url");
+exports.sessionSignin = exports.makeLinksReady = exports.checkAccess = exports.preparePropertyDeclare = exports.prepareUrl = exports.getPageLinks = exports.applyPropertiesDefaultValue = exports.createDeclare = exports.filterAndSortProperties = exports.getPortionProperties = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.initializeMinaDb = exports.dropDatabase = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.checkPropertyGtype = exports.initializeRoles = exports.initializeRolePermissions = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getCollection = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
 let index = {
     "Start                                              ": reload,
     "Initialize Entities                                ": initializeEntities,
@@ -33,6 +32,7 @@ const fs_1 = require("fs");
 const mongodb_1 = require("mongodb");
 const maxmind_1 = require("maxmind");
 const universalify_1 = require("universalify");
+const Url = require("url");
 const types_1 = require("./types");
 const nodemailer = require('nodemailer');
 const assert = require('assert').strict;
@@ -45,7 +45,6 @@ async function loadHosts() {
     let clients = await get({ db: process.env.NODE_NAME }, types_1.Objects.clients);
     let hosts = await get({ db: process.env.NODE_NAME }, types_1.Objects.hosts);
     for (const host of hosts) {
-        assert(host.prefixes && host.prefixes.length, `Prefixes for host '${host.address}' must be configured.`);
         if (host.client) {
             let client = clients.find(c => c._id.equals(host.client));
             if (!client) {
@@ -57,25 +56,9 @@ async function loadHosts() {
         else
             host._ = { db: process.env.NODE_NAME };
         host.aliases = host.aliases || [];
-        for (let prefix of host.prefixes) {
-            prefix._ = {};
-            if (prefix.drive) {
-                let drive = exports.glob.drives.find(d => d._id.equals(prefix.drive));
-                if (drive) {
-                    prefix._.drive = drive;
-                }
-                else
-                    error(`drive for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
-            }
-            else if (prefix.app) {
-                let app = exports.glob.apps.find(d => d._id.equals(prefix.app));
-                if (app) {
-                    prefix._.app = app;
-                }
-                else
-                    error(`app for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
-            }
-        }
+        if (!host.apps || !host.apps.length)
+            continue;
+        host._.apps = host.apps.map(ap => exports.glob.apps.find(app => app._id.equals(ap)));
         exports.glob.hosts.push(host);
     }
 }
@@ -93,6 +76,7 @@ async function reload(cn) {
     await loadHosts();
     await initializeRoles();
     await initializeEntities();
+    await initializeRolePermissions();
     exports.glob.suspendService = false;
     let period = moment().diff(startTime, 'ms', true);
     info(`reload done in '${period}' ms.`);
@@ -927,6 +911,21 @@ async function downloadLogFiles(cn) {
     cn.res.redirect = `/@default/temp/${fileName}`;
 }
 exports.downloadLogFiles = downloadLogFiles;
+function initializeRolePermissions(justEntity) {
+    for (const role of exports.glob.roles) {
+        if (!role.permissions)
+            continue;
+        for (let permit of role.permissions) {
+            let entity = findEntity(permit.obj || permit.func || permit.form);
+            if (!entity || (justEntity && !justEntity.equals(entity._id)))
+                continue;
+            entity._.permissions = entity._.permissions || [];
+            let permission = (permit.objAction || permit.funcAction || permit.formAction);
+            entity._.permissions.push({ role: role._id, permission });
+        }
+    }
+}
+exports.initializeRolePermissions = initializeRolePermissions;
 function initializeRoles() {
     let g = new graphlib.Graph();
     for (const role of exports.glob.roles) {
@@ -1133,8 +1132,6 @@ async function initializeEntities() {
     log(`Initializing '${allFunctions(null).length}' functions ...`);
     for (const func of allFunctions(null)) {
         try {
-            func._.access = {};
-            func._.access[func._.db] = func.access;
             func.pack = func.pack || exports.glob.services[func._.db].defaultPackage;
             assert(func.pack, `Function needs unknown pack, or default pack in PackageConfig needed!`);
             await initProperties(func.properties, func, func.title, null);
@@ -1142,11 +1139,6 @@ async function initializeEntities() {
         catch (ex) {
             error("Init functions, Module: " + func._.db + ", Action: " + func.name, ex);
         }
-    }
-    log(`Initializing forms ...`);
-    for (const form of allForms(null)) {
-        form._.access = {};
-        form._.access[form._.db] = form.access;
     }
 }
 function checkFileProperty(prop, entity) {
@@ -1193,8 +1185,6 @@ function initObject(obj) {
         obj.properties = obj.properties || [];
         obj._.autoSetInsertTime = _.some(obj.properties, { name: types_1.SystemProperty.time });
         obj._.filterObject = findEntity(obj.filterObject);
-        obj._.access = {};
-        obj._.access[obj._.db] = obj.access;
         initProperties(obj.properties, obj, null, null);
         if (obj.reference) {
             let referenceObj = findEntity(obj.reference);
@@ -2135,7 +2125,7 @@ function filterAndSortProperties(cn, properties, root, gridView, viewType) {
                 (root || !(p.isList && p.properties && p.properties.length > 0));
         });
     if (viewType != types_1.ObjectViewType.TreeView)
-        result = result.filter(p => checkPropertyPermission(p, cn.user) != types_1.AccessPermission.None);
+        result = result.filter(p => checkPropertyPermission(p, cn.user) != types_1.AccessAction.None);
     result = _.sortBy(result, "_z");
     for (const prop of result) {
         if (prop._.sorted)
@@ -2148,30 +2138,7 @@ function filterAndSortProperties(cn, properties, root, gridView, viewType) {
 }
 exports.filterAndSortProperties = filterAndSortProperties;
 function checkPropertyPermission(property, user) {
-    try {
-        if (!property.access)
-            return types_1.AccessPermission.Full;
-        let permission = property.access.defaultPermission || types_1.AccessPermission.None;
-        if (user && property.access && property.access.items) {
-            property.access.items.forEach(function (access) {
-                if (user._id.equals(access.user)) {
-                    permission = access.permission;
-                }
-                if (access.role && _.some(user.roles, function (g) {
-                    return access.role.equals(g);
-                })) {
-                    permission = access.permission;
-                }
-            });
-        }
-        if (!permission && !property.access.items)
-            permission = types_1.AccessPermission.Full;
-        return permission;
-    }
-    catch (ex) {
-        error("checkPropertyPermission", ex);
-        return types_1.AccessPermission.None;
-    }
+    return types_1.AccessAction.Full;
 }
 async function createDeclare(cn, ref, properties, data, partial, obj, links) {
     let dec = {
@@ -2367,37 +2334,33 @@ async function preparePropertyDeclare(cn, ref, prop, instance, partial, parentAc
 }
 exports.preparePropertyDeclare = preparePropertyDeclare;
 function getPropertyEditMode(cn, prop) {
-    if (prop.access && prop.access.defaultPermission) {
-        let editable = checkAccess(cn, prop.access) & types_1.AccessPermission.Edit;
-        if (!editable)
-            return types_1.PropertyEditMode.Readonly;
-    }
     return prop.editMode;
 }
-function checkAccess(cn, entityAccess) {
-    if (!entityAccess)
-        return types_1.AccessPermission.None;
-    let permission = (entityAccess.defaultPermission || types_1.AccessPermission.None);
+function checkAccess(cn, entity) {
+    let permissions = entity._.permissions;
+    let permission = entity.guestAccess || types_1.AccessAction.None;
+    if (!permissions || !permissions.length)
+        return permission;
     if (!cn.user)
         return permission;
-    for (let accessItem of (entityAccess.items || [])) {
-        if ((accessItem.user && cn.user._id.equals(accessItem.user)) ||
-            (accessItem.role && cn.user.roles && cn.user.roles.some(r => r.equals(accessItem.role)))) {
-            switch (accessItem.permission) {
-                case types_1.AccessPermission.Full:
-                    permission = types_1.AccessPermission.Full;
+    for (let access of permissions) {
+        if ((access.user && cn.user._id.equals(access.user)) ||
+            (access.role && cn.user.roles && cn.user.roles.some(r => r.equals(access.role)))) {
+            switch (access.permission) {
+                case types_1.AccessAction.Full:
+                    permission = types_1.AccessAction.Full;
                     break;
-                case types_1.AccessPermission.View:
-                    permission = permission | types_1.AccessPermission.View;
+                case types_1.AccessAction.View:
+                    permission = permission | types_1.AccessAction.View;
                     break;
-                case types_1.AccessPermission.Edit:
-                    permission = permission | types_1.AccessPermission.View | types_1.AccessPermission.Edit;
+                case types_1.AccessAction.Edit:
+                    permission = permission | types_1.AccessAction.View | types_1.AccessAction.Edit;
                     break;
-                case types_1.AccessPermission.NewItem:
-                    permission = permission | types_1.AccessPermission.View | types_1.AccessPermission.NewItem;
+                case types_1.AccessAction.NewItem:
+                    permission = permission | types_1.AccessAction.View | types_1.AccessAction.NewItem;
                     break;
-                case types_1.AccessPermission.DeleteItem:
-                    permission = permission | types_1.AccessPermission.View | types_1.AccessPermission.DeleteItem;
+                case types_1.AccessAction.DeleteItem:
+                    permission = permission | types_1.AccessAction.View | types_1.AccessAction.DeleteItem;
                     break;
             }
         }
