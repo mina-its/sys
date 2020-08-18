@@ -100,18 +100,24 @@ export enum TextEditor {
     HtmlText = 7,
 }
 
+export class ServiceConfig {
+    name: string;
+    version: string;
+    packages: string[];
+    defaultPackage: string;
+}
+
 export class Global {
     postClientCommandCallback: (cn: Context, ...args: any[]) => void;
     dbs: { [packAndCs: string]: any } = {}; // any not mongodb.Db because of client side reference
     dbsList: string[];
-    nodeConfig: NodeConfig;
     clients: Client[];
     countries: { [code: string]: Country; } = {};
-    packageInfo: { [pack: string]: PackageInfo; } = {};
     clientConfig: { [db: string]: ClientConfig; } = {};
     clientQuestionCallbacks: { [sessionId: string]: (answer: number | null) => void; } = {};
     rootDir: string;
     entities: Entity[];
+    services: { [service: string]: ServiceConfig; };
     drives: Drive[];
     suspendService: boolean = false;
     auditTypes: AuditType[];
@@ -349,18 +355,18 @@ export class Drive {
     }
 }
 
-export class DriveConfig {
-    _id: ID;
-    uri: string;
-    drive: ID;
-    s3: {
-        region: string;
-        accessKeyId: string;
-        secretAccessKey: string;
-        _sdk: any;
-    };
-}
-
+// export class DriveConfig {
+//     _id: ID;
+//     uri: string;
+//     drive: ID;
+//     s3: {
+//         region: string;
+//         accessKeyId: string;
+//         secretAccessKey: string;
+//         _sdk: any;
+//     };
+// }
+//
 export class FunctionTestSample {
     _id: ID;
     title: string;
@@ -567,9 +573,12 @@ export class App {
 export class Host {
     _id: ID;
     address: string;
+    defaultApp: ID;
     aliases: string[];
+    client: ID;
     prefixes: {
         _id: ID;
+        _z?: number;
         prefix?: string;
         app?: ID;
         drive?: ID;
@@ -579,6 +588,7 @@ export class Host {
         }
     }[];
     _: {
+        defaultApp?: App;
         db: string;
     }
 }
@@ -629,28 +639,12 @@ export class EmailAccount {
 
 export class ClientConfig {
     _id: ID;
-    defaultPack: string;
     emailAccounts: EmailAccount[];
     smsAccounts: SmsAccount[];
     emailVerificationTemplate: EmailTemplateConfig;
     welcomeEmailTemplate: EmailTemplateConfig;
     resetPasswordTemplate: EmailTemplateConfig;
     addressRules: PackageAddressRule[];
-}
-
-export class NodeConfig {
-    services: string[];
-    packages: string[];
-    drives: DriveConfig[];
-}
-
-export class PackageInfo {
-    version: string;
-    repository: string;
-    mina: {
-        dependencies: [(pack: string) => string];
-        version: string;
-    }
 }
 
 export class PackageAddressRule {
@@ -765,6 +759,7 @@ export enum StatusCode {
 
     UnknownError = 1001,
     ConfigurationProblem = 1002,
+    UserNotFound = 1003,
 }
 
 export class UploadedFile {
@@ -821,7 +816,7 @@ export enum EntityType {
     Object = 1,
     Function = 2,
     Form = 3,
-    File = 4,
+    // File = 4,
 }
 
 export enum AccessPermission {
@@ -973,6 +968,11 @@ export const ObjectIDs = {
     clientConfig: "5e3c2de67447070638c9c0c1",
 }
 
+export class Service {
+    name: string;
+    title: string | MultilangText;
+    enabled: boolean;
+}
 
 export enum Objects {
     audits = "audits",
@@ -985,12 +985,12 @@ export enum Objects {
     feedbacks = "feedbacks",
     documentDirectories = "documentDirectories",
     objects = "objects",
+    services = "services",
     functions = "functions",
     roles = "roles",
     apps = "apps",
     clientConfig = "clientConfig",
     clients = "clients",
-    nodeConfig = "nodeConfig",
     hosts = "hosts",
     menus = "menus",
     drives = "drives",
@@ -1075,6 +1075,7 @@ export const Constants = {
     referenceValuesLoadCount: 10,
     objectIdRegex: /^(?=[a-f\d]{24}$)(\d+[a-f]|[a-f]+\d)/i,
     sysDb: "sys",
+    MinaVersion: 5,
     titlePropertyName: "title",
     indexProperty: "_z",
     amazonS3ApiVersion: "2006-03-01",

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Client = exports.Flowchart = exports.FlowchartDeclaration = exports.FlowchartNodeDeclare = exports.FlowchartNode = exports.FlowchartNodeLink = exports.Feedback = exports.UserProfile = exports.SysDashboardInfo = exports.ApiDoc = exports.ApiDocEnum = exports.ApiDocSchema = exports.ApiDocProprty = exports.ApiDocBlock = exports.ApiDocOperation = exports.ApiDocParameter = exports.ReqParams = exports.FunctionDec = exports.ObjectDec = exports.EntityMeta = exports.NotificationInfo = exports.AjaxConfig = exports.YesNo = exports.ObjectListsViewType = exports.ObjectDetailsViewType = exports.ClientCommand = exports.DirFile = exports.Note = exports.DirFileType = exports.UnitTestObject = exports.WebMethod = exports.AppStateConfig = exports.WebResponse = exports.RequestMode = exports.EnvMode = exports.PropertyConditionBehavior = exports.Constants = exports.GridRowHeaderStyle = exports.PType = exports.SystemProperty = exports.SysAuditTypes = exports.Document = exports.DocumentDirectory = exports.DocumentDirectoryItem = exports.DocStatus = exports.Objects = exports.ObjectIDs = exports.FileType = exports.RedirectType = exports.ReferType = exports.TimeFormat = exports.RefPortionType = exports.GlobalType = exports.PropertyReferType = exports.NewItemMode = exports.ChangeFrequency = exports.FunctionMode = exports.SourceType = exports.Locale = exports.Keys = exports.PropertyEditMode = exports.PropertyViewMode = exports.AccessPermission = exports.EntityType = exports.ElemType = exports.Orientation = exports.PanelType = exports.LinkType = exports.LogType = exports.UploadedFile = exports.StatusCode = exports.GetOptions = exports.DelOptions = exports.PatchOptions = exports.PutOptions = exports.Point = exports.GeoLocation = exports.RefPortion = exports.TimeZone = exports.Text = exports.mFile = exports.PackageAddressRule = exports.PackageInfo = exports.NodeConfig = exports.ClientConfig = exports.EmailAccount = exports.SmsAccount = exports.MultilangText = exports.EnumItem = exports.Enum = exports.Host = exports.App = exports.TreePair = exports.Pair = exports.MenuItem = exports.Menu = exports.AccessItem = exports.Access = exports.ChartSeries = exports.ErrorObject = exports.Elem = exports.ObjectViewType = exports.EntityLink = exports.FunctionTestSample = exports.DriveConfig = exports.Drive = exports.Property = exports.ObjectModifyType = exports.SendSmsParams = exports.SendEmailParams = exports.EmailTemplateConfig = exports.ObjectModifyState = exports.FormDto = exports.Form = exports.Function = exports.mObject = exports.Entity = exports.Global = exports.TextEditor = exports.Country = exports.SmsProvider = exports.AuditType = exports.User = exports.Role = exports.AuditArgs = exports.ID = void 0;
+exports.Client = exports.Flowchart = exports.FlowchartDeclaration = exports.FlowchartNodeDeclare = exports.FlowchartNode = exports.FlowchartNodeLink = exports.Feedback = exports.UserProfile = exports.SysDashboardInfo = exports.ApiDoc = exports.ApiDocEnum = exports.ApiDocSchema = exports.ApiDocProprty = exports.ApiDocBlock = exports.ApiDocOperation = exports.ApiDocParameter = exports.ReqParams = exports.FunctionDec = exports.ObjectDec = exports.EntityMeta = exports.NotificationInfo = exports.AjaxConfig = exports.YesNo = exports.ObjectListsViewType = exports.ObjectDetailsViewType = exports.ClientCommand = exports.DirFile = exports.Note = exports.DirFileType = exports.UnitTestObject = exports.WebMethod = exports.AppStateConfig = exports.WebResponse = exports.RequestMode = exports.EnvMode = exports.PropertyConditionBehavior = exports.Constants = exports.GridRowHeaderStyle = exports.PType = exports.SystemProperty = exports.SysAuditTypes = exports.Document = exports.DocumentDirectory = exports.DocumentDirectoryItem = exports.DocStatus = exports.Objects = exports.Service = exports.ObjectIDs = exports.FileType = exports.RedirectType = exports.ReferType = exports.TimeFormat = exports.RefPortionType = exports.GlobalType = exports.PropertyReferType = exports.NewItemMode = exports.ChangeFrequency = exports.FunctionMode = exports.SourceType = exports.Locale = exports.Keys = exports.PropertyEditMode = exports.PropertyViewMode = exports.AccessPermission = exports.EntityType = exports.ElemType = exports.Orientation = exports.PanelType = exports.LinkType = exports.LogType = exports.UploadedFile = exports.StatusCode = exports.GetOptions = exports.DelOptions = exports.PatchOptions = exports.PutOptions = exports.Point = exports.GeoLocation = exports.RefPortion = exports.TimeZone = exports.Text = exports.mFile = exports.PackageAddressRule = exports.ClientConfig = exports.EmailAccount = exports.SmsAccount = exports.MultilangText = exports.EnumItem = exports.Enum = exports.Host = exports.App = exports.TreePair = exports.Pair = exports.MenuItem = exports.Menu = exports.AccessItem = exports.Access = exports.ChartSeries = exports.ErrorObject = exports.Elem = exports.ObjectViewType = exports.EntityLink = exports.FunctionTestSample = exports.Drive = exports.Property = exports.ObjectModifyType = exports.SendSmsParams = exports.SendEmailParams = exports.EmailTemplateConfig = exports.ObjectModifyState = exports.FormDto = exports.Form = exports.Function = exports.mObject = exports.Entity = exports.Global = exports.ServiceConfig = exports.TextEditor = exports.Country = exports.SmsProvider = exports.AuditType = exports.User = exports.Role = exports.AuditArgs = exports.ID = void 0;
 const bson_util_1 = require("bson-util");
 Object.defineProperty(exports, "ID", { enumerable: true, get: function () { return bson_util_1.ID; } });
 class AuditArgs {
@@ -37,11 +37,13 @@ var TextEditor;
     TextEditor[TextEditor["Json"] = 6] = "Json";
     TextEditor[TextEditor["HtmlText"] = 7] = "HtmlText";
 })(TextEditor = exports.TextEditor || (exports.TextEditor = {}));
+class ServiceConfig {
+}
+exports.ServiceConfig = ServiceConfig;
 class Global {
     constructor() {
         this.dbs = {};
         this.countries = {};
-        this.packageInfo = {};
         this.clientConfig = {};
         this.clientQuestionCallbacks = {};
         this.suspendService = false;
@@ -98,9 +100,6 @@ exports.Property = Property;
 class Drive {
 }
 exports.Drive = Drive;
-class DriveConfig {
-}
-exports.DriveConfig = DriveConfig;
 class FunctionTestSample {
 }
 exports.FunctionTestSample = FunctionTestSample;
@@ -173,12 +172,6 @@ exports.EmailAccount = EmailAccount;
 class ClientConfig {
 }
 exports.ClientConfig = ClientConfig;
-class NodeConfig {
-}
-exports.NodeConfig = NodeConfig;
-class PackageInfo {
-}
-exports.PackageInfo = PackageInfo;
 class PackageAddressRule {
 }
 exports.PackageAddressRule = PackageAddressRule;
@@ -242,6 +235,7 @@ var StatusCode;
     StatusCode[StatusCode["NetworkAuthenticationRequired"] = 511] = "NetworkAuthenticationRequired";
     StatusCode[StatusCode["UnknownError"] = 1001] = "UnknownError";
     StatusCode[StatusCode["ConfigurationProblem"] = 1002] = "ConfigurationProblem";
+    StatusCode[StatusCode["UserNotFound"] = 1003] = "UserNotFound";
 })(StatusCode = exports.StatusCode || (exports.StatusCode = {}));
 class UploadedFile {
 }
@@ -294,7 +288,6 @@ var EntityType;
     EntityType[EntityType["Object"] = 1] = "Object";
     EntityType[EntityType["Function"] = 2] = "Function";
     EntityType[EntityType["Form"] = 3] = "Form";
-    EntityType[EntityType["File"] = 4] = "File";
 })(EntityType = exports.EntityType || (exports.EntityType = {}));
 var AccessPermission;
 (function (AccessPermission) {
@@ -476,6 +469,9 @@ exports.ObjectIDs = {
     enums: "5daa0b11e1635a1e6862baac",
     clientConfig: "5e3c2de67447070638c9c0c1",
 };
+class Service {
+}
+exports.Service = Service;
 var Objects;
 (function (Objects) {
     Objects["audits"] = "audits";
@@ -488,12 +484,12 @@ var Objects;
     Objects["feedbacks"] = "feedbacks";
     Objects["documentDirectories"] = "documentDirectories";
     Objects["objects"] = "objects";
+    Objects["services"] = "services";
     Objects["functions"] = "functions";
     Objects["roles"] = "roles";
     Objects["apps"] = "apps";
     Objects["clientConfig"] = "clientConfig";
     Objects["clients"] = "clients";
-    Objects["nodeConfig"] = "nodeConfig";
     Objects["hosts"] = "hosts";
     Objects["menus"] = "menus";
     Objects["drives"] = "drives";
@@ -560,6 +556,7 @@ exports.Constants = {
     referenceValuesLoadCount: 10,
     objectIdRegex: /^(?=[a-f\d]{24}$)(\d+[a-f]|[a-f]+\d)/i,
     sysDb: "sys",
+    MinaVersion: 5,
     titlePropertyName: "title",
     indexProperty: "_z",
     amazonS3ApiVersion: "2006-03-01",

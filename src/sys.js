@@ -1,10 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.makeLinksReady = exports.checkAccess = exports.preparePropertyDeclare = exports.prepareUrl = exports.getPageLinks = exports.applyPropertiesDefaultValue = exports.createDeclare = exports.filterAndSortProperties = exports.getPortionProperties = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.initializeMinaDb = exports.dropDatabase = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getPackageInfo = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.checkPropertyGtype = exports.initializeRoles = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getCollection = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
+exports.sessionSignin = exports.makeLinksReady = exports.checkAccess = exports.preparePropertyDeclare = exports.prepareUrl = exports.getPageLinks = exports.applyPropertiesDefaultValue = exports.createDeclare = exports.filterAndSortProperties = exports.getPortionProperties = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.initializeMinaDb = exports.dropDatabase = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.checkPropertyGtype = exports.initializeRoles = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getCollection = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
 const Url = require("url");
 let index = {
     "Start                                              ": reload,
-    "Load Packages package.json file                    ": loadPackagesInfo,
     "Initialize Entities                                ": initializeEntities,
     "   Initialize Object                               ": initObject,
     "       Initialize Properties                       ": initProperties,
@@ -27,7 +26,7 @@ const marked = require("marked");
 const Jalali = require("jalali-moment");
 const sourceMapSupport = require("source-map-support");
 const ejs = require("ejs");
-const AWS = require("aws-sdk");
+const aws = require("aws-sdk");
 const rimraf = require("rimraf");
 const bson_util_1 = require("bson-util");
 const fs_1 = require("fs");
@@ -43,42 +42,48 @@ const fsPromises = fs.promises;
 const bcrypt = require('bcrypt');
 async function loadHosts() {
     exports.glob.hosts = [];
-    let clients = [process.env.NODE_NAME, ...exports.glob.clients.map(cl => cl._.db)];
-    for (const db of clients) {
-        let hosts = await get({ db }, types_1.Objects.hosts);
-        for (const host of hosts) {
-            assert(host.prefixes && host.prefixes.length, `Prefixes for host '${host.address}' must be configured.`);
-            host._ = { db };
-            host.aliases = host.aliases || [];
-            for (let prefix of host.prefixes) {
-                prefix._ = {};
-                if (prefix.drive) {
-                    let drive = exports.glob.drives.find(d => d._id.equals(prefix.drive));
-                    if (drive) {
-                        prefix._.drive = drive;
-                    }
-                    else
-                        error(`drive for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
-                }
-                else if (prefix.app) {
-                    let app = exports.glob.apps.find(d => d._id.equals(prefix.app));
-                    if (app) {
-                        prefix._.app = app;
-                    }
-                    else
-                        error(`app for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
-                }
+    let clients = await get({ db: process.env.NODE_NAME }, types_1.Objects.clients);
+    let hosts = await get({ db: process.env.NODE_NAME }, types_1.Objects.hosts);
+    for (const host of hosts) {
+        assert(host.prefixes && host.prefixes.length, `Prefixes for host '${host.address}' must be configured.`);
+        if (host.client) {
+            let client = clients.find(c => c._id.equals(host.client));
+            if (!client) {
+                error(`Invalid host client, host: '${host.address}'`);
+                continue;
             }
-            exports.glob.hosts.push(host);
+            host._ = { db: client.name };
         }
+        else
+            host._ = { db: process.env.NODE_NAME };
+        host.aliases = host.aliases || [];
+        for (let prefix of host.prefixes) {
+            prefix._ = {};
+            if (prefix.drive) {
+                let drive = exports.glob.drives.find(d => d._id.equals(prefix.drive));
+                if (drive) {
+                    prefix._.drive = drive;
+                }
+                else
+                    error(`drive for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
+            }
+            else if (prefix.app) {
+                let app = exports.glob.apps.find(d => d._id.equals(prefix.app));
+                if (app) {
+                    prefix._.app = app;
+                }
+                else
+                    error(`app for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
+            }
+        }
+        exports.glob.hosts.push(host);
     }
 }
 async function reload(cn) {
     let startTime = moment();
     log(`reload ...`);
     exports.glob.suspendService = true;
-    await loadNodeConfig();
-    await loadPackagesInfo();
+    await globalCheck();
     await applyAmazonConfig();
     await loadSystemCollections();
     await loadTimeZones();
@@ -603,9 +608,7 @@ async function putFile(drive, relativePath, file) {
             break;
         case types_1.SourceType.S3:
             try {
-                let sdk = getS3DriveSdk(drive);
-                let driveConfig = exports.glob.nodeConfig.drives.find(d => d.drive.equals(drive._id));
-                let s3 = new sdk.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion, region: driveConfig.s3.region });
+                let s3 = new aws.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion, region: process.env.AWS_S3_REGION });
                 const config = {
                     Bucket: drive.address,
                     Key: relativePath,
@@ -642,9 +645,7 @@ async function listDir(drive, dir) {
         default:
             throw types_1.StatusCode.NotImplemented;
         case types_1.SourceType.S3:
-            let sdk = getS3DriveSdk(drive);
-            let driveConfig = exports.glob.nodeConfig.drives.find(d => d.drive.equals(drive._id));
-            let s3 = new sdk.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion });
+            let s3 = new aws.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion });
             const s3params = {
                 Bucket: drive.address,
                 Prefix: _.trim(dir, '/') ? _.trim(dir, '/') + "/" : "",
@@ -655,7 +656,7 @@ async function listDir(drive, dir) {
                 s3.listObjectsV2(s3params, (err, data) => {
                     if (err) {
                         if (err.code == "InvalidAccessKeyId")
-                            reject(`Invalid AccessKeyId '${driveConfig.s3.accessKeyId}': ${err.message}`);
+                            reject(`Invalid AccessKeyId: ${err.message}`);
                         else
                             reject(err);
                     }
@@ -687,7 +688,7 @@ async function delFile(pack, drive, relativePath) {
             await fs.unlink(_path);
             break;
         case types_1.SourceType.S3:
-            let s3 = new AWS.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion });
+            let s3 = new aws.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion });
             let data = await s3.deleteObject({ Bucket: drive.address, Key: relativePath });
             break;
         case types_1.SourceType.Db:
@@ -709,23 +710,6 @@ function joinUri(...parts) {
     return uri.substr(1);
 }
 exports.joinUri = joinUri;
-function getS3DriveSdk(drive) {
-    let driveConfig = exports.glob.nodeConfig.drives.find(d => d.drive.equals(drive._id));
-    assert(driveConfig.s3, `S3 for drive '${drive.title}' must be configured!`);
-    if (driveConfig.s3._sdk)
-        return driveConfig.s3._sdk;
-    let sdk = require('aws-sdk');
-    if (!driveConfig.s3.accessKeyId)
-        throwError(types_1.StatusCode.ConfigurationProblem, `s3 accessKeyId for drive package '${drive._.db}' must be configured.`);
-    else
-        sdk.config.accessKeyId = driveConfig.s3.accessKeyId;
-    if (!driveConfig.s3.secretAccessKey)
-        throwError(types_1.StatusCode.ConfigurationProblem, `s3 secretAccessKey for drive package '${drive._.db}' must be configured.`);
-    else
-        sdk.config.secretAccessKey = driveConfig.s3.secretAccessKey;
-    driveConfig.s3._sdk = sdk;
-    return sdk;
-}
 function silly(...message) {
     logger.silly(message);
 }
@@ -785,38 +769,23 @@ async function loadAuditTypes() {
     log('loadAuditTypes ...');
     exports.glob.auditTypes = await get({ db: types_1.Constants.sysDb }, types_1.Objects.auditTypes);
 }
-async function loadPackagesInfo() {
-    for (const pack of exports.glob.nodeConfig.packages) {
-        try {
-            exports.glob.packageInfo[pack] = require(getAbsolutePath('./' + pack, `package.json`));
-        }
-        catch (ex) {
-            error(`Loading package.json for package '${pack}' failed: ${ex.message}`);
-            exports.glob.nodeConfig.packages.splice(exports.glob.nodeConfig.packages.indexOf(pack), 1);
-        }
-    }
-}
-async function loadNodeConfig() {
-    if (!process.env.DB_ADDRESS)
-        fatal("Environment variable 'DB_ADDRESS' is needed.");
-    if (!process.env.NODE_NAME)
-        fatal("Environment variable 'NODE_NAME' is needed.");
+async function globalCheck() {
+    assert(process.env.DB_ADDRESS, "Environment variable 'DB_ADDRESS' is needed.");
+    assert(process.env.NODE_NAME, "Environment variable 'NODE_NAME' is needed.");
     try {
-        let dbc = await mongodb_1.MongoClient.connect(process.env.DB_ADDRESS, {
+        await mongodb_1.MongoClient.connect(process.env.DB_ADDRESS, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
             poolSize: types_1.Constants.mongodbPoolSize
         });
-        let collection = dbc.db(process.env.NODE_NAME).collection(types_1.Objects.nodeConfig);
-        exports.glob.nodeConfig = await collection.findOne({});
     }
     catch (ex) {
         fatal("Error connecting to the database: " + ex.message);
     }
 }
 function applyAmazonConfig() {
-    AWS.config.accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-    AWS.config.secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+    aws.config.accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+    aws.config.secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
 }
 async function loadPackageSystemCollections(db) {
     log(`Loading system collections db '${db}' ...`);
@@ -878,11 +847,14 @@ async function loadSystemCollections() {
     exports.glob.roles = [];
     exports.glob.drives = [];
     exports.glob.apps = [];
+    exports.glob.services = {};
+    let services = await get({ db: process.env.NODE_NAME }, types_1.Objects.services, { query: { enabled: true } });
+    services.forEach(service => exports.glob.services[service.name] = {});
     exports.glob.clients = await get({ db: process.env.NODE_NAME }, types_1.Objects.clients);
     for (let client of exports.glob.clients) {
         client._ = { db: client.name || ("c" + client.code) };
     }
-    exports.glob.dbsList = [process.env.NODE_NAME, ...exports.glob.nodeConfig.services, ...exports.glob.clients.map(cl => cl._.db)];
+    exports.glob.dbsList = [...Object.keys(exports.glob.services), ...exports.glob.clients.map(cl => cl.name)];
     for (const db of exports.glob.dbsList) {
         try {
             exports.glob.dbs[db] = null;
@@ -980,7 +952,7 @@ function templateRender(pack, template) {
     }
 }
 function initializePackages() {
-    log(`initializePackages: ${exports.glob.nodeConfig.packages.join(' , ')}`);
+    log(`initializePackages`);
     let sysTemplateRender = templateRender(types_1.Constants.sysDb, types_1.Constants.DEFAULT_APP_TEMPLATE);
     for (const app of exports.glob.apps) {
         app.dependencies = app.dependencies || [];
@@ -1163,7 +1135,7 @@ async function initializeEntities() {
         try {
             func._.access = {};
             func._.access[func._.db] = func.access;
-            func.pack = func.pack || exports.glob.clientConfig[func._.db].defaultPack;
+            func.pack = func.pack || exports.glob.services[func._.db].defaultPackage;
             assert(func.pack, `Function needs unknown pack, or default pack in PackageConfig needed!`);
             await initProperties(func.properties, func, func.title, null);
         }
@@ -1500,12 +1472,6 @@ function getAllFiles(path) {
     }));
 }
 exports.getAllFiles = getAllFiles;
-function getPackageInfo(pack) {
-    let config = exports.glob.packageInfo[pack];
-    config = require(getAbsolutePath('./' + pack, `package.json`));
-    return config;
-}
-exports.getPackageInfo = getPackageInfo;
 function getPathSize(path) {
     let files = getAllFiles(path);
     let totalSize = 0;
@@ -1639,16 +1605,12 @@ async function dropDatabase(dbName) {
     return db.dropDatabase();
 }
 exports.dropDatabase = dropDatabase;
-async function initializeMinaDb(cn, dbName, adminUser, adminPassword, uiProjectName, serviceDb) {
+async function initializeMinaDb(cn, dbName, serviceDb) {
     let dbc = { db: dbName };
     let adminRole = { _id: newID(), title: "Admin" };
     let systemRole = { _id: newID(), title: "System", roles: [adminRole._id] };
     await put(dbc, types_1.Objects.roles, [systemRole, adminRole]);
-    if (adminUser)
-        await put(dbc, types_1.Objects.users, [
-            { firstName: "Admin", time: new Date(), email: adminUser, password: await hashPassword(adminPassword), roles: [adminRole._id] }
-        ]);
-    let defaultDrive = { title: "Default", type: types_1.SourceType.File, address: `./${uiProjectName}/public` };
+    let defaultDrive = { title: "Default", type: types_1.SourceType.File, address: `public` };
     await put(dbc, types_1.Objects.drives, [defaultDrive]);
     let sysDrive = { title: "Sys Public", type: types_1.SourceType.File, address: `./sys-ui/public` };
     await put(dbc, types_1.Objects.drives, [sysDrive]);
@@ -1657,7 +1619,7 @@ async function initializeMinaDb(cn, dbName, adminUser, adminPassword, uiProjectN
     let obj_functions = { _id: newID(), name: "functions", title: { "en": "Functions" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.functions), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
     let obj_roles = { _id: newID(), name: "roles", title: { "en": "Roles" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.roles), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
     let obj_menus = { _id: newID(), name: "menus", title: { "en": "Menus" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.menus), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
-    let obj_apps = { _id: newID(), name: "apps", title: { "en": "Apps" }, source: 1, isList: false, referType: 0, reference: newID(types_1.ObjectIDs.apps), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
+    let obj_apps = { _id: newID(), name: "apps", title: { "en": "Apps" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.apps), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
     let obj_dictionary = { _id: newID(), name: "dictionary", title: { "en": "Dictionary" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.dictionary), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
     let obj_forms = { _id: newID(), name: "forms", title: { "en": "Forms" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.forms), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
     let obj_enums = { _id: newID(), name: "enums", title: { "en": "Enums" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.enums), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
@@ -1665,21 +1627,21 @@ async function initializeMinaDb(cn, dbName, adminUser, adminPassword, uiProjectN
     let obj_users = { _id: newID(), name: "users", title: { "en": "Users" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.users), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
     let obj_hosts = { _id: newID(), name: "hosts", title: { "en": "Hosts" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.hosts), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
     let obj_clientConfig = { _id: newID(), name: "hosts", title: { "en": "Client Config" }, source: 1, isList: false, referType: 0, reference: newID(types_1.ObjectIDs.clientConfig), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
-    await put(dbc, "objects", [obj_functions, obj_objects, obj_roles, obj_dictionary, obj_forms, obj_enums, obj_apps, obj_drives, obj_menus]);
+    await put(dbc, types_1.Objects.objects, [obj_functions, obj_objects, obj_roles, obj_dictionary, obj_forms, obj_enums, obj_apps, obj_drives, obj_menus]);
     if (!serviceDb)
-        await put(dbc, "objects", [obj_users, obj_hosts, obj_clientConfig]);
+        await put(dbc, types_1.Objects.objects, [obj_users, obj_hosts, obj_clientConfig]);
     let menuItems = [
-        { "entity": obj_objects._id, "_id": newID() },
-        { "entity": obj_functions._id, "_id": newID() },
-        { "entity": obj_forms._id, "_id": newID() },
-        { "title": "-", "_id": newID() },
-        { "entity": obj_apps._id, "_id": newID() },
-        { "entity": obj_drives._id, "_id": newID() },
-        { "entity": obj_menus._id, "_id": newID() },
-        { "entity": obj_enums._id, "_id": newID() },
-        { "entity": obj_dictionary._id, "_id": newID() },
-        { "title": "-", "_id": newID() },
-        { "_id": newID(), "entity": obj_roles._id },
+        { entity: obj_objects._id, "_id": newID() },
+        { entity: obj_functions._id, "_id": newID() },
+        { entity: obj_forms._id, "_id": newID() },
+        { title: "-", "_id": newID() },
+        { entity: obj_apps._id, _id: newID() },
+        { entity: obj_drives._id, _id: newID() },
+        { entity: obj_menus._id, _id: newID() },
+        { entity: obj_enums._id, _id: newID() },
+        { entity: obj_dictionary._id, _id: newID() },
+        { title: "-", _id: newID() },
+        { _id: newID(), entity: obj_roles._id },
     ];
     if (!serviceDb) {
         menuItems = menuItems.concat([
@@ -1692,17 +1654,17 @@ async function initializeMinaDb(cn, dbName, adminUser, adminPassword, uiProjectN
     await put(dbc, types_1.Objects.menus, [menu]);
     let appSys = {
         _id: newID(),
-        title: "Default",
+        title: "System",
         menu: menu._id,
         locales: [1033, 1025, 1055, 1065],
         defaultLocale: 1033,
         home: "home",
         iconStyle: "fad fa-cogs",
-        navColor: "#666",
-        iconColor: "#666",
+        navColor: "#258",
+        iconColor: "#258",
     };
     await put(dbc, types_1.Objects.apps, [appSys]);
-    return { defaultDrive, sysDrive, appSys };
+    return { defaultDrive, sysDrive, appSys, adminRole, systemRole };
 }
 exports.initializeMinaDb = initializeMinaDb;
 function makeEntityList(cn, entities) {
@@ -1759,8 +1721,6 @@ async function getInnerPropertyReferenceValues(cn, foreignObj, db, prop, instanc
 }
 async function getPropertyObjectReferenceValues(cn, obj, prop, instance, phrase, query) {
     let db = obj._.db;
-    if (obj.name == types_1.Objects.users || obj.name == types_1.Objects.roles || obj.name == types_1.Objects.menus || obj.name == types_1.Objects.drives)
-        db = cn.db;
     if (prop.filter && !query)
         return [];
     if (prop.referType == types_1.PropertyReferType.InnerSelectType) {
@@ -2099,7 +2059,7 @@ async function execShellCommand(cmd, std) {
     });
 }
 exports.execShellCommand = execShellCommand;
-function sort(array, prop) {
+function sort(array, prop = "_z") {
     function compare(a, b) {
         if (a[prop] < b[prop]) {
             return -1;
@@ -2571,4 +2531,21 @@ function getPropertyTypedValue(prop, value, ignoreArray) {
                 return value;
     }
 }
+async function sessionSignin(cn, user) {
+    return new Promise((resolve, reject) => {
+        cn["httpReq"].login(user, async (err) => {
+            if (err)
+                return reject(err);
+            let ip = cn["httpReq"].headers['x-forwarded-for'] || cn["httpReq"].connection.remoteAddress;
+            let country = await countryNameLookup(ip);
+            await audit(cn, types_1.SysAuditTypes.login, {
+                user: cn["httpReq"].user._id,
+                level: types_1.LogType.Info,
+                comment: `User '${cn["httpReq"].user.email}' legged-in!\r\nIP:${ip}\r\nCountry:${country}`
+            });
+            resolve();
+        });
+    });
+}
+exports.sessionSignin = sessionSignin;
 //# sourceMappingURL=sys.js.map

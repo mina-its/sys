@@ -2,7 +2,6 @@ import * as Url from "url";
 
 let index = {
     "Start                                              ": reload,
-    "Load Packages package.json file                    ": loadPackagesInfo,
 
     "Initialize Entities                                ": initializeEntities,
     "   Initialize Object                               ": initObject,
@@ -29,7 +28,7 @@ import marked = require('marked');
 import Jalali = require('jalali-moment');
 import sourceMapSupport = require('source-map-support');
 import ejs = require('ejs');
-import AWS = require('aws-sdk');
+import aws = require('aws-sdk');
 import rimraf = require("rimraf");
 import {ID, stringify} from 'bson-util';
 import {promises as fsAsync} from "fs";
@@ -68,7 +67,6 @@ import {
     ObjectModifyState,
     ObjectModifyType,
     Objects,
-    PackageInfo,
     Pair,
     Property,
     PropertyEditMode,
@@ -99,6 +97,8 @@ import {
     ReqParams,
     ObjectIDs,
     Client,
+    ServiceConfig,
+    Service,
 } from './types';
 
 const nodemailer = require('nodemailer');
@@ -111,34 +111,41 @@ const bcrypt = require('bcrypt');
 async function loadHosts() {
     glob.hosts = [];
 
-    let clients = [process.env.NODE_NAME, ...glob.clients.map(cl => cl._.db)];
-    for (const db of clients) {
-        let hosts: Host[] = await get({db}, Objects.hosts);
-        for (const host of hosts) {
-            assert(host.prefixes && host.prefixes.length, `Prefixes for host '${host.address}' must be configured.`);
+    let clients: Client[] = await get({db: process.env.NODE_NAME}, Objects.clients);
 
-            host._ = {db};
-            host.aliases = host.aliases || [];
-            for (let prefix of host.prefixes) {
-                prefix._ = {};
-                if (prefix.drive) {
-                    let drive = glob.drives.find(d => d._id.equals(prefix.drive));
-                    if (drive) {
-                        // drive._.uri = joinUri(host.address, prefix.prefix);
-                        prefix._.drive = drive;
-                    } else
-                        error(`drive for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
-                } else if (prefix.app) {
-                    let app = glob.apps.find(d => d._id.equals(prefix.app));
-                    if (app) {
-                        prefix._.app = app;
-                    } else
-                        error(`app for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
-                }
+    let hosts: Host[] = await get({db: process.env.NODE_NAME}, Objects.hosts);
+    for (const host of hosts) {
+        assert(host.prefixes && host.prefixes.length, `Prefixes for host '${host.address}' must be configured.`);
+
+        if (host.client) {
+            let client = clients.find(c => c._id.equals(host.client));
+            if (!client) {
+                error(`Invalid host client, host: '${host.address}'`);
+                continue;
             }
-
-            glob.hosts.push(host);
+            host._ = {db: client.name};
+        } else
+            host._ = {db: process.env.NODE_NAME};
+        host.aliases = host.aliases || [];
+        for (let prefix of host.prefixes) {
+            prefix._ = {};
+            if (prefix.drive) {
+                let drive = glob.drives.find(d => d._id.equals(prefix.drive));
+                if (drive) {
+                    // drive._.uri = joinUri(host.address, prefix.prefix);
+                    prefix._.drive = drive;
+                } else
+                    error(`drive for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
+            } else if (prefix.app) {
+                let app = glob.apps.find(d => d._id.equals(prefix.app));
+                if (app) {
+                    prefix._.app = app;
+                } else
+                    error(`app for prefix '${host.address}/${prefix.prefix || ""}' not found!`);
+            }
         }
+
+        glob.hosts.push(host);
     }
 }
 
@@ -147,8 +154,7 @@ export async function reload(cn?: Context) {
     log(`reload ...`);
     glob.suspendService = true;
 
-    await loadNodeConfig();
-    await loadPackagesInfo();
+    await globalCheck();
     await applyAmazonConfig();
     await loadSystemCollections();
     await loadTimeZones();
@@ -704,9 +710,7 @@ export async function putFile(drive: Drive, relativePath: string, file: Buffer) 
 
         case SourceType.S3:
             try {
-                let sdk = getS3DriveSdk(drive);
-                let driveConfig = glob.nodeConfig.drives.find(d => d.drive.equals(drive._id));
-                let s3 = new sdk.S3({apiVersion: Constants.amazonS3ApiVersion, region: driveConfig.s3.region});
+                let s3 = new aws.S3({apiVersion: Constants.amazonS3ApiVersion, region: process.env.AWS_S3_REGION});
                 const config = {
                     Bucket: drive.address,
                     Key: relativePath,
@@ -745,9 +749,7 @@ export async function listDir(drive: Drive, dir: string): Promise<DirFile[]> {
             throw StatusCode.NotImplemented;
 
         case SourceType.S3:
-            let sdk = getS3DriveSdk(drive);
-            let driveConfig = glob.nodeConfig.drives.find(d => d.drive.equals(drive._id));
-            let s3 = new sdk.S3({apiVersion: Constants.amazonS3ApiVersion});
+            let s3 = new aws.S3({apiVersion: Constants.amazonS3ApiVersion});
             const s3params = {
                 Bucket: drive.address,
                 Prefix: _.trim(dir, '/') ? _.trim(dir, '/') + "/" : "",
@@ -758,7 +760,7 @@ export async function listDir(drive: Drive, dir: string): Promise<DirFile[]> {
                 s3.listObjectsV2(s3params, (err, data) => {
                     if (err) {
                         if (err.code == "InvalidAccessKeyId")
-                            reject(`Invalid AccessKeyId '${driveConfig.s3.accessKeyId}': ${err.message}`);
+                            reject(`Invalid AccessKeyId: ${err.message}`);
                         else
                             reject(err);
                     } else {
@@ -790,7 +792,7 @@ export async function delFile(pack: string | Context, drive: Drive, relativePath
             break;
 
         case SourceType.S3:
-            let s3 = new AWS.S3({apiVersion: Constants.amazonS3ApiVersion});
+            let s3 = new aws.S3({apiVersion: Constants.amazonS3ApiVersion});
             let data: any = await s3.deleteObject({Bucket: drive.address, Key: relativePath});
             break;
 
@@ -843,25 +845,6 @@ export function joinUri(...parts: string[]): string {
             uri += "/" + part.replace(/^\//, '').replace(/\/$/, '');
     }
     return uri.substr(1);
-}
-
-function getS3DriveSdk(drive: Drive) {
-    let driveConfig = glob.nodeConfig.drives.find(d => d.drive.equals(drive._id));
-    assert(driveConfig.s3, `S3 for drive '${drive.title}' must be configured!`);
-    if (driveConfig.s3._sdk) return driveConfig.s3._sdk;
-
-    let sdk = require('aws-sdk');
-    if (!driveConfig.s3.accessKeyId)
-        throwError(StatusCode.ConfigurationProblem, `s3 accessKeyId for drive package '${drive._.db}' must be configured.`);
-    else
-        sdk.config.accessKeyId = driveConfig.s3.accessKeyId;
-
-    if (!driveConfig.s3.secretAccessKey)
-        throwError(StatusCode.ConfigurationProblem, `s3 secretAccessKey for drive package '${drive._.db}' must be configured.`);
-    else
-        sdk.config.secretAccessKey = driveConfig.s3.secretAccessKey;
-    driveConfig.s3._sdk = sdk;
-    return sdk;
 }
 
 export function silly(...message) {
@@ -926,44 +909,24 @@ async function loadAuditTypes() {
     glob.auditTypes = await get({db: Constants.sysDb} as Context, Objects.auditTypes);
 }
 
-async function loadPackagesInfo() {
-    for (const pack of glob.nodeConfig.packages) {
-        try {
-            glob.packageInfo[pack] = require(getAbsolutePath('./' + pack, `package.json`));
-            // glob.packages[pack.name] = require(getAbsolutePath('./' + pack.name));
-            // if (glob.packages[pack.name] == null)
-            //     error(`Error loading package ${pack.name}!`);
-        } catch (ex) {
-            error(`Loading package.json for package '${pack}' failed: ${ex.message}`);
-            glob.nodeConfig.packages.splice(glob.nodeConfig.packages.indexOf(pack), 1);
-        }
-    }
-}
-
-async function loadNodeConfig() {
-    if (!process.env.DB_ADDRESS)
-        fatal("Environment variable 'DB_ADDRESS' is needed.");
-
-    if (!process.env.NODE_NAME)
-        fatal("Environment variable 'NODE_NAME' is needed.");
+async function globalCheck() {
+    assert(process.env.DB_ADDRESS, "Environment variable 'DB_ADDRESS' is needed.")
+    assert(process.env.NODE_NAME, "Environment variable 'NODE_NAME' is needed.")
 
     try {
-        let dbc = await MongoClient.connect(process.env.DB_ADDRESS, {
+        await MongoClient.connect(process.env.DB_ADDRESS, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
             poolSize: Constants.mongodbPoolSize
         });
-
-        let collection = dbc.db(process.env.NODE_NAME).collection(Objects.nodeConfig);
-        glob.nodeConfig = await collection.findOne({});
     } catch (ex) {
         fatal("Error connecting to the database: " + ex.message);
     }
 }
 
 function applyAmazonConfig() {
-    AWS.config.accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-    AWS.config.secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+    aws.config.accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+    aws.config.secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
 }
 
 async function loadPackageSystemCollections(db: string) {
@@ -1036,14 +999,19 @@ async function loadSystemCollections() {
     glob.roles = [];
     glob.drives = [];
     glob.apps = [];
+    glob.services = {};
 
-    // Load clients list
+    // Load Services
+    let services: Service[] = await get({db: process.env.NODE_NAME}, Objects.services, {query: {enabled: true}});
+    services.forEach(service => glob.services[service.name] = {} as ServiceConfig);
+
+    // Load Clients
     glob.clients = await get({db: process.env.NODE_NAME}, Objects.clients);
     for (let client of glob.clients) {
         client._ = {db: client.name || ("c" + client.code)};
     }
 
-    glob.dbsList = [process.env.NODE_NAME, ...glob.nodeConfig.services, ...glob.clients.map(cl => cl._.db)];
+    glob.dbsList = [...Object.keys(glob.services), ...glob.clients.map(cl => cl.name)];
 
     for (const db of glob.dbsList) {
         try {
@@ -1151,7 +1119,7 @@ function templateRender(pack, template) {
 }
 
 function initializePackages() {
-    log(`initializePackages: ${glob.nodeConfig.packages.join(' , ')}`);
+    log(`initializePackages`);
 
     let sysTemplateRender = templateRender(Constants.sysDb, Constants.DEFAULT_APP_TEMPLATE);
 
@@ -1351,7 +1319,7 @@ async function initializeEntities() {
         try {
             func._.access = {};
             func._.access[func._.db] = func.access;
-            func.pack = func.pack || glob.clientConfig[func._.db].defaultPack;
+            func.pack = func.pack || glob.services[func._.db].defaultPackage;
             assert(func.pack, `Function needs unknown pack, or default pack in PackageConfig needed!`);
             await initProperties(func.properties, func, func.title, null);
         } catch (ex) {
@@ -1715,16 +1683,6 @@ export function getAllFiles(path) {
     }));
 }
 
-export function getPackageInfo(pack: string): PackageInfo {
-    let config = glob.packageInfo[pack];
-    // if (!config)
-    //     throw `config for package '${pack}' not found.`;
-
-    // reload package.json
-    config = require(getAbsolutePath('./' + pack, `package.json`)) as PackageInfo;
-    return config;
-}
-
 export function getPathSize(path) {
     let files = getAllFiles(path);
     let totalSize = 0;
@@ -1864,21 +1822,15 @@ export async function dropDatabase(dbName: string) {
     return db.dropDatabase();
 }
 
-export async function initializeMinaDb(cn: Context, dbName: string, adminUser: string, adminPassword: string, uiProjectName: string, serviceDb: boolean) {
+export async function initializeMinaDb(cn: Context, dbName: string, serviceDb: boolean) {
     let dbc = {db: dbName} as Context;
     // roles
     let adminRole = {_id: newID(), title: "Admin"} as Role;
     let systemRole = {_id: newID(), title: "System", roles: [adminRole._id]} as Role;
     await put(dbc, Objects.roles, [systemRole, adminRole]);
 
-    // users
-    if (adminUser)
-        await put(dbc, Objects.users, [
-            {firstName: "Admin", time: new Date(), email: adminUser, password: await hashPassword(adminPassword), roles: [adminRole._id]} as User
-        ]);
-
     // drives
-    let defaultDrive = {title: "Default", type: SourceType.File, address: `./${uiProjectName}/public`} as Drive;
+    let defaultDrive = {title: "Default", type: SourceType.File, address: `public`} as Drive;
     await put(dbc, Objects.drives, [defaultDrive]);
 
     let sysDrive = {title: "Sys Public", type: SourceType.File, address: `./sys-ui/public`} as Drive;
@@ -1892,7 +1844,7 @@ export async function initializeMinaDb(cn: Context, dbName: string, adminUser: s
     let obj_functions = {_id: newID(), name: "functions", title: {"en": "Functions"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.functions), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
     let obj_roles = {_id: newID(), name: "roles", title: {"en": "Roles"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.roles), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
     let obj_menus = {_id: newID(), name: "menus", title: {"en": "Menus"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.menus), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
-    let obj_apps = {_id: newID(), name: "apps", title: {"en": "Apps"}, source: 1, isList: false, referType: 0, reference: newID(ObjectIDs.apps), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
+    let obj_apps = {_id: newID(), name: "apps", title: {"en": "Apps"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.apps), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
     let obj_dictionary = {_id: newID(), name: "dictionary", title: {"en": "Dictionary"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.dictionary), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
     let obj_forms = {_id: newID(), name: "forms", title: {"en": "Forms"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.forms), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
     let obj_enums = {_id: newID(), name: "enums", title: {"en": "Enums"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.enums), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
@@ -1900,24 +1852,23 @@ export async function initializeMinaDb(cn: Context, dbName: string, adminUser: s
     let obj_users = {_id: newID(), name: "users", title: {"en": "Users"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.users), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
     let obj_hosts = {_id: newID(), name: "hosts", title: {"en": "Hosts"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.hosts), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
     let obj_clientConfig = {_id: newID(), name: "hosts", title: {"en": "Client Config"}, source: 1, isList: false, referType: 0, reference: newID(ObjectIDs.clientConfig), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
-
-    await put(dbc, "objects", [obj_functions, obj_objects, obj_roles, obj_dictionary, obj_forms, obj_enums, obj_apps, obj_drives, obj_menus]);
+    await put(dbc, Objects.objects, [obj_functions, obj_objects, obj_roles, obj_dictionary, obj_forms, obj_enums, obj_apps, obj_drives, obj_menus]);
     if (!serviceDb)
-        await put(dbc, "objects", [obj_users, obj_hosts, obj_clientConfig]);
+        await put(dbc, Objects.objects, [obj_users, obj_hosts, obj_clientConfig]);
 
     // menus
     let menuItems = [
-        {"entity": obj_objects._id, "_id": newID()},
-        {"entity": obj_functions._id, "_id": newID()},
-        {"entity": obj_forms._id, "_id": newID()},
-        {"title": "-", "_id": newID()},
-        {"entity": obj_apps._id, "_id": newID()},
-        {"entity": obj_drives._id, "_id": newID()},
-        {"entity": obj_menus._id, "_id": newID()},
-        {"entity": obj_enums._id, "_id": newID()},
-        {"entity": obj_dictionary._id, "_id": newID()},
-        {"title": "-", "_id": newID()},
-        {"_id": newID(), "entity": obj_roles._id},
+        {entity: obj_objects._id, "_id": newID()},
+        {entity: obj_functions._id, "_id": newID()},
+        {entity: obj_forms._id, "_id": newID()},
+        {title: "-", "_id": newID()},
+        {entity: obj_apps._id, _id: newID()},
+        {entity: obj_drives._id, _id: newID()},
+        {entity: obj_menus._id, _id: newID()},
+        {entity: obj_enums._id, _id: newID()},
+        {entity: obj_dictionary._id, _id: newID()},
+        {title: "-", _id: newID()},
+        {_id: newID(), entity: obj_roles._id},
     ];
 
     if (!serviceDb) {
@@ -1930,21 +1881,21 @@ export async function initializeMinaDb(cn: Context, dbName: string, adminUser: s
     let menu = {_id: newID(), title: "Default", items: menuItems};
     await put(dbc, Objects.menus, [menu]);
 
-    // appConfig
+    // apps
     let appSys = {
         _id: newID(),
-        title: "Default",
+        title: "System",
         menu: menu._id,
         locales: [1033, 1025, 1055, 1065],
         defaultLocale: 1033,
         home: "home",
         iconStyle: "fad fa-cogs",
-        navColor: "#666",
-        iconColor: "#666",
+        navColor: "#258",
+        iconColor: "#258",
     } as App;
     await put(dbc, Objects.apps, [appSys]);
 
-    return {defaultDrive, sysDrive, appSys};
+    return {defaultDrive, sysDrive, appSys, adminRole, systemRole};
 }
 
 export function makeEntityList(cn: Context, entities: Entity[]) {
@@ -2006,8 +1957,8 @@ async function getInnerPropertyReferenceValues(cn: Context, foreignObj: mObject,
 
 async function getPropertyObjectReferenceValues(cn: Context, obj: mObject, prop: Property, instance: any, phrase: string, query: any): Promise<Pair[]> {
     let db = obj._.db;
-    if (obj.name == Objects.users || obj.name == Objects.roles || obj.name == Objects.menus || obj.name == Objects.drives)
-        db = cn.db;
+    // if (obj.name == Objects.users || obj.name == Objects.roles || obj.name == Objects.menus || obj.name == Objects.drives)
+    //     db = cn.db;
 
     if (prop.filter && !query)
         return [];
@@ -2366,7 +2317,7 @@ export async function execShellCommand(cmd, std?: (message: string) => void): Pr
     });
 }
 
-export function sort(array: any[], prop: string): void {
+export function sort(array: any[], prop: string = "_z"): void {
     function compare(a, b) {
         if (a[prop] < b[prop]) {
             return -1;
@@ -2881,4 +2832,22 @@ function getPropertyTypedValue(prop: Property, value, ignoreArray?): any {
             } else
                 return value;
     }
+}
+
+export async function sessionSignin(cn: Context, user: User) {
+    return new Promise((resolve, reject) => {
+        // req.login handles serializing the user id to the session store and inside our request object and also adds the user object to our request object.
+        cn["httpReq"].login(user, async (err) => {
+            if (err) return reject(err);
+
+            let ip = cn["httpReq"].headers['x-forwarded-for'] || cn["httpReq"].connection.remoteAddress;
+            let country = await countryNameLookup(ip);
+            await audit(cn, SysAuditTypes.login, {
+                user: cn["httpReq"].user._id,
+                level: LogType.Info,
+                comment: `User '${cn["httpReq"].user.email}' legged-in!\r\nIP:${ip}\r\nCountry:${country}`
+            });
+            resolve();
+        });
+    });
 }
