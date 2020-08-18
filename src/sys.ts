@@ -1281,7 +1281,6 @@ export async function initializeEnums() {
 }
 
 export function allObjects(cn: Context): mObject[] {
-    let ss = glob.entities.filter(en => !en._);
     return glob.entities.filter(en => en.entityType == EntityType.Object && (!cn || containsPack(cn, en._.db))) as mObject[];
 }
 
@@ -1793,7 +1792,7 @@ export async function getTypes(cn: Context) {
 }
 
 export function containsPack(cn: Context, db: string): boolean {
-    return db == cn.db || cn.app.dependencies.indexOf(db) > -1;
+    return db == cn.db || cn.app.dependencies.indexOf(db) > -1 || cn.app._.db == db;
 }
 
 export async function getDataEntities(cn: Context) {

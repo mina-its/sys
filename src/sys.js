@@ -1099,7 +1099,6 @@ async function initializeEnums() {
 }
 exports.initializeEnums = initializeEnums;
 function allObjects(cn) {
-    let ss = exports.glob.entities.filter(en => !en._);
     return exports.glob.entities.filter(en => en.entityType == types_1.EntityType.Object && (!cn || containsPack(cn, en._.db)));
 }
 exports.allObjects = allObjects;
@@ -1576,7 +1575,7 @@ async function getTypes(cn) {
 }
 exports.getTypes = getTypes;
 function containsPack(cn, db) {
-    return db == cn.db || cn.app.dependencies.indexOf(db) > -1;
+    return db == cn.db || cn.app.dependencies.indexOf(db) > -1 || cn.app._.db == db;
 }
 exports.containsPack = containsPack;
 async function getDataEntities(cn) {
