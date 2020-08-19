@@ -1,8 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sessionSignin = exports.makeLinksReady = exports.checkAccess = exports.preparePropertyDeclare = exports.prepareUrl = exports.getPageLinks = exports.applyPropertiesDefaultValue = exports.createDeclare = exports.filterAndSortProperties = exports.getPortionProperties = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.makeEntityList = exports.initializeMinaDb = exports.dropDatabase = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.checkPropertyGtype = exports.initializeRoles = exports.initializeRolePermissions = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getCollection = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
+exports.sessionSignin = exports.makeLinksReady = exports.checkAccess = exports.preparePropertyDeclare = exports.prepareUrl = exports.getPageLinks = exports.applyPropertiesDefaultValue = exports.createDeclare = exports.filterAndSortProperties = exports.getPortionProperties = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.getSourceDatabase = exports.makeEntityList = exports.initializeMinaDb = exports.dropDatabase = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.checkPropertyGtype = exports.initializeRoles = exports.initializeRolePermissions = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getCollection = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
 let index = {
     "Start                                              ": reload,
+    "   loadSystemCollections                           ": loadSystemCollections,
+    "   loadHosts                                       ": loadHosts,
     "Initialize Entities                                ": initializeEntities,
     "   Initialize Object                               ": initObject,
     "       Initialize Properties                       ": initProperties,
@@ -42,23 +44,15 @@ const fsPromises = fs.promises;
 const bcrypt = require('bcrypt');
 async function loadHosts() {
     exports.glob.hosts = [];
-    let clients = await get({ db: process.env.NODE_NAME }, types_1.Objects.clients);
     let hosts = await get({ db: process.env.NODE_NAME }, types_1.Objects.hosts);
+    let services = await get({ db: process.env.NODE_NAME }, types_1.Objects.services, { query: { enabled: true } });
     for (const host of hosts) {
-        if (host.client) {
-            let client = clients.find(c => c._id.equals(host.client));
-            if (!client) {
-                error(`Invalid host client, host: '${host.address}'`);
-                continue;
-            }
-            host._ = { db: client.name };
-        }
-        else
-            host._ = { db: process.env.NODE_NAME };
+        let service = services.find(c => c._id.equals(host.service));
+        host._ = { db: service.name };
+        let serviceConfig = exports.glob.serviceConfigs[service.name];
+        host._.apps = serviceConfig._.apps;
         host.aliases = host.aliases || [];
-        if (!host.apps || !host.apps.length)
-            continue;
-        host._.apps = host.apps.map(ap => exports.glob.apps.find(app => app._id.equals(ap)));
+        host._.defaultApp = exports.glob.apps.find(app => app._id.equals(host.defaultApp));
         exports.glob.hosts.push(host);
     }
 }
@@ -69,6 +63,7 @@ async function reload(cn) {
     await globalCheck();
     await applyAmazonConfig();
     await loadSystemCollections();
+    await loadServiceConfigs();
     await loadTimeZones();
     await loadAuditTypes();
     await initializeEnums();
@@ -756,6 +751,7 @@ async function loadAuditTypes() {
 async function globalCheck() {
     assert(process.env.DB_ADDRESS, "Environment variable 'DB_ADDRESS' is needed.");
     assert(process.env.NODE_NAME, "Environment variable 'NODE_NAME' is needed.");
+    assert(process.env.CLUSTER_NAME, "Environment variable 'CLUSTER_NAME' is needed.");
     try {
         await mongodb_1.MongoClient.connect(process.env.DB_ADDRESS, {
             useNewUrlParser: true,
@@ -786,9 +782,6 @@ async function loadPackageSystemCollections(db) {
         func.entityType = types_1.EntityType.Function;
         exports.glob.entities.push(func);
     }
-    let config = await getOne(cn, types_1.Objects.clientConfig);
-    if (config)
-        exports.glob.clientConfig[db] = config;
     let apps = await get(cn, types_1.Objects.apps);
     for (const app of apps) {
         app._ = { db };
@@ -824,6 +817,24 @@ function onlyUnique(value, index, self) {
     return self.indexOf(value) === index;
 }
 exports.onlyUnique = onlyUnique;
+async function loadServiceConfigs() {
+    exports.glob.serviceConfigs = {};
+    let appGroups = await get({ db: types_1.Constants.sysDb }, types_1.Objects.appGroups);
+    for (const db of exports.glob.services) {
+        let serviceConfig = await getOne({ db }, types_1.Objects.serviceConfig);
+        assert(serviceConfig, `Service Config for service '${db}' is not ready!`);
+        exports.glob.serviceConfigs[db] = serviceConfig;
+        let apps;
+        if (serviceConfig.appGroup)
+            apps = appGroups.find(ap => ap._id.equals(serviceConfig.appGroup)).apps;
+        else
+            apps = serviceConfig.apps;
+        serviceConfig._ = { apps: [] };
+        if (!apps)
+            continue;
+        serviceConfig._.apps = apps.map(a => exports.glob.apps.find(app => app._id.equals(a))).filter(Boolean);
+    }
+}
 async function loadSystemCollections() {
     exports.glob.entities = [];
     exports.glob.dictionary = {};
@@ -831,15 +842,9 @@ async function loadSystemCollections() {
     exports.glob.roles = [];
     exports.glob.drives = [];
     exports.glob.apps = [];
-    exports.glob.services = {};
     let services = await get({ db: process.env.NODE_NAME }, types_1.Objects.services, { query: { enabled: true } });
-    services.forEach(service => exports.glob.services[service.name] = {});
-    exports.glob.clients = await get({ db: process.env.NODE_NAME }, types_1.Objects.clients);
-    for (let client of exports.glob.clients) {
-        client._ = { db: client.name || ("c" + client.code) };
-    }
-    exports.glob.dbsList = [...Object.keys(exports.glob.services), ...exports.glob.clients.map(cl => cl.name)];
-    for (const db of exports.glob.dbsList) {
+    exports.glob.services = services.map(s => s.name);
+    for (const db of exports.glob.services) {
         try {
             exports.glob.dbs[db] = null;
             await loadPackageSystemCollections(db);
@@ -1086,7 +1091,7 @@ async function initializeEnums() {
     log('initializeEnums ...');
     exports.glob.enums = [];
     exports.glob.enumTexts = {};
-    for (const db of exports.glob.dbsList) {
+    for (const db of exports.glob.services) {
         let enums = await get({ db }, types_1.Objects.enums);
         for (const theEnum of enums) {
             theEnum._ = { db };
@@ -1119,19 +1124,10 @@ async function initializeEntities() {
     for (const obj of allObjs) {
         await initObject(obj);
     }
-    for (const client of exports.glob.clients) {
-        let config = exports.glob.clientConfig[client._.db];
-        let obj = findObject(client._.db, types_1.Objects.clientConfig);
-        if (!obj) {
-            error(`clientConfig for client '${client.code}' not found!`);
-            continue;
-        }
-        await makeObjectReady({ db: "c" + client.code }, obj.properties, config);
-    }
     log(`Initializing '${allFunctions(null).length}' functions ...`);
     for (const func of allFunctions(null)) {
         try {
-            func.pack = func.pack || exports.glob.services[func._.db].defaultPackage;
+            func.pack = func.pack || func._.db;
             assert(func.pack, `Function needs unknown pack, or default pack in PackageConfig needed!`);
             await initProperties(func.properties, func, func.title, null);
         }
@@ -1305,8 +1301,8 @@ function getText(cn, text, useDictionary) {
 }
 exports.getText = getText;
 async function verifyEmailAccounts(cn) {
-    assert(exports.glob.clientConfig[cn.db].emailAccounts, `Email accounts is empty`);
-    for (const account of exports.glob.clientConfig[cn.db].emailAccounts) {
+    assert(exports.glob.serviceConfigs[cn.db].emailAccounts, `Email accounts is empty`);
+    for (const account of exports.glob.serviceConfigs[cn.db].emailAccounts) {
         const transporter = nodemailer.createTransport({
             host: account.smtpServer,
             port: account.smtpPort,
@@ -1328,8 +1324,8 @@ async function verifyEmailAccounts(cn) {
 }
 exports.verifyEmailAccounts = verifyEmailAccounts;
 async function sendEmail(cn, from, to, subject, content, params) {
-    assert(exports.glob.clientConfig[cn.db].emailAccounts, `Email accounts is empty`);
-    const account = exports.glob.clientConfig[cn.db].emailAccounts.find(account => account.email == from);
+    assert(exports.glob.serviceConfigs[cn.db].emailAccounts, `Email accounts is empty`);
+    const account = exports.glob.serviceConfigs[cn.db].emailAccounts.find(account => account.email == from);
     assert(account, `Email account for account '${from}' not found!`);
     const transporter = nodemailer.createTransport({
         host: account.smtpServer,
@@ -1366,8 +1362,8 @@ async function sendEmail(cn, from, to, subject, content, params) {
 }
 exports.sendEmail = sendEmail;
 async function sendSms(cn, provider, from, to, text, params) {
-    assert(exports.glob.clientConfig[cn.db].smsAccounts, `Sms accounts is empty`);
-    const account = exports.glob.clientConfig[cn.db].smsAccounts.find(account => account.provider.toLowerCase().trim() == provider.toLowerCase().trim());
+    assert(exports.glob.serviceConfigs[cn.db].smsAccounts, `Sms accounts is empty`);
+    const account = exports.glob.serviceConfigs[cn.db].smsAccounts.find(account => account.provider.toLowerCase().trim() == provider.toLowerCase().trim());
     return new Promise((resolve, reject) => {
         switch (provider) {
             case types_1.SmsProvider.Infobip:
@@ -1708,8 +1704,25 @@ async function getInnerPropertyReferenceValues(cn, foreignObj, db, prop, instanc
         };
     });
 }
+function getSourceDatabase(cn, entity) {
+    if (entity.entityType == types_1.EntityType.Object) {
+        let obj = entity;
+        switch (obj.sourceClass) {
+            case types_1.ObjectSourceClass.Default:
+                return cn.host._.db;
+            case types_1.ObjectSourceClass.Cluster:
+                return process.env.CLUSTER_NAME;
+            case types_1.ObjectSourceClass.Node:
+                return process.env.NODE_NAME;
+            case types_1.ObjectSourceClass.ObjectSource:
+                return cn.app._.db;
+        }
+    }
+    return cn.host._.db;
+}
+exports.getSourceDatabase = getSourceDatabase;
 async function getPropertyObjectReferenceValues(cn, obj, prop, instance, phrase, query) {
-    let db = obj._.db;
+    let db = getSourceDatabase(cn, obj);
     if (prop.filter && !query)
         return [];
     if (prop.referType == types_1.PropertyReferType.InnerSelectType) {
@@ -1760,7 +1773,7 @@ async function getPropertyObjectReferenceValues(cn, obj, prop, instance, phrase,
             }
         }
     }
-    let result = await get({ db, locale: cn.locale }, obj.name, { count: types_1.Constants.referenceValuesLoadCount, query });
+    let result = await get({ db }, obj.name, { count: types_1.Constants.referenceValuesLoadCount, query });
     if (result)
         return result.map(item => {
             return {

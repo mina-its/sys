@@ -8,6 +8,7 @@ export interface Context {
     user?: User;
     sessionID?: string;
     portions?: RefPortion[];
+    host?: Host;
     db?: string;
     app?: App;
     sort?: any;
@@ -111,24 +112,41 @@ export enum TextEditor {
     HtmlText = 7,
 }
 
+export class AppGroup {
+    _id: ID;
+    title: string | MultilangText;
+    apps: ID[];
+}
+
 export class ServiceConfig {
-    name: string;
+    _id: ID;
+    title: string | MultilangText;
     version: string;
     packages: string[];
-    defaultPackage: string;
+    emailAccounts: EmailAccount[];
+    smsAccounts: SmsAccount[];
+    emailVerificationTemplate: EmailTemplateConfig;
+    welcomeEmailTemplate: EmailTemplateConfig;
+    resetPasswordTemplate: EmailTemplateConfig;
+    addressRules: PackageAddressRule[];
+    sso: boolean;
+    apps: ID[];
+    appGroup: ID;
+
+    _: {
+        apps?: App[];
+    }
 }
 
 export class Global {
     postClientCommandCallback: (cn: Context, ...args: any[]) => void;
     dbs: { [packAndCs: string]: any } = {}; // any not mongodb.Db because of client side reference
-    dbsList: string[];
-    clients: Client[];
     countries: { [code: string]: Country; } = {};
-    clientConfig: { [db: string]: ClientConfig; } = {};
     clientQuestionCallbacks: { [sessionId: string]: (answer: number | null) => void; } = {};
     rootDir: string;
     entities: Entity[];
-    services: { [service: string]: ServiceConfig; };
+    serviceConfigs: { [service: string]: ServiceConfig; };
+    services: string[];
     drives: Drive[];
     suspendService: boolean = false;
     auditTypes: AuditType[];
@@ -170,7 +188,7 @@ export class mObject extends Entity implements IProperties {
     source: SourceType;
     rowHeaderStyle: GridRowHeaderStyle;
     reorderable: boolean;
-    serviceData: boolean;
+    sourceClass: ObjectSourceClass;
     approximateCount: number;
     modified: ID;
     detailsViewType: ObjectDetailsViewType;
@@ -581,13 +599,12 @@ export class Host {
     _id: ID;
     address: string;
     defaultApp: ID;
-    apps: ID[];
     aliases: string[];
-    client: ID;
+    service: ID;
     _: {
         defaultApp?: App;
-        apps?: App[];
         db: string;
+        apps?: App[];
     }
 }
 
@@ -633,16 +650,6 @@ export class EmailAccount {
     smtpPort: number;
     secure: boolean;
     enabled: boolean;
-}
-
-export class ClientConfig {
-    _id: ID;
-    emailAccounts: EmailAccount[];
-    smsAccounts: SmsAccount[];
-    emailVerificationTemplate: EmailTemplateConfig;
-    welcomeEmailTemplate: EmailTemplateConfig;
-    resetPasswordTemplate: EmailTemplateConfig;
-    addressRules: PackageAddressRule[];
 }
 
 export class PackageAddressRule {
@@ -969,8 +976,8 @@ export const ObjectIDs = {
 }
 
 export class Service {
+    _id: ID;
     name: string;
-    title: string | MultilangText;
     enabled: boolean;
 }
 
@@ -986,11 +993,11 @@ export enum Objects {
     documentDirectories = "documentDirectories",
     objects = "objects",
     services = "services",
+    serviceConfig = "serviceConfig",
+    appGroups = "appGroups",
     functions = "functions",
     roles = "roles",
     apps = "apps",
-    clientConfig = "clientConfig",
-    clients = "clients",
     hosts = "hosts",
     menus = "menus",
     drives = "drives",
@@ -1363,9 +1370,18 @@ export class SysDashboardInfo {
 }
 
 export class UserProfile {
+    _id: ID;
     email: string;
+    title: string;
+    firstName: string;
+    country: ID;
+    lastName: string;
+    image: mFile;
+    birthDate: Date;
+    mobile: string;
+    lastOnline: Date;
+    time: Date = new Date();
 }
-
 
 export class Feedback {
     _id: ID;
@@ -1435,20 +1451,6 @@ export class Flowchart {
     }
 }
 
-
-export class Client {
-    _id: ID;
-    code: number;
-    name: string;
-    rootUser: ID;
-    rootEmail: string;
-    title: string;
-    time: Date = new Date();
-    _: {
-        db: string;
-    }
-}
-
 export enum PermissionResourceType {
     Object = 1,
     Function = 2,
@@ -1469,4 +1471,11 @@ export enum PermissionFunctionAction {
 
 export enum PermissionFormAction {
     View = 1,
+}
+
+export enum ObjectSourceClass {
+    Default = 0,
+    ObjectSource = 2,
+    Node = 3,
+    Cluster = 4,
 }

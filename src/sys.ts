@@ -1,5 +1,7 @@
 let index = {
     "Start                                              ": reload,
+    "   loadSystemCollections                           ": loadSystemCollections,
+    "   loadHosts                                       ": loadHosts,
 
     "Initialize Entities                                ": initializeEntities,
     "   Initialize Object                               ": initObject,
@@ -36,7 +38,6 @@ import {fromCallback} from 'universalify';
 import * as Url from "url";
 import {
     App,
-    ClientConfig,
     AuditArgs,
     ClientCommand,
     Constants,
@@ -94,10 +95,9 @@ import {
     Access,
     ReqParams,
     ObjectIDs,
-    Client,
     ServiceConfig,
     Service,
-    PermissionResourceType,
+    PermissionResourceType, AppGroup, ObjectSourceClass,
 } from './types';
 
 const nodemailer = require('nodemailer');
@@ -110,24 +110,16 @@ const bcrypt = require('bcrypt');
 async function loadHosts() {
     glob.hosts = [];
 
-    let clients: Client[] = await get({db: process.env.NODE_NAME}, Objects.clients);
-
     let hosts: Host[] = await get({db: process.env.NODE_NAME}, Objects.hosts);
-    for (const host of hosts) {
-        if (host.client) {
-            let client = clients.find(c => c._id.equals(host.client));
-            if (!client) {
-                error(`Invalid host client, host: '${host.address}'`);
-                continue;
-            }
-            host._ = {db: client.name};
-        } else
-            host._ = {db: process.env.NODE_NAME};
-        host.aliases = host.aliases || [];
-        if (!host.apps || !host.apps.length)
-            continue;
+    let services: Service[] = await get({db: process.env.NODE_NAME}, Objects.services, {query: {enabled: true}});
 
-        host._.apps = host.apps.map(ap => glob.apps.find(app => app._id.equals(ap)));
+    for (const host of hosts) {
+        let service = services.find(c => c._id.equals(host.service));
+        host._ = {db: service.name};
+        let serviceConfig = glob.serviceConfigs[service.name];
+        host._.apps = serviceConfig._.apps;
+        host.aliases = host.aliases || [];
+        host._.defaultApp = glob.apps.find(app => app._id.equals(host.defaultApp));
         glob.hosts.push(host);
     }
 }
@@ -140,6 +132,7 @@ export async function reload(cn?: Context) {
     await globalCheck();
     await applyAmazonConfig();
     await loadSystemCollections();
+    await loadServiceConfigs();
     await loadTimeZones();
     await loadAuditTypes();
     await initializeEnums();
@@ -896,6 +889,7 @@ async function loadAuditTypes() {
 async function globalCheck() {
     assert(process.env.DB_ADDRESS, "Environment variable 'DB_ADDRESS' is needed.")
     assert(process.env.NODE_NAME, "Environment variable 'NODE_NAME' is needed.")
+    assert(process.env.CLUSTER_NAME, "Environment variable 'CLUSTER_NAME' is needed.")
 
     try {
         await MongoClient.connect(process.env.DB_ADDRESS, {
@@ -930,10 +924,6 @@ async function loadPackageSystemCollections(db: string) {
         func.entityType = EntityType.Function;
         glob.entities.push(func as Entity);
     }
-
-    let config: ClientConfig = await getOne(cn, Objects.clientConfig);
-    if (config)
-        glob.clientConfig[db] = config;
 
     let apps: App[] = await get(cn, Objects.apps);
     for (const app of apps) {
@@ -976,6 +966,28 @@ export function onlyUnique(value, index, self) {
     return self.indexOf(value) === index;
 }
 
+async function loadServiceConfigs() {
+    glob.serviceConfigs = {};
+
+    let appGroups: AppGroup[] = await get({db: Constants.sysDb}, Objects.appGroups);
+
+    for (const db of glob.services) {
+        let serviceConfig: ServiceConfig = await getOne({db}, Objects.serviceConfig);
+        assert(serviceConfig, `Service Config for service '${db}' is not ready!`);
+        glob.serviceConfigs[db] = serviceConfig;
+
+        let apps: ID[];
+        if (serviceConfig.appGroup)
+            apps = appGroups.find(ap => ap._id.equals(serviceConfig.appGroup)).apps;
+        else
+            apps = serviceConfig.apps;
+
+        serviceConfig._ = {apps: []};
+        if (!apps) continue;
+        serviceConfig._.apps = apps.map(a => glob.apps.find(app => app._id.equals(a))).filter(Boolean);
+    }
+}
+
 async function loadSystemCollections() {
     glob.entities = [];
     glob.dictionary = {};
@@ -983,21 +995,12 @@ async function loadSystemCollections() {
     glob.roles = [];
     glob.drives = [];
     glob.apps = [];
-    glob.services = {};
 
     // Load Services
     let services: Service[] = await get({db: process.env.NODE_NAME}, Objects.services, {query: {enabled: true}});
-    services.forEach(service => glob.services[service.name] = {} as ServiceConfig);
+    glob.services = services.map(s => s.name);
 
-    // Load Clients
-    glob.clients = await get({db: process.env.NODE_NAME}, Objects.clients);
-    for (let client of glob.clients) {
-        client._ = {db: client.name || ("c" + client.code)};
-    }
-
-    glob.dbsList = [...Object.keys(glob.services), ...glob.clients.map(cl => cl.name)];
-
-    for (const db of glob.dbsList) {
+    for (const db of glob.services) {
         try {
             glob.dbs[db] = null;
             await loadPackageSystemCollections(db);
@@ -1267,7 +1270,7 @@ export async function initializeEnums() {
     glob.enums = [];
     glob.enumTexts = {};
 
-    for (const db of glob.dbsList) {
+    for (const db of glob.services) {
         let enums: Enum[] = await get({db} as Context, Objects.enums);
         for (const theEnum of enums) {
             theEnum._ = {db};
@@ -1303,20 +1306,20 @@ async function initializeEntities() {
         await initObject(obj);
     }
 
-    for (const client of glob.clients) {
-        let config = glob.clientConfig[client._.db];
-        let obj = findObject(client._.db, Objects.clientConfig);
-        if (!obj) {
-            error(`clientConfig for client '${client.code}' not found!`);
-            continue;
-        }
-        await makeObjectReady({db: "c" + client.code} as Context, obj.properties, config);
-    }
+    // for (const client of glob.clients) {
+    //     let config = glob.clientConfig[client._.db];
+    //     let obj = findObject(client._.db, Objects.clientConfig);
+    //     if (!obj) {
+    //         error(`clientConfig for client '${client.code}' not found!`);
+    //         continue;
+    //     }
+    //     await makeObjectReady({db: "c" + client.code} as Context, obj.properties, config);
+    // }
 
     log(`Initializing '${allFunctions(null).length}' functions ...`);
     for (const func of allFunctions(null)) {
         try {
-            func.pack = func.pack || glob.services[func._.db].defaultPackage;
+            func.pack = func.pack || func._.db;
             assert(func.pack, `Function needs unknown pack, or default pack in PackageConfig needed!`);
             await initProperties(func.properties, func, func.title, null);
         } catch (ex) {
@@ -1502,9 +1505,9 @@ export function getText(cn: Context, text, useDictionary?: boolean): string {
 }
 
 export async function verifyEmailAccounts(cn: Context) {
-    assert(glob.clientConfig[cn.db].emailAccounts, `Email accounts is empty`);
+    assert(glob.serviceConfigs[cn.db].emailAccounts, `Email accounts is empty`);
 
-    for (const account of glob.clientConfig[cn.db].emailAccounts) {
+    for (const account of glob.serviceConfigs[cn.db].emailAccounts) {
         const transporter = nodemailer.createTransport({
             //service: 'gmail',
             host: account.smtpServer,
@@ -1527,9 +1530,9 @@ export async function verifyEmailAccounts(cn: Context) {
 }
 
 export async function sendEmail(cn: Context, from: string, to: string, subject: string, content: string, params?: SendEmailParams) {
-    assert(glob.clientConfig[cn.db].emailAccounts, `Email accounts is empty`);
+    assert(glob.serviceConfigs[cn.db].emailAccounts, `Email accounts is empty`);
 
-    const account = glob.clientConfig[cn.db].emailAccounts.find(account => account.email == from);
+    const account = glob.serviceConfigs[cn.db].emailAccounts.find(account => account.email == from);
     assert(account, `Email account for account '${from}' not found!`);
 
     const transporter = nodemailer.createTransport({
@@ -1570,8 +1573,8 @@ export async function sendEmail(cn: Context, from: string, to: string, subject: 
 }
 
 export async function sendSms(cn: Context, provider, from: string, to: string, text: string, params?: SendSmsParams): Promise<StatusCode> {
-    assert(glob.clientConfig[cn.db].smsAccounts, `Sms accounts is empty`);
-    const account = glob.clientConfig[cn.db].smsAccounts.find(account => account.provider.toLowerCase().trim() == provider.toLowerCase().trim())
+    assert(glob.serviceConfigs[cn.db].smsAccounts, `Sms accounts is empty`);
+    const account = glob.serviceConfigs[cn.db].smsAccounts.find(account => account.provider.toLowerCase().trim() == provider.toLowerCase().trim())
 
     return new Promise((resolve, reject) => {
         switch (provider) {
@@ -1944,11 +1947,29 @@ async function getInnerPropertyReferenceValues(cn: Context, foreignObj: mObject,
     });
 }
 
-async function getPropertyObjectReferenceValues(cn: Context, obj: mObject, prop: Property, instance: any, phrase: string, query: any): Promise<Pair[]> {
-    let db = obj._.db;
-    // if (obj.name == Objects.users || obj.name == Objects.roles || obj.name == Objects.menus || obj.name == Objects.drives)
-    //     db = cn.db;
+export function getSourceDatabase(cn: Context, entity: Entity): string {
+    if (entity.entityType == EntityType.Object) {
+        let obj = entity as mObject;
+        switch (obj.sourceClass) {
+            case ObjectSourceClass.Default:
+                return cn.host._.db;
 
+            case ObjectSourceClass.Cluster:
+                return process.env.CLUSTER_NAME;
+
+            case ObjectSourceClass.Node:
+                return process.env.NODE_NAME;
+
+            case ObjectSourceClass.ObjectSource:
+                return cn.app._.db;
+        }
+    }
+
+    return cn.host._.db;
+}
+
+async function getPropertyObjectReferenceValues(cn: Context, obj: mObject, prop: Property, instance: any, phrase: string, query: any): Promise<Pair[]> {
+    let db = getSourceDatabase(cn, obj);
     if (prop.filter && !query)
         return [];
 
@@ -1996,7 +2017,7 @@ async function getPropertyObjectReferenceValues(cn: Context, obj: mObject, prop:
         }
     }
 
-    let result = await get({db, locale: cn.locale}, obj.name, {count: Constants.referenceValuesLoadCount, query});
+    let result = await get({db}, obj.name, {count: Constants.referenceValuesLoadCount, query});
     if (result)
         return result.map(item => {
             return {

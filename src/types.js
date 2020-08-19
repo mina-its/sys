@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PermissionFormAction = exports.PermissionFunctionAction = exports.PermissionObjectAction = exports.PermissionResourceType = exports.Client = exports.Flowchart = exports.FlowchartDeclaration = exports.FlowchartNodeDeclare = exports.FlowchartNode = exports.FlowchartNodeLink = exports.Feedback = exports.UserProfile = exports.SysDashboardInfo = exports.ApiDoc = exports.ApiDocEnum = exports.ApiDocSchema = exports.ApiDocProprty = exports.ApiDocBlock = exports.ApiDocOperation = exports.ApiDocParameter = exports.ReqParams = exports.FunctionDec = exports.ObjectDec = exports.EntityMeta = exports.NotificationInfo = exports.AjaxConfig = exports.YesNo = exports.ObjectListsViewType = exports.ObjectDetailsViewType = exports.ClientCommand = exports.DirFile = exports.Note = exports.DirFileType = exports.UnitTestObject = exports.WebMethod = exports.AppStateConfig = exports.WebResponse = exports.RequestMode = exports.EnvMode = exports.PropertyConditionBehavior = exports.Constants = exports.GridRowHeaderStyle = exports.PType = exports.SystemProperty = exports.SysAuditTypes = exports.Document = exports.DocumentDirectory = exports.DocumentDirectoryItem = exports.DocStatus = exports.Objects = exports.Service = exports.ObjectIDs = exports.FileType = exports.RedirectType = exports.ReferType = exports.TimeFormat = exports.RefPortionType = exports.GlobalType = exports.PropertyReferType = exports.NewItemMode = exports.ChangeFrequency = exports.FunctionMode = exports.SourceType = exports.Locale = exports.Keys = exports.PropertyEditMode = exports.PropertyViewMode = exports.AccessAction = exports.EntityType = exports.ElemType = exports.Orientation = exports.PanelType = exports.LinkType = exports.LogType = exports.UploadedFile = exports.StatusCode = exports.GetOptions = exports.DelOptions = exports.PatchOptions = exports.PutOptions = exports.Point = exports.GeoLocation = exports.RefPortion = exports.TimeZone = exports.Text = exports.mFile = exports.PackageAddressRule = exports.ClientConfig = exports.EmailAccount = exports.SmsAccount = exports.MultilangText = exports.EnumItem = exports.Enum = exports.Host = exports.App = exports.TreePair = exports.Pair = exports.MenuItem = exports.Menu = exports.Access = exports.ChartSeries = exports.ErrorObject = exports.Elem = exports.ObjectViewType = exports.EntityLink = exports.FunctionTestSample = exports.Drive = exports.Property = exports.ObjectModifyType = exports.SendSmsParams = exports.SendEmailParams = exports.EmailTemplateConfig = exports.ObjectModifyState = exports.FormDto = exports.Form = exports.Function = exports.mObject = exports.Entity = exports.Global = exports.ServiceConfig = exports.TextEditor = exports.Country = exports.SmsProvider = exports.AuditType = exports.User = exports.AccessPermission = exports.Role = exports.AuditArgs = exports.ID = void 0;
+exports.ObjectSourceClass = exports.PermissionFormAction = exports.PermissionFunctionAction = exports.PermissionObjectAction = exports.PermissionResourceType = exports.Flowchart = exports.FlowchartDeclaration = exports.FlowchartNodeDeclare = exports.FlowchartNode = exports.FlowchartNodeLink = exports.Feedback = exports.UserProfile = exports.SysDashboardInfo = exports.ApiDoc = exports.ApiDocEnum = exports.ApiDocSchema = exports.ApiDocProprty = exports.ApiDocBlock = exports.ApiDocOperation = exports.ApiDocParameter = exports.ReqParams = exports.FunctionDec = exports.ObjectDec = exports.EntityMeta = exports.NotificationInfo = exports.AjaxConfig = exports.YesNo = exports.ObjectListsViewType = exports.ObjectDetailsViewType = exports.ClientCommand = exports.DirFile = exports.Note = exports.DirFileType = exports.UnitTestObject = exports.WebMethod = exports.AppStateConfig = exports.WebResponse = exports.RequestMode = exports.EnvMode = exports.PropertyConditionBehavior = exports.Constants = exports.GridRowHeaderStyle = exports.PType = exports.SystemProperty = exports.SysAuditTypes = exports.Document = exports.DocumentDirectory = exports.DocumentDirectoryItem = exports.DocStatus = exports.Objects = exports.Service = exports.ObjectIDs = exports.FileType = exports.RedirectType = exports.ReferType = exports.TimeFormat = exports.RefPortionType = exports.GlobalType = exports.PropertyReferType = exports.NewItemMode = exports.ChangeFrequency = exports.FunctionMode = exports.SourceType = exports.Locale = exports.Keys = exports.PropertyEditMode = exports.PropertyViewMode = exports.AccessAction = exports.EntityType = exports.ElemType = exports.Orientation = exports.PanelType = exports.LinkType = exports.LogType = exports.UploadedFile = exports.StatusCode = exports.GetOptions = exports.DelOptions = exports.PatchOptions = exports.PutOptions = exports.Point = exports.GeoLocation = exports.RefPortion = exports.TimeZone = exports.Text = exports.mFile = exports.PackageAddressRule = exports.EmailAccount = exports.SmsAccount = exports.MultilangText = exports.EnumItem = exports.Enum = exports.Host = exports.App = exports.TreePair = exports.Pair = exports.MenuItem = exports.Menu = exports.Access = exports.ChartSeries = exports.ErrorObject = exports.Elem = exports.ObjectViewType = exports.EntityLink = exports.FunctionTestSample = exports.Drive = exports.Property = exports.ObjectModifyType = exports.SendSmsParams = exports.SendEmailParams = exports.EmailTemplateConfig = exports.ObjectModifyState = exports.FormDto = exports.Form = exports.Function = exports.mObject = exports.Entity = exports.Global = exports.ServiceConfig = exports.AppGroup = exports.TextEditor = exports.Country = exports.SmsProvider = exports.AuditType = exports.User = exports.AccessPermission = exports.Role = exports.AuditArgs = exports.ID = void 0;
 const bson_util_1 = require("bson-util");
 Object.defineProperty(exports, "ID", { enumerable: true, get: function () { return bson_util_1.ID; } });
 class AuditArgs {
@@ -40,6 +40,9 @@ var TextEditor;
     TextEditor[TextEditor["Json"] = 6] = "Json";
     TextEditor[TextEditor["HtmlText"] = 7] = "HtmlText";
 })(TextEditor = exports.TextEditor || (exports.TextEditor = {}));
+class AppGroup {
+}
+exports.AppGroup = AppGroup;
 class ServiceConfig {
 }
 exports.ServiceConfig = ServiceConfig;
@@ -47,7 +50,6 @@ class Global {
     constructor() {
         this.dbs = {};
         this.countries = {};
-        this.clientConfig = {};
         this.clientQuestionCallbacks = {};
         this.suspendService = false;
     }
@@ -169,9 +171,6 @@ exports.SmsAccount = SmsAccount;
 class EmailAccount {
 }
 exports.EmailAccount = EmailAccount;
-class ClientConfig {
-}
-exports.ClientConfig = ClientConfig;
 class PackageAddressRule {
 }
 exports.PackageAddressRule = PackageAddressRule;
@@ -487,11 +486,11 @@ var Objects;
     Objects["documentDirectories"] = "documentDirectories";
     Objects["objects"] = "objects";
     Objects["services"] = "services";
+    Objects["serviceConfig"] = "serviceConfig";
+    Objects["appGroups"] = "appGroups";
     Objects["functions"] = "functions";
     Objects["roles"] = "roles";
     Objects["apps"] = "apps";
-    Objects["clientConfig"] = "clientConfig";
-    Objects["clients"] = "clients";
     Objects["hosts"] = "hosts";
     Objects["menus"] = "menus";
     Objects["drives"] = "drives";
@@ -727,6 +726,9 @@ class SysDashboardInfo {
 }
 exports.SysDashboardInfo = SysDashboardInfo;
 class UserProfile {
+    constructor() {
+        this.time = new Date();
+    }
 }
 exports.UserProfile = UserProfile;
 class Feedback {
@@ -747,12 +749,6 @@ exports.FlowchartDeclaration = FlowchartDeclaration;
 class Flowchart {
 }
 exports.Flowchart = Flowchart;
-class Client {
-    constructor() {
-        this.time = new Date();
-    }
-}
-exports.Client = Client;
 var PermissionResourceType;
 (function (PermissionResourceType) {
     PermissionResourceType[PermissionResourceType["Object"] = 1] = "Object";
@@ -775,4 +771,11 @@ var PermissionFormAction;
 (function (PermissionFormAction) {
     PermissionFormAction[PermissionFormAction["View"] = 1] = "View";
 })(PermissionFormAction = exports.PermissionFormAction || (exports.PermissionFormAction = {}));
+var ObjectSourceClass;
+(function (ObjectSourceClass) {
+    ObjectSourceClass[ObjectSourceClass["Default"] = 0] = "Default";
+    ObjectSourceClass[ObjectSourceClass["ObjectSource"] = 2] = "ObjectSource";
+    ObjectSourceClass[ObjectSourceClass["Node"] = 3] = "Node";
+    ObjectSourceClass[ObjectSourceClass["Cluster"] = 4] = "Cluster";
+})(ObjectSourceClass = exports.ObjectSourceClass || (exports.ObjectSourceClass = {}));
 //# sourceMappingURL=types.js.map
