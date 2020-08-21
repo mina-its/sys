@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sessionSignin = exports.makeLinksReady = exports.checkAccess = exports.preparePropertyDeclare = exports.prepareUrl = exports.getPageLinks = exports.applyPropertiesDefaultValue = exports.createDeclare = exports.filterAndSortProperties = exports.getPortionProperties = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.getSourceDatabase = exports.makeEntityList = exports.initializeMinaDb = exports.dropDatabase = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.checkPropertyGtype = exports.initializeRoles = exports.initializeRolePermissions = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getCollection = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
-const tslib_1 = require("tslib");
 let index = {
     "Start                                              ": reload,
     "   loadSystemCollections                           ": loadSystemCollections,
@@ -33,9 +32,9 @@ const rimraf = require("rimraf");
 const bson_util_1 = require("bson-util");
 const fs_1 = require("fs");
 const mongodb_1 = require("mongodb");
-const maxmind_1 = tslib_1.__importDefault(require("maxmind"));
+const maxmind_1 = require("maxmind");
 const universalify_1 = require("universalify");
-const Url = tslib_1.__importStar(require("url"));
+const Url = require("url");
 const types_1 = require("./types");
 const nodemailer = require('nodemailer');
 const assert = require('assert').strict;
@@ -136,8 +135,6 @@ async function audit(cn, auditType, args) {
         if (type && type.disabled)
             return;
         await put(cn, types_1.Objects.audits, args);
-        // exist on FaTAL ERROR
-        // process.exit();
     }
     catch (e) {
         error(`Audit '${auditType}' error: ${e.stack}`);
@@ -219,7 +216,6 @@ async function makeObjectReady(cn, properties, data, options = null) {
                     item._[prop.name] = await get(cn, refObj.name, { itemId: val });
                 }
                 else if (refObj.entityType == types_1.EntityType.Function) {
-                    // todo: makeObjectReady for functions
                 }
             }
             switch (prop._.gtype) {
@@ -238,7 +234,7 @@ function getFileUri(cn, prop, file) {
         return null;
     let drive = exports.glob.drives.find(d => d._id.equals(prop.file.drive));
     let uri = joinUri(drive._.uri, file.path, file.name).replace(/\\/g, '/');
-    return `${cn.url ? cn.url.protocol : 'http:'}//${encodeURI(uri)}`; // in user login context is not completed!
+    return `${cn.url ? cn.url.protocol : 'http:'}//${encodeURI(uri)}`;
 }
 exports.getFileUri = getFileUri;
 async function getOne(cn, objectName) {
@@ -289,17 +285,17 @@ async function put(cn, objectName, data, options) {
     }
     let portions = options.portions;
     switch (portions.length) {
-        case 2: // Update new root item
+        case 2:
             await collection.save(data);
             return ({
                 type: types_1.ObjectModifyType.Update,
                 item: data,
                 itemId: data._id
             });
-        default: // Insert / Update not root item
+        default:
             let command = { $addToSet: {} };
             assert(data._id, `_id expected for inserting!`);
-            delete data._new; // we add _new in new inline item either
+            delete data._new;
             let rootId = portions[1].itemId;
             let pth = await portionsToMongoPath(cn, rootId, portions, portions.length);
             command.$addToSet[pth] = data;
@@ -324,7 +320,7 @@ function evalExpression($this, expression) {
 }
 exports.evalExpression = evalExpression;
 async function portionsToMongoPath(cn, rootId, portions, endIndex) {
-    if (endIndex == 3) // not need to fetch data
+    if (endIndex == 3)
         return portions[2].property.name;
     let db = await dbConnection(cn);
     let collection = db.collection(portions[0].value);
@@ -340,7 +336,7 @@ async function portionsToMongoPath(cn, rootId, portions, endIndex) {
             path += "." + part;
             value = value[part];
             if (value == null)
-                value = {}; // sample: access.items
+                value = {};
         }
         else {
             let partItem = value.find(it => it._id && it._id.toString() == part);
@@ -365,7 +361,6 @@ async function patch(cn, objectName, patchData, options) {
     let collection = db.collection(objectName);
     if (!collection)
         throw types_1.StatusCode.BadRequest;
-    // Use patch in normal case
     if (options && options.filter && !options.portions) {
         let command = {};
         for (let key in patchData) {
@@ -401,7 +396,7 @@ async function patch(cn, objectName, patchData, options) {
     let path = await portionsToMongoPath(cn, theRootId, portions, portions.length);
     let command = { $set: {}, $unset: {} };
     if (portions[portions.length - 1].property && portions[portions.length - 1].property._.gtype == types_1.GlobalType.file)
-        command["$set"][path] = patchData; // e.g. multiple values for files in 'tests' object
+        command["$set"][path] = patchData;
     else
         for (const key in patchData) {
             if (key == "_id")
@@ -447,14 +442,14 @@ async function del(cn, objectName, options) {
     if (portions.length == 1 || portions.length == 3)
         throw types_1.StatusCode.BadRequest;
     switch (portions.length) {
-        case 2: // Delete root item
+        case 2:
             await collection.deleteOne({ _id: portions[1].itemId });
             return {
                 type: types_1.ObjectModifyType.Delete,
                 item: null,
                 itemId: portions[1].itemId
             };
-        default: // Delete nested property item
+        default:
             let command = { $pull: {} };
             let rootId = portions[1].itemId;
             let itemId = portions[portions.length - 1].itemId;
@@ -473,7 +468,6 @@ async function getDriveStatus(drive) {
     switch (drive.type) {
         case types_1.SourceType.File:
             try {
-                // todo
                 await fs.access(drive.address);
             }
             catch (err) {
@@ -561,20 +555,16 @@ async function putFileProperty(cn, objectName, item, propertyName, fileName, buf
         return;
     let obj = findObject(cn, objectName);
     assert(obj, `putFileProperty Invalid objectName: ${objectName}`);
-    // Find Property
     let property = obj.properties.find(p => p.name == propertyName);
     assert(property, `putFileProperty Invalid property: '${objectName}.${propertyName}'`);
     assert(property.file && property.file.drive, `putFileProperty Property: '${propertyName}' should have file config`);
-    // Find Drive And Put File
     let drive = exports.glob.drives.find(d => d._id.equals(property.file.drive));
     let relativePath = joinUri(property.file.path, fileName);
     await putFile(drive, relativePath, buffer);
-    // Update Property File Value
     let file = { name: fileName, size: buffer.length, path: property.file.path };
     let patchData = {};
     patchData[propertyName] = file;
     await patch(cn, objectName, patchData, { filter: { _id: item._id } });
-    // Update Original Item
     file._ = { uri: getFileUri(cn, property, file) };
     item[propertyName] = file;
 }
@@ -593,7 +583,6 @@ async function putFile(drive, relativePath, file) {
             await delFile(drive._.db, drive, relativePath);
             stream.on("error", function (err) {
                 error("putFile error", err);
-                // done(err ? StatusCode.ServerError : StatusCode.Ok);
             }).end(file);
             break;
         case types_1.SourceType.S3:
@@ -682,15 +671,6 @@ async function delFile(pack, drive, relativePath) {
             let data = await s3.deleteObject({ Bucket: drive.address, Key: relativePath });
             break;
         case types_1.SourceType.Db:
-            //     getFileInfo(host, filePath, (err, info: file) => {
-            //       if (err) return done(err);
-            //
-            //       let db = mem.dbs[rep._.pack];
-            //       let bucket = new mongodb.GridFSBucket(db);
-            //       bucket.delete(info._id, (err) => {
-            //         done(err ? statusCode.notFound : statusCode.Ok);
-            //       });
-            //     });
             break;
         default:
             throw types_1.StatusCode.NotImplemented;
@@ -698,28 +678,6 @@ async function delFile(pack, drive, relativePath) {
 }
 exports.delFile = delFile;
 async function movFile(pack, sourcePath, targetPath) {
-    // let rep: repository = mem.sources[host];
-    // if (!rep) return done(statusCode.notFound);
-    //
-    // switch (rep.type) {
-    //   case objectSource.fileSystem:
-    //     fs.move(path.join(rep.sourceAddress, sourcePath), (err) => {
-    //       if (err) error(err);
-    //       done(err ? statusCode.serverError : statusCode.Ok);
-    //     });
-    //     break;
-    //
-    //   case objectSource.db:
-    //     let db = mem.dbs[rep._.pack];
-    //     let bucket = new mongodb.GridFSBucket(db);
-    //     let fileID = null;
-    //     bucket.rename(fileID, targetPath, (err) => {
-    //       done(err ? statusCode.serverError : statusCode.Ok);
-    //     });
-    //
-    //   default:
-    //     return done(statusCode.notImplemented);
-    // }
 }
 exports.movFile = movFile;
 function joinUri(...parts) {
@@ -887,7 +845,6 @@ async function loadSystemCollections() {
     exports.glob.roles = [];
     exports.glob.drives = [];
     exports.glob.apps = [];
-    // Load Services
     let services = await get({ db: process.env.NODE_NAME }, types_1.Objects.services, { query: { enabled: true } });
     exports.glob.services = services.map(s => s.name);
     for (const db of exports.glob.services) {
@@ -925,13 +882,11 @@ function configureLogger(silent) {
     let transports = [
         new logger.transports.File({
             filename: path.join(logDir, types_1.Constants.ErrorLogFile),
-            // maxsize: mem.sysConfig.log.maxSize,
             level: 'error',
             format: logger.format.printf(info => `${moment().format('DD-HH:mm:ss.SS')}  ${info.level}\t${info.message}`),
         }),
         new logger.transports.File({
             filename: path.join(logDir, types_1.Constants.InfoLogFile),
-            // maxsize: mem.sysConfig.log.maxSize,
             level: 'debug',
             format: logger.format.printf(info => `${moment().format('DD-HH:mm:ss.SS')}  ${info.level}\t${info.message}`),
         })
@@ -955,7 +910,7 @@ async function downloadLogFiles(cn) {
     }
     let stream = fs.createWriteStream(path.join(tempPath, fileName));
     let archive = archiver('zip', {
-        zlib: { level: 9 } // Sets the compression level.
+        zlib: { level: 9 }
     });
     archive.directory(logDir, false);
     archive.finalize();
@@ -965,7 +920,6 @@ async function downloadLogFiles(cn) {
 }
 exports.downloadLogFiles = downloadLogFiles;
 function initializeRolePermissions(justEntity) {
-    // Set objects access base on role access permissions
     for (const role of exports.glob.roles) {
         if (!role.permissions)
             continue;
@@ -1037,7 +991,7 @@ function checkPropertyGtype(prop, entity, parentProperty = null) {
         case types_1.PType.text:
             prop._.gtype = types_1.GlobalType.string;
             if (prop.properties)
-                delete prop.properties; // If switch from sub items to multiple list, DetailsView needs to know it has no child
+                delete prop.properties;
             return;
         case types_1.PType.number:
             prop._.gtype = types_1.GlobalType.number;
@@ -1056,7 +1010,6 @@ function checkPropertyGtype(prop, entity, parentProperty = null) {
             return;
         case types_1.PType.obj:
             prop._.gtype = types_1.GlobalType.object;
-            // when type is object, always it will be edited by 'document-editor'
             prop.documentView = true;
             return;
     }
@@ -1174,20 +1127,9 @@ async function initializeEntities() {
     for (const obj of allObjs) {
         await initObject(obj);
     }
-    // for (const client of glob.clients) {
-    //     let config = glob.clientConfig[client._.db];
-    //     let obj = findObject(client._.db, Objects.clientConfig);
-    //     if (!obj) {
-    //         error(`clientConfig for client '${client.code}' not found!`);
-    //         continue;
-    //     }
-    //     await makeObjectReady({db: "c" + client.code} as Context, obj.properties, config);
-    // }
     log(`Initializing '${allFunctions(null).length}' functions ...`);
     for (const func of allFunctions(null)) {
         try {
-            func.pack = func.pack || func._.db;
-            assert(func.pack, `Function needs unknown pack, or default pack in PackageConfig needed!`);
             await initProperties(func.properties, func, func.title, null);
         }
         catch (ex) {
@@ -1302,7 +1244,6 @@ function compareParentProperties(properties, parentProperties, entity) {
     for (const parentProperty of parentProperties) {
         let property = properties.find(p => p.name === parentProperty.name);
         if (!property) {
-            //properties.push(_.cloneDeep(parentProperty));  // e.x. Objects > View Elem > Properties > Panel > Sub Properties > StackPanel
             properties.push(parentProperty);
             continue;
         }
@@ -1364,7 +1305,6 @@ async function verifyEmailAccounts(cn) {
     assert(exports.glob.serviceConfigs[cn.db].emailAccounts, `Email accounts is empty`);
     for (const account of exports.glob.serviceConfigs[cn.db].emailAccounts) {
         const transporter = nodemailer.createTransport({
-            //service: 'gmail',
             host: account.smtpServer,
             port: account.smtpPort,
             secure: account.secure,
@@ -1428,7 +1368,6 @@ async function sendSms(cn, provider, from, to, text, params) {
     return new Promise((resolve, reject) => {
         switch (provider) {
             case types_1.SmsProvider.Infobip:
-                // set options
                 const auth = 'Basic ' + Buffer.from(account.username + ':' + account.password).toString('base64');
                 const url = new URL(account.uri);
                 const data = JSON.stringify({ from, to, text });
@@ -1442,7 +1381,6 @@ async function sendSms(cn, provider, from, to, text, params) {
                         'Authorization': auth
                     }
                 };
-                // Send https request
                 const req = https.request(options, res => resolve(res.statusCode));
                 req.on('error', reject);
                 req.write(data);
@@ -1586,8 +1524,7 @@ function parseDate(loc, date) {
     let day = parseInt(match[3]);
     let result = null;
     if (loc == types_1.Locale.fa) {
-        if (day > 31) // means year is in right
-         {
+        if (day > 31) {
             let t = day;
             day = year;
             year = t;
@@ -1613,15 +1550,15 @@ exports.parseDate = parseDate;
 async function getTypes(cn) {
     let objects = allObjects(cn).map(ent => {
         let title = getText(cn, ent.title) + (cn.db == ent._.db ? "" : " (" + ent._.db + ")");
-        return { ...ent, title };
+        return Object.assign(Object.assign({}, ent), { title });
     });
     let functions = allFunctions(cn).map(ent => {
         let title = getText(cn, ent.title) + (cn.db == ent._.db ? "" : " (" + ent._.db + ")");
-        return { ...ent, title };
+        return Object.assign(Object.assign({}, ent), { title });
     });
     let enums = exports.glob.enums.filter(en => containsPack(cn, en._.db)).map(ent => {
         let title = getText(cn, ent.title) + (cn.db == ent._.db ? "" : " (" + ent._.db + ")");
-        return { ...ent, title };
+        return Object.assign(Object.assign({}, ent), { title });
     });
     let types = objects.concat(functions, enums);
     types = _.orderBy(types, ['title']);
@@ -1656,18 +1593,14 @@ async function dropDatabase(dbName) {
 exports.dropDatabase = dropDatabase;
 async function initializeMinaDb(cn, dbName, serviceDb) {
     let dbc = { db: dbName };
-    // roles
     let adminRole = { _id: newID(), title: "Admin" };
     let systemRole = { _id: newID(), title: "System", roles: [adminRole._id] };
     await put(dbc, types_1.Objects.roles, [systemRole, adminRole]);
-    // drives
     let defaultDrive = { title: "Default", type: types_1.SourceType.File, address: `public` };
     await put(dbc, types_1.Objects.drives, [defaultDrive]);
     let sysDrive = { title: "Sys Public", type: types_1.SourceType.File, address: `./sys-ui/public` };
     await put(dbc, types_1.Objects.drives, [sysDrive]);
-    // forms
     await put(dbc, types_1.Objects.forms, [{ name: "home", title: "Home", elems: [{ type: 1, _id: newID(), text: { "content": "## Welcome!\n", "markdown": true }, styles: "p-4" }], publish: true }]);
-    // objects
     let obj_objects = { _id: newID(), name: "objects", title: { "en": "Objects" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.objects), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
     let obj_functions = { _id: newID(), name: "functions", title: { "en": "Functions" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.functions), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
     let obj_roles = { _id: newID(), name: "roles", title: { "en": "Roles" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.roles), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
@@ -1683,7 +1616,6 @@ async function initializeMinaDb(cn, dbName, serviceDb) {
     await put(dbc, types_1.Objects.objects, [obj_functions, obj_objects, obj_roles, obj_dictionary, obj_forms, obj_enums, obj_apps, obj_drives, obj_menus]);
     if (!serviceDb)
         await put(dbc, types_1.Objects.objects, [obj_users, obj_hosts, obj_clientConfig]);
-    // menus
     let menuItems = [
         { entity: obj_objects._id, "_id": newID() },
         { entity: obj_functions._id, "_id": newID() },
@@ -1706,7 +1638,6 @@ async function initializeMinaDb(cn, dbName, serviceDb) {
     }
     let menu = { _id: newID(), title: "Default", items: menuItems };
     await put(dbc, types_1.Objects.menus, [menu]);
-    // apps
     let appSys = {
         _id: newID(),
         title: "System",
@@ -1745,7 +1676,6 @@ exports.makeEntityList = makeEntityList;
 async function getInnerPropertyReferenceValues(cn, foreignObj, db, prop, instance) {
     assert(prop.dependsOn, `DependsOn property must be set for InnerSelectType property: ${prop.name}`);
     assert(prop.foreignProperty, `ForeignProperty must be set for InnerSelectType property: ${prop.name}`);
-    // assert(obj.properties.find(p => p.name == prop.dependsOn), `Depends On Property '${prop.dependsOn}' not found!`);
     let val = instance ? instance[prop.dependsOn] : null;
     if (!val)
         return [];
@@ -1808,7 +1738,6 @@ async function getPropertyObjectReferenceValues(cn, obj, prop, instance, phrase,
             return await getInnerPropertyReferenceValues(cn, obj, db, prop, instance);
     }
     else if (phrase == "") {
-        // When call from client side on-change
     }
     else if (phrase != null) {
         let titlePropName = obj.titleProperty || "title";
@@ -1838,7 +1767,7 @@ async function getPropertyObjectReferenceValues(cn, obj, prop, instance, phrase,
         else if (instance) {
             let value = instance[prop.name];
             if (value) {
-                if (Array.isArray(value)) // Multi value property
+                if (Array.isArray(value))
                     query = { _id: { $in: value } };
                 else
                     query = { _id: value };
@@ -1865,7 +1794,7 @@ async function getPropertyFunctionReferenceValues(cn, func, prop, instance, phra
                     args.push(prop);
                     break;
                 case "item":
-                    args.push(instance); //  || cn.httpReq.body
+                    args.push(instance);
                     break;
                 default:
                     args.push(null);
@@ -1980,7 +1909,6 @@ async function invokeFuncMakeArgsReady(cn, func, action, args) {
             if (refObj.entityType == types_1.EntityType.Object)
                 argData[prop.name] = await get({ db: cn.db }, refObj.name, { itemId: val });
             else if (refObj.entityType == types_1.EntityType.Function) {
-                // todo: makeObjectReady for functions
             }
         }
     }
@@ -1990,7 +1918,7 @@ async function invoke(cn, func, args) {
     if (func.test && func.test.mock && process.env.NODE_ENV == types_1.EnvMode.Development && cn.url.pathname != "/functionTest") {
         return await mock(cn, func, args);
     }
-    let pathPath = getAbsolutePath('./' + (func.pack == "web" ? "web/src/web" : func.pack));
+    let pathPath = getAbsolutePath('./' + (func._.db == "web" ? "web/src/web" : func._.db));
     let action = require(pathPath)[func.name];
     if (!action) {
         if (!action) {
@@ -2166,7 +2094,7 @@ async function countryLookup(ip) {
         error(`Country for ip '${ip}' not found.`);
         return null;
     }
-    return result.country.iso_code; // inferred type maxmind.CityResponse
+    return result.country.iso_code;
 }
 exports.countryLookup = countryLookup;
 async function hashPassword(password) {
@@ -2205,7 +2133,7 @@ function filterAndSortProperties(cn, properties, root, gridView, viewType) {
             return p.viewMode !== types_1.PropertyViewMode.DetailViewVisible &&
                 p.type &&
                 (!p.text || !p.text.password) &&
-                (p._.gtype != types_1.GlobalType.object) && // Access  || !p.isList
+                (p._.gtype != types_1.GlobalType.object) &&
                 (p.referType != types_1.PropertyReferType.inlineData || !p._.isRef || exports.glob.enums[getEntityName(p.type)]) &&
                 (root || !(p.isList && p.properties && p.properties.length > 0));
         });
@@ -2224,38 +2152,6 @@ function filterAndSortProperties(cn, properties, root, gridView, viewType) {
 exports.filterAndSortProperties = filterAndSortProperties;
 function checkPropertyPermission(property, user) {
     return types_1.AccessAction.Full;
-    // TODO: property access control
-    // try {
-    //     if (!property.access)
-    //         return AccessAction.Full;
-    //
-    //     //info(`Property ${property.Name}`);
-    //
-    //     let permission = AccessAction.None;
-    //
-    //     if (user && property.access && property.access.items) {
-    //         property.access.items.forEach(function (access: AccessItem) {
-    //             if (user._id.equals(access.user)) {
-    //                 permission = access.permission;
-    //             }
-    //             if (access.role && _.some(user.roles, function (g) {
-    //                 return access.role.equals(g);
-    //             })) {
-    //                 permission = access.permission;
-    //             }
-    //         });
-    //     }
-    //
-    //     if (!permission && !property.access.items)
-    //         permission = AccessAction.Full;
-    //
-    //     //sys.info(`Permission ${permission}`);
-    //
-    //     return permission as AccessAction;
-    // } catch (ex) {
-    //     error("checkPropertyPermission", ex);
-    //     return AccessAction.None;
-    // }
 }
 async function createDeclare(cn, ref, properties, data, partial, obj, links) {
     let dec = {
@@ -2277,7 +2173,7 @@ async function createDeclare(cn, ref, properties, data, partial, obj, links) {
         dec.detailsViewType = obj.detailsViewType;
     if (obj.listsViewType)
         dec.listsViewType = obj.listsViewType;
-    if (Array.isArray(data) && cn["pages"] && cn.portions.length == 1) // When it is not a direct GET, cn.pages would be empty
+    if (Array.isArray(data) && cn["pages"] && cn.portions.length == 1)
         dec.pageLinks = getPageLinks(cn, dec.ref);
     for (const prop of dec.properties) {
         await preparePropertyDeclare(cn, ref, prop, data, partial, dec.access);
@@ -2363,11 +2259,11 @@ function getPageLinks(cn, ref) {
     if (start == 3)
         list.push(2);
     else if (start > 2)
-        list.push(0); // ...
+        list.push(0);
     for (let i = start; i <= end; i++)
         list.push(i);
     if (start < cn.pages - 1 && end < cn.pages - 1)
-        list.push(0); // ...
+        list.push(0);
     list.push(cn.pages);
     let result = [];
     let url = Url.parse(ref);
@@ -2425,8 +2321,7 @@ async function preparePropertyDeclare(cn, ref, prop, instance, partial, parentAc
     if (prop._.ref)
         return;
     prop._.ref = getPropertyRef(prop, ref);
-    // todo: preparePropertyDeclare instance needs to improve
-    instance = (cn.res.data ? cn.res.data[prop._.ref] : null) || instance; // when property has subproperty its value already deleted from instance and is put in cn.res.data
+    instance = (cn.res.data ? cn.res.data[prop._.ref] : null) || instance;
     prop.title = $t(cn, prop.title);
     let group = $t(cn, prop.group) || (prop._.gtype == types_1.GlobalType.object ? prop.title : $t(cn, "prop-public-group", true));
     prop.group = $t(cn, group);
@@ -2441,7 +2336,7 @@ async function preparePropertyDeclare(cn, ref, prop, instance, partial, parentAc
             let items = await getPropertyReferenceValues(cn, prop, instance, null, null);
             if (items) {
                 for (const item of items) {
-                    item.hover = false; // because of vue-js state
+                    item.hover = false;
                 }
                 prop._.items = items;
             }
@@ -2452,11 +2347,6 @@ async function preparePropertyDeclare(cn, ref, prop, instance, partial, parentAc
 }
 exports.preparePropertyDeclare = preparePropertyDeclare;
 function getPropertyEditMode(cn, prop) {
-    // TODO: complete this
-    // if (prop.access) {
-    //     let editable = checkAccess(cn, prop.access) & AccessAction.Edit;
-    //     if (!editable) return PropertyEditMode.Readonly;
-    // }
     return prop.editMode;
 }
 function checkAccess(cn, entity) {
@@ -2619,7 +2509,6 @@ function getPropertyTypedValue(prop, value, ignoreArray) {
 }
 async function sessionSignin(cn, user) {
     return new Promise((resolve, reject) => {
-        // req.login handles serializing the user id to the session store and inside our request object and also adds the user object to our request object.
         cn["httpReq"].login(user, async (err) => {
             if (err)
                 return reject(err);

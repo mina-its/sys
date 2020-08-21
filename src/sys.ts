@@ -1322,8 +1322,6 @@ async function initializeEntities() {
     log(`Initializing '${allFunctions(null).length}' functions ...`);
     for (const func of allFunctions(null)) {
         try {
-            func.pack = func.pack || func._.db;
-            assert(func.pack, `Function needs unknown pack, or default pack in PackageConfig needed!`);
             await initProperties(func.properties, func, func.title, null);
         } catch (ex) {
             error("Init functions, Module: " + func._.db + ", Action: " + func.name, ex);
@@ -2188,7 +2186,7 @@ export async function invoke(cn: Context, func: Function, args: any[]) {
         return await mock(cn, func, args);
     }
 
-    let pathPath = getAbsolutePath('./' + (func.pack == "web" ? "web/src/web" : func.pack));
+    let pathPath = getAbsolutePath('./' + (func._.db == "web" ? "web/src/web" : func._.db));
     let action = require(pathPath)[func.name];
     if (!action) {
         if (!action) {

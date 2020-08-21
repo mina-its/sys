@@ -48,7 +48,7 @@ class ServiceConfig {
 exports.ServiceConfig = ServiceConfig;
 class Global {
     constructor() {
-        this.dbs = {}; // any not mongodb.Db because of client side reference
+        this.dbs = {};
         this.countries = {};
         this.clientQuestionCallbacks = {};
         this.suspendService = false;
@@ -105,18 +105,6 @@ exports.Property = Property;
 class Drive {
 }
 exports.Drive = Drive;
-// export class DriveConfig {
-//     _id: ID;
-//     uri: string;
-//     drive: ID;
-//     s3: {
-//         region: string;
-//         accessKeyId: string;
-//         secretAccessKey: string;
-//         _sdk: any;
-//     };
-// }
-//
 class FunctionTestSample {
 }
 exports.FunctionTestSample = FunctionTestSample;
@@ -269,7 +257,6 @@ var PanelType;
 (function (PanelType) {
     PanelType[PanelType["Stack"] = 1] = "Stack";
     PanelType[PanelType["Dock"] = 2] = "Dock";
-    // Grid = 3,
     PanelType[PanelType["Wrap"] = 4] = "Wrap";
     PanelType[PanelType["Flex"] = 5] = "Flex";
     PanelType[PanelType["Modal"] = 6] = "Modal";
@@ -300,7 +287,6 @@ var EntityType;
     EntityType[EntityType["Object"] = 1] = "Object";
     EntityType[EntityType["Function"] = 2] = "Function";
     EntityType[EntityType["Form"] = 3] = "Form";
-    // File = 4,
 })(EntityType = exports.EntityType || (exports.EntityType = {}));
 var AccessAction;
 (function (AccessAction) {

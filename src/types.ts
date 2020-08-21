@@ -206,7 +206,6 @@ export class mObject extends Entity implements IProperties {
 export class Function extends Entity implements IProperties {
     properties: Property[];
     mode: FunctionMode;
-    pack: string;
     clientSide: boolean;
     returnType: ID;
     interactive: boolean;
