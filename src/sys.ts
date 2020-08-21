@@ -911,6 +911,14 @@ async function loadPackageSystemCollections(db: string) {
     log(`Loading system collections db '${db}' ...`);
     let cn = {db} as Context;
 
+    let apps: App[] = await get(cn, Objects.apps);
+    for (const app of apps) {
+        app._ = {db};
+        app.dependencies = app.dependencies || [];
+        app.dependencies = [...app.dependencies, 'sys', 'web'].filter(onlyUnique);
+        glob.apps.push(app);
+    }
+
     let objects: mObject[] = await get(cn, Objects.objects);
     for (const object of objects) {
         object._ = {db};
@@ -923,12 +931,6 @@ async function loadPackageSystemCollections(db: string) {
         func._ = {db};
         func.entityType = EntityType.Function;
         glob.entities.push(func as Entity);
-    }
-
-    let apps: App[] = await get(cn, Objects.apps);
-    for (const app of apps) {
-        app._ = {db};
-        glob.apps.push(app);
     }
 
     let forms: Form[] = await get(cn, Objects.forms);
@@ -1322,8 +1324,6 @@ async function initializeEntities() {
     log(`Initializing '${allFunctions(null).length}' functions ...`);
     for (const func of allFunctions(null)) {
         try {
-            func.pack = func.pack || func._.db;
-            assert(func.pack, `Function needs unknown pack, or default pack in PackageConfig needed!`);
             await initProperties(func.properties, func, func.title, null);
         } catch (ex) {
             error("Init functions, Module: " + func._.db + ", Action: " + func.name, ex);
@@ -1817,70 +1817,17 @@ export async function dropDatabase(dbName: string) {
     return db.dropDatabase();
 }
 
-export async function initializeMinaDb(cn: Context, dbName: string, serviceDb: boolean) {
+export async function initializeMinaDb(cn: Context, dbName: string) {
     let dbc = {db: dbName} as Context;
-    // roles
-    let adminRole = {_id: newID(), title: "Admin"} as Role;
-    let systemRole = {_id: newID(), title: "System", roles: [adminRole._id]} as Role;
-    await put(dbc, Objects.roles, [systemRole, adminRole]);
 
     // drives
     let defaultDrive = {title: "Default", type: SourceType.File, address: `public`} as Drive;
     await put(dbc, Objects.drives, [defaultDrive]);
 
-    let sysDrive = {title: "Sys Public", type: SourceType.File, address: `./sys-ui/public`} as Drive;
-    await put(dbc, Objects.drives, [sysDrive]);
-
-    // forms
-    await put(dbc, Objects.forms, [{name: "home", title: "Home", elems: [{type: 1, _id: newID(), text: {"content": "## Welcome!\n", "markdown": true}, styles: "p-4"}], publish: true}]);
-
-    // objects
-    let obj_objects = {_id: newID(), name: "objects", title: {"en": "Objects"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.objects), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
-    let obj_functions = {_id: newID(), name: "functions", title: {"en": "Functions"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.functions), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
-    let obj_roles = {_id: newID(), name: "roles", title: {"en": "Roles"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.roles), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
-    let obj_menus = {_id: newID(), name: "menus", title: {"en": "Menus"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.menus), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
-    let obj_apps = {_id: newID(), name: "apps", title: {"en": "Apps"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.apps), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
-    let obj_dictionary = {_id: newID(), name: "dictionary", title: {"en": "Dictionary"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.dictionary), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
-    let obj_forms = {_id: newID(), name: "forms", title: {"en": "Forms"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.forms), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
-    let obj_enums = {_id: newID(), name: "enums", title: {"en": "Enums"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.enums), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
-    let obj_drives = {_id: newID(), name: "drives", title: {"en": "Drives"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.drives), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
-    let obj_users = {_id: newID(), name: "users", title: {"en": "Users"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.users), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
-    let obj_hosts = {_id: newID(), name: "hosts", title: {"en": "Hosts"}, source: 1, isList: true, referType: 0, reference: newID(ObjectIDs.hosts), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
-    let obj_clientConfig = {_id: newID(), name: "hosts", title: {"en": "Client Config"}, source: 1, isList: false, referType: 0, reference: newID(ObjectIDs.clientConfig), access: {"items": [{"role": systemRole._id, "permission": 255, "_id": newID()}]}};
-    await put(dbc, Objects.objects, [obj_functions, obj_objects, obj_roles, obj_dictionary, obj_forms, obj_enums, obj_apps, obj_drives, obj_menus]);
-    if (!serviceDb)
-        await put(dbc, Objects.objects, [obj_users, obj_hosts, obj_clientConfig]);
-
-    // menus
-    let menuItems = [
-        {entity: obj_objects._id, "_id": newID()},
-        {entity: obj_functions._id, "_id": newID()},
-        {entity: obj_forms._id, "_id": newID()},
-        {title: "-", "_id": newID()},
-        {entity: obj_apps._id, _id: newID()},
-        {entity: obj_drives._id, _id: newID()},
-        {entity: obj_menus._id, _id: newID()},
-        {entity: obj_enums._id, _id: newID()},
-        {entity: obj_dictionary._id, _id: newID()},
-        {title: "-", _id: newID()},
-        {_id: newID(), entity: obj_roles._id},
-    ];
-
-    if (!serviceDb) {
-        menuItems = menuItems.concat([
-            {"entity": obj_users._id, "_id": newID()},
-            {"entity": obj_hosts._id, "_id": newID()},
-            {"entity": obj_clientConfig._id, "_id": newID()}
-        ]);
-    }
-    let menu = {_id: newID(), title: "Default", items: menuItems};
-    await put(dbc, Objects.menus, [menu]);
-
     // apps
     let appSys = {
         _id: newID(),
         title: "System",
-        menu: menu._id,
         locales: [1033, 1025, 1055, 1065],
         defaultLocale: 1033,
         home: "home",
@@ -1890,7 +1837,7 @@ export async function initializeMinaDb(cn: Context, dbName: string, serviceDb: b
     } as App;
     await put(dbc, Objects.apps, [appSys]);
 
-    return {defaultDrive, sysDrive, appSys, adminRole, systemRole};
+    return {defaultDrive, appSys};
 }
 
 export function makeEntityList(cn: Context, entities: Entity[]) {
@@ -2188,7 +2135,7 @@ export async function invoke(cn: Context, func: Function, args: any[]) {
         return await mock(cn, func, args);
     }
 
-    let pathPath = getAbsolutePath('./' + (func.pack == "web" ? "web/src/web" : func.pack));
+    let pathPath = getAbsolutePath('./' + (func._.db == "web" ? "web/src/web" : func._.db));
     let action = require(pathPath)[func.name];
     if (!action) {
         if (!action) {
