@@ -770,6 +770,13 @@ function applyAmazonConfig() {
 async function loadPackageSystemCollections(db) {
     log(`Loading system collections db '${db}' ...`);
     let cn = { db };
+    let apps = await get(cn, types_1.Objects.apps);
+    for (const app of apps) {
+        app._ = { db };
+        app.dependencies = app.dependencies || [];
+        app.dependencies = [...app.dependencies, 'sys', 'web'].filter(onlyUnique);
+        exports.glob.apps.push(app);
+    }
     let objects = await get(cn, types_1.Objects.objects);
     for (const object of objects) {
         object._ = { db };
@@ -781,11 +788,6 @@ async function loadPackageSystemCollections(db) {
         func._ = { db };
         func.entityType = types_1.EntityType.Function;
         exports.glob.entities.push(func);
-    }
-    let apps = await get(cn, types_1.Objects.apps);
-    for (const app of apps) {
-        app._ = { db };
-        exports.glob.apps.push(app);
     }
     let forms = await get(cn, types_1.Objects.forms);
     for (const form of forms) {
@@ -1591,57 +1593,13 @@ async function dropDatabase(dbName) {
     return db.dropDatabase();
 }
 exports.dropDatabase = dropDatabase;
-async function initializeMinaDb(cn, dbName, serviceDb) {
+async function initializeMinaDb(cn, dbName) {
     let dbc = { db: dbName };
-    let adminRole = { _id: newID(), title: "Admin" };
-    let systemRole = { _id: newID(), title: "System", roles: [adminRole._id] };
-    await put(dbc, types_1.Objects.roles, [systemRole, adminRole]);
     let defaultDrive = { title: "Default", type: types_1.SourceType.File, address: `public` };
     await put(dbc, types_1.Objects.drives, [defaultDrive]);
-    let sysDrive = { title: "Sys Public", type: types_1.SourceType.File, address: `./sys-ui/public` };
-    await put(dbc, types_1.Objects.drives, [sysDrive]);
-    await put(dbc, types_1.Objects.forms, [{ name: "home", title: "Home", elems: [{ type: 1, _id: newID(), text: { "content": "## Welcome!\n", "markdown": true }, styles: "p-4" }], publish: true }]);
-    let obj_objects = { _id: newID(), name: "objects", title: { "en": "Objects" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.objects), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
-    let obj_functions = { _id: newID(), name: "functions", title: { "en": "Functions" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.functions), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
-    let obj_roles = { _id: newID(), name: "roles", title: { "en": "Roles" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.roles), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
-    let obj_menus = { _id: newID(), name: "menus", title: { "en": "Menus" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.menus), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
-    let obj_apps = { _id: newID(), name: "apps", title: { "en": "Apps" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.apps), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
-    let obj_dictionary = { _id: newID(), name: "dictionary", title: { "en": "Dictionary" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.dictionary), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
-    let obj_forms = { _id: newID(), name: "forms", title: { "en": "Forms" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.forms), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
-    let obj_enums = { _id: newID(), name: "enums", title: { "en": "Enums" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.enums), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
-    let obj_drives = { _id: newID(), name: "drives", title: { "en": "Drives" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.drives), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
-    let obj_users = { _id: newID(), name: "users", title: { "en": "Users" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.users), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
-    let obj_hosts = { _id: newID(), name: "hosts", title: { "en": "Hosts" }, source: 1, isList: true, referType: 0, reference: newID(types_1.ObjectIDs.hosts), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
-    let obj_clientConfig = { _id: newID(), name: "hosts", title: { "en": "Client Config" }, source: 1, isList: false, referType: 0, reference: newID(types_1.ObjectIDs.clientConfig), access: { "items": [{ "role": systemRole._id, "permission": 255, "_id": newID() }] } };
-    await put(dbc, types_1.Objects.objects, [obj_functions, obj_objects, obj_roles, obj_dictionary, obj_forms, obj_enums, obj_apps, obj_drives, obj_menus]);
-    if (!serviceDb)
-        await put(dbc, types_1.Objects.objects, [obj_users, obj_hosts, obj_clientConfig]);
-    let menuItems = [
-        { entity: obj_objects._id, "_id": newID() },
-        { entity: obj_functions._id, "_id": newID() },
-        { entity: obj_forms._id, "_id": newID() },
-        { title: "-", "_id": newID() },
-        { entity: obj_apps._id, _id: newID() },
-        { entity: obj_drives._id, _id: newID() },
-        { entity: obj_menus._id, _id: newID() },
-        { entity: obj_enums._id, _id: newID() },
-        { entity: obj_dictionary._id, _id: newID() },
-        { title: "-", _id: newID() },
-        { _id: newID(), entity: obj_roles._id },
-    ];
-    if (!serviceDb) {
-        menuItems = menuItems.concat([
-            { "entity": obj_users._id, "_id": newID() },
-            { "entity": obj_hosts._id, "_id": newID() },
-            { "entity": obj_clientConfig._id, "_id": newID() }
-        ]);
-    }
-    let menu = { _id: newID(), title: "Default", items: menuItems };
-    await put(dbc, types_1.Objects.menus, [menu]);
     let appSys = {
         _id: newID(),
         title: "System",
-        menu: menu._id,
         locales: [1033, 1025, 1055, 1065],
         defaultLocale: 1033,
         home: "home",
@@ -1650,7 +1608,7 @@ async function initializeMinaDb(cn, dbName, serviceDb) {
         iconColor: "#258",
     };
     await put(dbc, types_1.Objects.apps, [appSys]);
-    return { defaultDrive, sysDrive, appSys, adminRole, systemRole };
+    return { defaultDrive, appSys };
 }
 exports.initializeMinaDb = initializeMinaDb;
 function makeEntityList(cn, entities) {
