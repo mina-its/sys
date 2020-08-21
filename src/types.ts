@@ -72,6 +72,7 @@ export class User {
     lastOnline: Date;
     lastOffline: Date;
     time: Date = new Date();
+    service: ID;
     _: {
         db?: string;
         isOnline?: boolean;
@@ -584,7 +585,6 @@ export class App {
     favicon: string;
     brandingLogo: string;
     interactive: boolean;
-    signInUri: string;
     iconStyle: string;
     navColor: string;
     iconColor: string;
@@ -1150,7 +1150,8 @@ export class AppStateConfig {
     appLocales: Pair[] = [];
     user: {
         loginTitle?: string;
-        loginUrl?: string;
+        signinUrl?: string;
+        signoutUrl?: string;
         photoUrl?: string;
         title?: string;
         email?: string;
@@ -1306,6 +1307,7 @@ export enum ReqParams {
     cache = "c",
     sort = "s",
     mode = "m",
+    token = "k",
     functionType = "f"
 }
 
@@ -1478,4 +1480,8 @@ export enum ObjectSourceClass {
     ObjectSource = 2,
     Node = 3,
     Cluster = 4,
+}
+
+export class ClusterConfig {
+    lastServiceCode: number;
 }

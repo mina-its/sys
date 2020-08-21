@@ -973,7 +973,10 @@ async function loadServiceConfigs() {
 
     for (const db of glob.services) {
         let serviceConfig: ServiceConfig = await getOne({db}, Objects.serviceConfig);
-        assert(serviceConfig, `Service Config for service '${db}' is not ready!`);
+        if (!serviceConfig) {
+            error(`Service Config for service '${db}' is not ready!`);
+            continue;
+        }
         glob.serviceConfigs[db] = serviceConfig;
 
         let apps: ID[];
