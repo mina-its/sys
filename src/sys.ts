@@ -2815,3 +2815,18 @@ export async function sessionSignin(cn: Context, user: User) {
         });
     });
 }
+
+export function getSigninUrl(cn: Context, back?: string) {
+    let url = glob.serviceConfigs[cn.db].sso ? process.env.SSO_SIGNIN_URL : toPublicUrl(cn, Constants.defaultSignInUri, true);
+    if (back)
+        url += `?back=${encodeURI(back)}`;
+    return url;
+}
+
+export function toPublicUrl(cn: Context, uri: string, addPrefix: boolean = false): string {
+    uri = _.trim(uri, '/');
+    if (addPrefix && cn.prefix)
+        uri = cn.prefix + "/" + uri;
+    return "/" + uri;
+}
+
