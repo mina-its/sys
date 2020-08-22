@@ -6,6 +6,7 @@ export {ID};
 export interface Context {
     locale?: Locale;
     user?: User;
+    service?: ServiceConfig;
     sessionID?: string;
     portions?: RefPortion[];
     host?: Host;
@@ -977,13 +978,15 @@ export class Service {
     _id: ID;
     name: string;
     enabled: boolean;
+    comment: string | MultilangText;
+    pure: boolean;
 }
 
 export enum Objects {
     audits = "audits",
     users = "users",
-    devConfig = "devConfig",
     dictionary = "dictionary",
+    clusterConfig = "clusterConfig",
     auditTypes = "auditTypes",
     countries = "countries",
     documents = "documents",
@@ -991,6 +994,7 @@ export enum Objects {
     documentDirectories = "documentDirectories",
     objects = "objects",
     services = "services",
+    nodes = "nodes",
     serviceConfig = "serviceConfig",
     appGroups = "appGroups",
     functions = "functions",
@@ -1428,6 +1432,11 @@ export enum ObjectSourceClass {
 
 export class ClusterConfig {
     lastServiceCode: number;
+    emailAccounts: EmailAccount[];
+    smsAccounts: SmsAccount[];
+    emailVerificationTemplate: EmailTemplateConfig;
+    welcomeEmailTemplate: EmailTemplateConfig;
+    resetPasswordTemplate: EmailTemplateConfig;
 }
 
 export class Node {

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.toPublicUrl = exports.getSigninUrl = exports.sessionSignin = exports.makeLinksReady = exports.checkAccess = exports.preparePropertyDeclare = exports.prepareUrl = exports.getPageLinks = exports.applyPropertiesDefaultValue = exports.createDeclare = exports.filterAndSortProperties = exports.getPortionProperties = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.getSourceDatabase = exports.makeEntityList = exports.dropDatabase = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.checkPropertyGtype = exports.initializeRoles = exports.initializeRolePermissions = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getCollection = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
+exports.toPublicUrl = exports.getSigninUrl = exports.sessionSignin = exports.makeLinksReady = exports.checkAccess = exports.preparePropertyDeclare = exports.prepareUrl = exports.getPageLinks = exports.applyPropertiesDefaultValue = exports.createDeclare = exports.filterAndSortProperties = exports.getPortionProperties = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.getEntityDatabase = exports.makeEntityList = exports.dropDatabase = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.checkPropertyGtype = exports.initializeRoles = exports.initializeRolePermissions = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getCollection = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
 let index = {
     "Start                                              ": reload,
     "   loadSystemCollections                           ": loadSystemCollections,
@@ -201,6 +201,8 @@ exports.max = max;
 async function makeObjectReady(cn, properties, data, options = null) {
     if (!data)
         return;
+    if (typeof cn == "string")
+        cn = { db: cn };
     data = Array.isArray(data) ? data : [data];
     for (const item of data) {
         for (const prop of properties) {
@@ -827,6 +829,7 @@ async function loadServiceConfigs() {
         let serviceConfig = await getOne({ db }, types_1.Objects.serviceConfig);
         if (!serviceConfig) {
             error(`Service Config for service '${db}' is not ready!`);
+            exports.glob.services.splice(exports.glob.services.indexOf(db), 1);
             continue;
         }
         exports.glob.serviceConfigs[db] = serviceConfig;
@@ -1052,6 +1055,8 @@ function checkPropertyGtype(prop, entity, parentProperty = null) {
 }
 exports.checkPropertyGtype = checkPropertyGtype;
 async function dbConnection(cn, connectionString) {
+    if (typeof cn == "string")
+        cn = { db: cn };
     let key = cn.db + ":" + connectionString;
     if (exports.glob.dbs[key])
         return exports.glob.dbs[key];
@@ -1328,8 +1333,15 @@ async function verifyEmailAccounts(cn) {
 }
 exports.verifyEmailAccounts = verifyEmailAccounts;
 async function sendEmail(cn, from, to, subject, content, params) {
-    assert(exports.glob.serviceConfigs[cn.db].emailAccounts, `Email accounts is empty`);
-    const account = exports.glob.serviceConfigs[cn.db].emailAccounts.find(account => account.email == from);
+    let account;
+    if (cn.service.sso) {
+        let config = await getOne(process.env.CLUSTER_NAME, types_1.Objects.clusterConfig);
+        account = config.emailAccounts.find(account => account.email == from);
+    }
+    else {
+        assert(exports.glob.serviceConfigs[cn.db].emailAccounts, `Email accounts is empty`);
+        account = exports.glob.serviceConfigs[cn.db].emailAccounts.find(account => account.email == from);
+    }
     assert(account, `Email account for account '${from}' not found!`);
     const transporter = nodemailer.createTransport({
         host: account.smtpServer,
@@ -1646,7 +1658,7 @@ async function getInnerPropertyReferenceValues(cn, foreignObj, db, prop, instanc
         };
     });
 }
-function getSourceDatabase(cn, entity) {
+function getEntityDatabase(cn, entity) {
     if (entity.entityType == types_1.EntityType.Object) {
         let obj = entity;
         switch (obj.sourceClass) {
@@ -1662,9 +1674,9 @@ function getSourceDatabase(cn, entity) {
     }
     return cn.host._.db;
 }
-exports.getSourceDatabase = getSourceDatabase;
+exports.getEntityDatabase = getEntityDatabase;
 async function getPropertyObjectReferenceValues(cn, obj, prop, instance, phrase, query) {
-    let db = getSourceDatabase(cn, obj);
+    let db = getEntityDatabase(cn, obj);
     if (prop.filter && !query)
         return [];
     if (prop.referType == types_1.PropertyReferType.InnerSelectType) {
@@ -1843,12 +1855,14 @@ async function invokeFuncMakeArgsReady(cn, func, action, args) {
         let val = argData[prop.name];
         if (val == null && prop.required)
             throwError(types_1.StatusCode.BadRequest, `parameter '${prop.name}' is mandatory!`);
+        if (prop._.gtype == types_1.GlobalType.object && typeof val == "string")
+            argData[prop.name] = newID(val);
         if (prop._.isRef && !prop._.enum && prop.viewMode != types_1.PropertyViewMode.Hidden && prop.useAsObject && isID(val)) {
             let refObj = findEntity(prop.type);
             if (!refObj)
                 throwError(types_1.StatusCode.UnprocessableEntity, `referred object for property '${cn.db}.${prop.name}' not found!`);
             if (refObj.entityType == types_1.EntityType.Object)
-                argData[prop.name] = await get({ db: cn.db }, refObj.name, { itemId: val });
+                argData[prop.name] = await getByID(await getEntityDatabase(cn, refObj), refObj.name, val);
             else if (refObj.entityType == types_1.EntityType.Function) {
             }
         }

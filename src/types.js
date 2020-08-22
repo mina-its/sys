@@ -477,8 +477,8 @@ var Objects;
 (function (Objects) {
     Objects["audits"] = "audits";
     Objects["users"] = "users";
-    Objects["devConfig"] = "devConfig";
     Objects["dictionary"] = "dictionary";
+    Objects["clusterConfig"] = "clusterConfig";
     Objects["auditTypes"] = "auditTypes";
     Objects["countries"] = "countries";
     Objects["documents"] = "documents";
@@ -486,6 +486,7 @@ var Objects;
     Objects["documentDirectories"] = "documentDirectories";
     Objects["objects"] = "objects";
     Objects["services"] = "services";
+    Objects["nodes"] = "nodes";
     Objects["serviceConfig"] = "serviceConfig";
     Objects["appGroups"] = "appGroups";
     Objects["functions"] = "functions";

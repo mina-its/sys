@@ -37,7 +37,10 @@ import maxmind, {CountryResponse} from 'maxmind';
 import {fromCallback} from 'universalify';
 import * as Url from "url";
 import {
+    Access,
+    AccessAction,
     App,
+    AppGroup,
     AuditArgs,
     ClientCommand,
     Constants,
@@ -48,6 +51,7 @@ import {
     DirFileType,
     Drive,
     Entity,
+    EntityLink,
     EntityType,
     Enum,
     EnvMode,
@@ -64,9 +68,12 @@ import {
     Menu,
     mFile,
     mObject,
+    ObjectDec,
     ObjectModifyState,
     ObjectModifyType,
     Objects,
+    ObjectSourceClass,
+    ObjectViewType,
     Pair,
     Property,
     PropertyEditMode,
@@ -76,10 +83,12 @@ import {
     PutOptions,
     RefPortion,
     RefPortionType,
-    RequestMode,
+    ReqParams,
     Role,
     SendEmailParams,
     SendSmsParams,
+    Service,
+    ServiceConfig,
     SmsProvider,
     SourceType,
     StatusCode,
@@ -87,17 +96,8 @@ import {
     SystemProperty,
     Text,
     UploadedFile,
-    ObjectViewType,
-    AccessAction,
     User,
-    EntityLink,
-    ObjectDec,
-    Access,
-    ReqParams,
-    ObjectIDs,
-    ServiceConfig,
-    Service,
-    PermissionResourceType, AppGroup, ObjectSourceClass,
+    ClusterConfig, EmailAccount,
 } from './types';
 
 const nodemailer = require('nodemailer');
@@ -229,12 +229,12 @@ export function run(cn, func: string, ...args) {
     }
 }
 
-export async function getByID(cn: Context, objectName: string, id: ID) {
+export async function getByID(cn: Context | string, objectName: string, id: ID) {
     if (!id) return null;
     return get(cn, objectName, {itemId: id});
 }
 
-export async function get(cn: Context, objectName: string, options?: GetOptions) {
+export async function get(cn: Context | string, objectName: string, options?: GetOptions) {
     let collection = await getCollection(cn, objectName);
     options = options || {} as GetOptions;
 
@@ -276,8 +276,9 @@ export async function max(cn: Context, objectName: string, property: string) {
     return maxDoc[0][property];
 }
 
-export async function makeObjectReady(cn: Context, properties: Property[], data: any, options: GetOptions = null) {
+export async function makeObjectReady(cn: Context | string, properties: Property[], data: any, options: GetOptions = null) {
     if (!data) return;
+    if (typeof cn == "string") cn = {db: cn} as Context;
 
     data = Array.isArray(data) ? data : [data];
     for (const item of data) {
@@ -317,16 +318,16 @@ export function getFileUri(cn: Context, prop: Property, file: mFile): string {
     return `${cn.url ? cn.url.protocol : 'http:'}//${encodeURI(uri)}`; // in user login context is not completed!
 }
 
-export async function getOne(cn: Context, objectName: string) {
+export async function getOne(cn: Context | string, objectName: string) {
     return get(cn, objectName, {count: 1});
 }
 
-export async function getCollection(cn: Context, objectName: string) {
+export async function getCollection(cn: Context | string, objectName: string) {
     let db = await dbConnection(cn);
     return db.collection(objectName);
 }
 
-export async function put(cn: Context, objectName: string, data: any, options?: PutOptions): Promise<ObjectModifyState> {
+export async function put(cn: Context | string, objectName: string, data: any, options?: PutOptions): Promise<ObjectModifyState> {
     let collection = await getCollection(cn, objectName);
     data = data || {};
     if (!options || !options.portions || options.portions.length == 1) {
@@ -395,7 +396,7 @@ export function evalExpression($this: any, expression: string): any {
     }
 }
 
-export async function portionsToMongoPath(cn: Context, rootId: ID, portions: RefPortion[], endIndex: number) {
+export async function portionsToMongoPath(cn: Context | string, rootId: ID, portions: RefPortion[], endIndex: number) {
     if (endIndex == 3) // not need to fetch data
         return portions[2].property.name;
 
@@ -431,7 +432,7 @@ export async function count(cn: Context, objectName: string, options: GetOptions
     return await collection.countDocuments(query, null as MongoCountPreferences);
 }
 
-export async function patch(cn: Context, objectName: string, patchData: any, options?: PutOptions) {
+export async function patch(cn: Context | string, objectName: string, patchData: any, options?: PutOptions) {
     let db = await dbConnection(cn);
     let collection = db.collection(objectName);
     if (!collection) throw StatusCode.BadRequest;
@@ -495,7 +496,7 @@ export async function patch(cn: Context, objectName: string, patchData: any, opt
     } as ObjectModifyState;
 }
 
-export async function del(cn: Context, objectName: string, options?: DelOptions) {
+export async function del(cn: Context | string, objectName: string, options?: DelOptions) {
     let db = await dbConnection(cn);
     let collection = db.collection(objectName);
     if (!collection) throw StatusCode.BadRequest;
@@ -978,6 +979,7 @@ async function loadServiceConfigs() {
         let serviceConfig: ServiceConfig = await getOne({db}, Objects.serviceConfig);
         if (!serviceConfig) {
             error(`Service Config for service '${db}' is not ready!`);
+            glob.services.splice(glob.services.indexOf(db), 1);
             continue;
         }
         glob.serviceConfigs[db] = serviceConfig;
@@ -1232,7 +1234,8 @@ export function checkPropertyGtype(prop: Property, entity: Entity, parentPropert
     }
 }
 
-export async function dbConnection(cn: Context, connectionString?: string): Promise<mongodb.Db> {
+export async function dbConnection(cn: Context | string, connectionString?: string): Promise<mongodb.Db> {
+    if (typeof cn == "string") cn = {db: cn} as Context;
     let key = cn.db + ":" + connectionString;
     if (glob.dbs[key]) return glob.dbs[key];
     connectionString = connectionString || process.env.DB_ADDRESS;
@@ -1534,11 +1537,16 @@ export async function verifyEmailAccounts(cn: Context) {
 }
 
 export async function sendEmail(cn: Context, from: string, to: string, subject: string, content: string, params?: SendEmailParams) {
-    assert(glob.serviceConfigs[cn.db].emailAccounts, `Email accounts is empty`);
+    let account: EmailAccount;
+    if (cn.service.sso) {
+        let config: ClusterConfig = await getOne(process.env.CLUSTER_NAME, Objects.clusterConfig);
+        account = config.emailAccounts.find(account => account.email == from);
+    } else {
+        assert(glob.serviceConfigs[cn.db].emailAccounts, `Email accounts is empty`);
+        account = glob.serviceConfigs[cn.db].emailAccounts.find(account => account.email == from);
+    }
 
-    const account = glob.serviceConfigs[cn.db].emailAccounts.find(account => account.email == from);
     assert(account, `Email account for account '${from}' not found!`);
-
     const transporter = nodemailer.createTransport({
         host: account.smtpServer,
         port: account.smtpPort,
@@ -1875,7 +1883,7 @@ async function getInnerPropertyReferenceValues(cn: Context, foreignObj: mObject,
     });
 }
 
-export function getSourceDatabase(cn: Context, entity: Entity): string {
+export function getEntityDatabase(cn: Context, entity: Entity): string {
     if (entity.entityType == EntityType.Object) {
         let obj = entity as mObject;
         switch (obj.sourceClass) {
@@ -1897,7 +1905,7 @@ export function getSourceDatabase(cn: Context, entity: Entity): string {
 }
 
 async function getPropertyObjectReferenceValues(cn: Context, obj: mObject, prop: Property, instance: any, phrase: string, query: any): Promise<Pair[]> {
-    let db = getSourceDatabase(cn, obj);
+    let db = getEntityDatabase(cn, obj);
     if (prop.filter && !query)
         return [];
 
@@ -2092,13 +2100,16 @@ async function invokeFuncMakeArgsReady(cn: Context, func: Function, action, args
         if (val == null && prop.required)
             throwError(StatusCode.BadRequest, `parameter '${prop.name}' is mandatory!`);
 
+        if (prop._.gtype == GlobalType.object && typeof val == "string")
+            argData[prop.name] = newID(val);
+
         if (prop._.isRef && !prop._.enum && prop.viewMode != PropertyViewMode.Hidden && prop.useAsObject && isID(val)) {
             let refObj = findEntity(prop.type);
             if (!refObj)
                 throwError(StatusCode.UnprocessableEntity, `referred object for property '${cn.db}.${prop.name}' not found!`);
 
             if (refObj.entityType == EntityType.Object)
-                argData[prop.name] = await get({db: cn.db} as Context, refObj.name, {itemId: val});
+                argData[prop.name] = await getByID(await getEntityDatabase(cn, refObj), refObj.name, val);
             else if (refObj.entityType == EntityType.Function) {
                 // todo: makeObjectReady for functions
             }
