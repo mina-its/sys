@@ -1078,6 +1078,7 @@ export enum GridRowHeaderStyle {
 export const Constants = {
     referenceValuesLoadCount: 10,
     objectIdRegex: /^(?=[a-f\d]{24}$)(\d+[a-f]|[a-f]+\d)/i,
+    defaultSignInUri: '/signin',
     sysDb: "sys",
     MinaVersion: 5,
     titlePropertyName: "title",
