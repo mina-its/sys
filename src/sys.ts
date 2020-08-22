@@ -576,9 +576,9 @@ export function toAsync(fn) {
 
 export function getAbsolutePath(...paths: string[]): string {
     if (!paths || paths.length == 0)
-        return glob.rootDir;
+        return process.env.ROOT_DIR;
 
-    let result = /^\./.test(paths[0]) ? path.join(glob.rootDir, ...paths) : path.join(...paths);
+    let result = /^\./.test(paths[0]) ? path.join(process.env.ROOT_DIR, ...paths) : path.join(...paths);
     return result;
 }
 
@@ -905,6 +905,7 @@ async function globalCheck() {
 function applyAmazonConfig() {
     aws.config.accessKeyId = process.env.AWS_ACCESS_KEY_ID;
     aws.config.secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+    aws.config.region = process.env.AWS_DEFAULT_REGION;
 }
 
 async function loadPackageSystemCollections(db: string) {
@@ -1815,29 +1816,6 @@ export function getAllEntities(cn: Context) {
 export async function dropDatabase(dbName: string) {
     let db = await dbConnection({db: dbName});
     return db.dropDatabase();
-}
-
-export async function initializeMinaDb(cn: Context, dbName: string) {
-    let dbc = {db: dbName} as Context;
-
-    // drives
-    let defaultDrive = {title: "Default", type: SourceType.File, address: `public`} as Drive;
-    await put(dbc, Objects.drives, [defaultDrive]);
-
-    // apps
-    let appSys = {
-        _id: newID(),
-        title: "System",
-        locales: [1033, 1025, 1055, 1065],
-        defaultLocale: 1033,
-        home: "home",
-        iconStyle: "fad fa-cogs",
-        navColor: "#258",
-        iconColor: "#258",
-    } as App;
-    await put(dbc, Objects.apps, [appSys]);
-
-    return {defaultDrive, appSys};
 }
 
 export function makeEntityList(cn: Context, entities: Entity[]) {

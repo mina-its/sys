@@ -144,7 +144,6 @@ export class Global {
     dbs: { [packAndCs: string]: any } = {}; // any not mongodb.Db because of client side reference
     countries: { [code: string]: Country; } = {};
     clientQuestionCallbacks: { [sessionId: string]: (answer: number | null) => void; } = {};
-    rootDir: string;
     entities: Entity[];
     serviceConfigs: { [service: string]: ServiceConfig; };
     services: string[];
@@ -1429,4 +1428,15 @@ export enum ObjectSourceClass {
 
 export class ClusterConfig {
     lastServiceCode: number;
+}
+
+export class Node {
+    _id: ID;
+    name: string;
+    connectionString: string;
+    aws: {
+        application: string;
+        environment: string;
+        s3Bucket: string;
+    }
 }

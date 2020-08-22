@@ -1,12 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const sys_1 = require("../../sys");
-const path = require("path");
 const types = require("../src/types");
 const util = require('util');
 let sys = require('../src/sys');
 let reloadError;
-sys_1.glob.rootDir = path.join(__dirname, "../..");
 beforeAll(async () => {
 });
 test('country context', async () => {

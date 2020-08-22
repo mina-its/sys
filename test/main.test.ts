@@ -10,7 +10,6 @@ const util = require('util');
 
 let sys = require('../src/sys');
 let reloadError;
-glob.rootDir = path.join(__dirname, "../..");
 
 beforeAll(async () => {
 	//sys.configureLogger(false);
