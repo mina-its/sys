@@ -46,13 +46,16 @@ export class Role {
 
 export class AccessPermission {
     _id: ID;
-    resourceType: PermissionResourceType;
+    resourceType: EntityType;
     obj: ID;
     func: ID;
     form: ID;
+    drive: ID;
     objAction: PermissionObjectAction;
     funcAction: PermissionFunctionAction;
     formAction: PermissionFormAction;
+    driveAction: PermissionDriveAction;
+    properties: string[];
 }
 
 export class User {
@@ -189,7 +192,7 @@ export class mObject extends Entity implements IProperties {
     source: SourceType;
     rowHeaderStyle: GridRowHeaderStyle;
     reorderable: boolean;
-    sourceClass: ObjectSourceClass;
+    sourceClass: EntitySourceClass;
     approximateCount: number;
     modified: ID;
     detailsViewType: ObjectDetailsViewType;
@@ -304,7 +307,6 @@ export class Property implements IProperties {
     filter: string;
     required: boolean;
     type: ID;
-    access: Access;
     foreignProperty: string;
     isList: boolean;
     english: boolean;
@@ -372,32 +374,15 @@ export class Property implements IProperties {
     };
 }
 
-export class Drive {
-    _id: ID;
-    title: string;
+export class Drive extends Entity {
     type: SourceType;
-    comment: string | MultilangText;
     address: string;
-    prefix: string;
-    access: Access;
     _: {
         db: string;
         uri?: string;
     }
 }
 
-// export class DriveConfig {
-//     _id: ID;
-//     uri: string;
-//     drive: ID;
-//     s3: {
-//         region: string;
-//         accessKeyId: string;
-//         secretAccessKey: string;
-//         _sdk: any;
-//     };
-// }
-//
 export class FunctionTestSample {
     _id: ID;
     title: string;
@@ -807,20 +792,20 @@ export enum ElemType {
     Object = 4,
     Function = 5,
     Image = 6,
-    Map = 7,
+    // Map = 7,
     Chart = 8,
-    Viewer = 9, // audio, video, pdf, ...
+    // Viewer = 9, // audio, video, pdf, ...
     Component = 10,
-    Tree = 11,
+    // Tree = 11,
     Document = 12,
-    View = 13,
+    // View = 13,
 }
 
 export enum EntityType {
     Object = 1,
     Function = 2,
     Form = 3,
-    // File = 4,
+    Drive = 4,
 }
 
 export enum AccessAction {
@@ -1240,6 +1225,7 @@ export enum ObjectListsViewType {
     Grid = 1,
     Card = 2,
     Column = 3,
+    Bars = 4,
 }
 
 export enum YesNo {
@@ -1401,17 +1387,11 @@ export class Feedback {
     user: ID;
 }
 
-export enum PermissionResourceType {
-    Object = 1,
-    Function = 2,
-    Form = 3,
-}
-
 export enum PermissionObjectAction {
     View = 1,
     Edit = 2,
-    NewItem = 4,
-    DeleteItem = 8,
+    Add = 4,
+    Delete = 8,
     Full = 255,
 }
 
@@ -1423,9 +1403,17 @@ export enum PermissionFormAction {
     View = 1,
 }
 
-export enum ObjectSourceClass {
+export enum PermissionDriveAction {
+    View = 1,
+    Edit = 2,
+    Add = 4,
+    Delete = 8,
+    Full = 255,
+}
+
+export enum EntitySourceClass {
     Default = 0,
-    ObjectSource = 2,
+    Internal = 2,
     Node = 3,
     Cluster = 4,
 }

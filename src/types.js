@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Node = exports.ClusterConfig = exports.ObjectSourceClass = exports.PermissionFormAction = exports.PermissionFunctionAction = exports.PermissionObjectAction = exports.PermissionResourceType = exports.Feedback = exports.UserProfile = exports.SysDashboardInfo = exports.ApiDoc = exports.ApiDocEnum = exports.ApiDocSchema = exports.ApiDocProprty = exports.ApiDocBlock = exports.ApiDocOperation = exports.ApiDocParameter = exports.ReqParams = exports.FunctionDec = exports.ObjectDec = exports.EntityMeta = exports.NotificationInfo = exports.AjaxConfig = exports.YesNo = exports.ObjectListsViewType = exports.ObjectDetailsViewType = exports.ClientCommand = exports.DirFile = exports.Note = exports.DirFileType = exports.UnitTestObject = exports.WebMethod = exports.AppStateConfig = exports.WebResponse = exports.RequestMode = exports.EnvMode = exports.PropertyConditionBehavior = exports.Constants = exports.GridRowHeaderStyle = exports.PType = exports.SystemProperty = exports.SysAuditTypes = exports.Document = exports.DocumentDirectory = exports.DocumentDirectoryItem = exports.DocStatus = exports.Objects = exports.Service = exports.ObjectIDs = exports.FileType = exports.RedirectType = exports.ReferType = exports.TimeFormat = exports.RefPortionType = exports.GlobalType = exports.PropertyReferType = exports.NewItemMode = exports.ChangeFrequency = exports.FunctionMode = exports.SourceType = exports.Locale = exports.Keys = exports.PropertyEditMode = exports.PropertyViewMode = exports.AccessAction = exports.EntityType = exports.ElemType = exports.Orientation = exports.PanelType = exports.LinkType = exports.LogType = exports.UploadedFile = exports.StatusCode = exports.GetOptions = exports.DelOptions = exports.PatchOptions = exports.PutOptions = exports.Point = exports.GeoLocation = exports.RefPortion = exports.TimeZone = exports.Text = exports.mFile = exports.PackageAddressRule = exports.EmailAccount = exports.SmsAccount = exports.MultilangText = exports.EnumItem = exports.Enum = exports.Host = exports.App = exports.TreePair = exports.Pair = exports.MenuItem = exports.Menu = exports.Access = exports.ChartSeries = exports.ErrorObject = exports.Elem = exports.ObjectViewType = exports.EntityLink = exports.FunctionTestSample = exports.Drive = exports.Property = exports.ObjectModifyType = exports.SendSmsParams = exports.SendEmailParams = exports.EmailTemplateConfig = exports.ObjectModifyState = exports.FormDto = exports.Form = exports.Function = exports.mObject = exports.Entity = exports.Global = exports.ServiceConfig = exports.AppGroup = exports.TextEditor = exports.Country = exports.SmsProvider = exports.AuditType = exports.User = exports.AccessPermission = exports.Role = exports.AuditArgs = exports.ID = void 0;
+exports.Node = exports.ClusterConfig = exports.EntitySourceClass = exports.PermissionDriveAction = exports.PermissionFormAction = exports.PermissionFunctionAction = exports.PermissionObjectAction = exports.Feedback = exports.UserProfile = exports.SysDashboardInfo = exports.ApiDoc = exports.ApiDocEnum = exports.ApiDocSchema = exports.ApiDocProprty = exports.ApiDocBlock = exports.ApiDocOperation = exports.ApiDocParameter = exports.ReqParams = exports.FunctionDec = exports.ObjectDec = exports.EntityMeta = exports.NotificationInfo = exports.AjaxConfig = exports.YesNo = exports.ObjectListsViewType = exports.ObjectDetailsViewType = exports.ClientCommand = exports.DirFile = exports.Note = exports.DirFileType = exports.UnitTestObject = exports.WebMethod = exports.AppStateConfig = exports.WebResponse = exports.RequestMode = exports.EnvMode = exports.PropertyConditionBehavior = exports.Constants = exports.GridRowHeaderStyle = exports.PType = exports.SystemProperty = exports.SysAuditTypes = exports.Document = exports.DocumentDirectory = exports.DocumentDirectoryItem = exports.DocStatus = exports.Objects = exports.Service = exports.ObjectIDs = exports.FileType = exports.RedirectType = exports.ReferType = exports.TimeFormat = exports.RefPortionType = exports.GlobalType = exports.PropertyReferType = exports.NewItemMode = exports.ChangeFrequency = exports.FunctionMode = exports.SourceType = exports.Locale = exports.Keys = exports.PropertyEditMode = exports.PropertyViewMode = exports.AccessAction = exports.EntityType = exports.ElemType = exports.Orientation = exports.PanelType = exports.LinkType = exports.LogType = exports.UploadedFile = exports.StatusCode = exports.GetOptions = exports.DelOptions = exports.PatchOptions = exports.PutOptions = exports.Point = exports.GeoLocation = exports.RefPortion = exports.TimeZone = exports.Text = exports.mFile = exports.PackageAddressRule = exports.EmailAccount = exports.SmsAccount = exports.MultilangText = exports.EnumItem = exports.Enum = exports.Host = exports.App = exports.TreePair = exports.Pair = exports.MenuItem = exports.Menu = exports.Access = exports.ChartSeries = exports.ErrorObject = exports.Elem = exports.ObjectViewType = exports.EntityLink = exports.FunctionTestSample = exports.Drive = exports.Property = exports.ObjectModifyType = exports.SendSmsParams = exports.SendEmailParams = exports.EmailTemplateConfig = exports.ObjectModifyState = exports.FormDto = exports.Form = exports.Function = exports.mObject = exports.Entity = exports.Global = exports.ServiceConfig = exports.AppGroup = exports.TextEditor = exports.Country = exports.SmsProvider = exports.AuditType = exports.User = exports.AccessPermission = exports.Role = exports.AuditArgs = exports.ID = void 0;
 const bson_util_1 = require("bson-util");
 Object.defineProperty(exports, "ID", { enumerable: true, get: function () { return bson_util_1.ID; } });
 class AuditArgs {
@@ -102,7 +102,7 @@ var ObjectModifyType;
 class Property {
 }
 exports.Property = Property;
-class Drive {
+class Drive extends Entity {
 }
 exports.Drive = Drive;
 class FunctionTestSample {
@@ -274,19 +274,16 @@ var ElemType;
     ElemType[ElemType["Object"] = 4] = "Object";
     ElemType[ElemType["Function"] = 5] = "Function";
     ElemType[ElemType["Image"] = 6] = "Image";
-    ElemType[ElemType["Map"] = 7] = "Map";
     ElemType[ElemType["Chart"] = 8] = "Chart";
-    ElemType[ElemType["Viewer"] = 9] = "Viewer";
     ElemType[ElemType["Component"] = 10] = "Component";
-    ElemType[ElemType["Tree"] = 11] = "Tree";
     ElemType[ElemType["Document"] = 12] = "Document";
-    ElemType[ElemType["View"] = 13] = "View";
 })(ElemType = exports.ElemType || (exports.ElemType = {}));
 var EntityType;
 (function (EntityType) {
     EntityType[EntityType["Object"] = 1] = "Object";
     EntityType[EntityType["Function"] = 2] = "Function";
     EntityType[EntityType["Form"] = 3] = "Form";
+    EntityType[EntityType["Drive"] = 4] = "Drive";
 })(EntityType = exports.EntityType || (exports.EntityType = {}));
 var AccessAction;
 (function (AccessAction) {
@@ -658,6 +655,7 @@ var ObjectListsViewType;
     ObjectListsViewType[ObjectListsViewType["Grid"] = 1] = "Grid";
     ObjectListsViewType[ObjectListsViewType["Card"] = 2] = "Card";
     ObjectListsViewType[ObjectListsViewType["Column"] = 3] = "Column";
+    ObjectListsViewType[ObjectListsViewType["Bars"] = 4] = "Bars";
 })(ObjectListsViewType = exports.ObjectListsViewType || (exports.ObjectListsViewType = {}));
 var YesNo;
 (function (YesNo) {
@@ -735,18 +733,12 @@ exports.UserProfile = UserProfile;
 class Feedback {
 }
 exports.Feedback = Feedback;
-var PermissionResourceType;
-(function (PermissionResourceType) {
-    PermissionResourceType[PermissionResourceType["Object"] = 1] = "Object";
-    PermissionResourceType[PermissionResourceType["Function"] = 2] = "Function";
-    PermissionResourceType[PermissionResourceType["Form"] = 3] = "Form";
-})(PermissionResourceType = exports.PermissionResourceType || (exports.PermissionResourceType = {}));
 var PermissionObjectAction;
 (function (PermissionObjectAction) {
     PermissionObjectAction[PermissionObjectAction["View"] = 1] = "View";
     PermissionObjectAction[PermissionObjectAction["Edit"] = 2] = "Edit";
-    PermissionObjectAction[PermissionObjectAction["NewItem"] = 4] = "NewItem";
-    PermissionObjectAction[PermissionObjectAction["DeleteItem"] = 8] = "DeleteItem";
+    PermissionObjectAction[PermissionObjectAction["Add"] = 4] = "Add";
+    PermissionObjectAction[PermissionObjectAction["Delete"] = 8] = "Delete";
     PermissionObjectAction[PermissionObjectAction["Full"] = 255] = "Full";
 })(PermissionObjectAction = exports.PermissionObjectAction || (exports.PermissionObjectAction = {}));
 var PermissionFunctionAction;
@@ -757,13 +749,21 @@ var PermissionFormAction;
 (function (PermissionFormAction) {
     PermissionFormAction[PermissionFormAction["View"] = 1] = "View";
 })(PermissionFormAction = exports.PermissionFormAction || (exports.PermissionFormAction = {}));
-var ObjectSourceClass;
-(function (ObjectSourceClass) {
-    ObjectSourceClass[ObjectSourceClass["Default"] = 0] = "Default";
-    ObjectSourceClass[ObjectSourceClass["ObjectSource"] = 2] = "ObjectSource";
-    ObjectSourceClass[ObjectSourceClass["Node"] = 3] = "Node";
-    ObjectSourceClass[ObjectSourceClass["Cluster"] = 4] = "Cluster";
-})(ObjectSourceClass = exports.ObjectSourceClass || (exports.ObjectSourceClass = {}));
+var PermissionDriveAction;
+(function (PermissionDriveAction) {
+    PermissionDriveAction[PermissionDriveAction["View"] = 1] = "View";
+    PermissionDriveAction[PermissionDriveAction["Edit"] = 2] = "Edit";
+    PermissionDriveAction[PermissionDriveAction["Add"] = 4] = "Add";
+    PermissionDriveAction[PermissionDriveAction["Delete"] = 8] = "Delete";
+    PermissionDriveAction[PermissionDriveAction["Full"] = 255] = "Full";
+})(PermissionDriveAction = exports.PermissionDriveAction || (exports.PermissionDriveAction = {}));
+var EntitySourceClass;
+(function (EntitySourceClass) {
+    EntitySourceClass[EntitySourceClass["Default"] = 0] = "Default";
+    EntitySourceClass[EntitySourceClass["Internal"] = 2] = "Internal";
+    EntitySourceClass[EntitySourceClass["Node"] = 3] = "Node";
+    EntitySourceClass[EntitySourceClass["Cluster"] = 4] = "Cluster";
+})(EntitySourceClass = exports.EntitySourceClass || (exports.EntitySourceClass = {}));
 class ClusterConfig {
 }
 exports.ClusterConfig = ClusterConfig;

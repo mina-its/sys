@@ -1662,13 +1662,13 @@ function getEntityDatabase(cn, entity) {
     if (entity.entityType == types_1.EntityType.Object) {
         let obj = entity;
         switch (obj.sourceClass) {
-            case types_1.ObjectSourceClass.Default:
+            case types_1.EntitySourceClass.Default:
                 return cn.host._.db;
-            case types_1.ObjectSourceClass.Cluster:
+            case types_1.EntitySourceClass.Cluster:
                 return process.env.CLUSTER_NAME;
-            case types_1.ObjectSourceClass.Node:
+            case types_1.EntitySourceClass.Node:
                 return process.env.NODE_NAME;
-            case types_1.ObjectSourceClass.ObjectSource:
+            case types_1.EntitySourceClass.Internal:
                 return cn.app._.db;
         }
     }

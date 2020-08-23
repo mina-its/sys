@@ -72,7 +72,7 @@ import {
     ObjectModifyState,
     ObjectModifyType,
     Objects,
-    ObjectSourceClass,
+    EntitySourceClass,
     ObjectViewType,
     Pair,
     Property,
@@ -1887,16 +1887,16 @@ export function getEntityDatabase(cn: Context, entity: Entity): string {
     if (entity.entityType == EntityType.Object) {
         let obj = entity as mObject;
         switch (obj.sourceClass) {
-            case ObjectSourceClass.Default:
+            case EntitySourceClass.Default:
                 return cn.host._.db;
 
-            case ObjectSourceClass.Cluster:
+            case EntitySourceClass.Cluster:
                 return process.env.CLUSTER_NAME;
 
-            case ObjectSourceClass.Node:
+            case EntitySourceClass.Node:
                 return process.env.NODE_NAME;
 
-            case ObjectSourceClass.ObjectSource:
+            case EntitySourceClass.Internal:
                 return cn.app._.db;
         }
     }
