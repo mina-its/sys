@@ -1424,6 +1424,7 @@ export class ClusterConfig {
     smsAccounts: SmsAccount[];
     emailVerificationTemplate: EmailTemplateConfig;
     welcomeEmailTemplate: EmailTemplateConfig;
+    inviteEmailTemplate: EmailTemplateConfig;
     resetPasswordTemplate: EmailTemplateConfig;
 }
 
