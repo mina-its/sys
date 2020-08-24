@@ -44,8 +44,8 @@ const fsPromises = fs.promises;
 const bcrypt = require('bcrypt');
 async function loadHosts() {
     exports.glob.hosts = [];
-    let hosts = await get({ db: process.env.NODE_NAME }, types_1.Objects.hosts);
-    let services = await get({ db: process.env.NODE_NAME }, types_1.Objects.services, { query: { enabled: true } });
+    let hosts = await get(process.env.NODE_NAME, types_1.Objects.hosts);
+    let services = await get(process.env.NODE_NAME, types_1.Objects.services, { query: { enabled: true } });
     for (const host of hosts) {
         let service = services.find(c => c._id.equals(host.service));
         host._ = { db: service.name };
@@ -777,7 +777,7 @@ async function loadPackageSystemCollections(db) {
     for (const app of apps) {
         app._ = { db };
         app.dependencies = app.dependencies || [];
-        app.dependencies = [...app.dependencies, 'sys', 'web'].filter(onlyUnique);
+        app.dependencies = [...app.dependencies, 'sys', 'web', 'auth'].filter(onlyUnique);
         exports.glob.apps.push(app);
     }
     let objects = await get(cn, types_1.Objects.objects);
@@ -824,9 +824,9 @@ function onlyUnique(value, index, self) {
 exports.onlyUnique = onlyUnique;
 async function loadServiceConfigs() {
     exports.glob.serviceConfigs = {};
-    let appGroups = await get({ db: types_1.Constants.sysDb }, types_1.Objects.appGroups);
+    let appGroups = await get(types_1.Constants.sysDb, types_1.Objects.appGroups);
     for (const db of exports.glob.services) {
-        let serviceConfig = await getOne({ db }, types_1.Objects.serviceConfig);
+        let serviceConfig = await getOne(db, types_1.Objects.serviceConfig);
         if (!serviceConfig) {
             error(`Service Config for service '${db}' is not ready!`);
             exports.glob.services.splice(exports.glob.services.indexOf(db), 1);
@@ -851,7 +851,7 @@ async function loadSystemCollections() {
     exports.glob.roles = [];
     exports.glob.drives = [];
     exports.glob.apps = [];
-    let services = await get({ db: process.env.NODE_NAME }, types_1.Objects.services, { query: { enabled: true } });
+    let services = await get(process.env.NODE_NAME, types_1.Objects.services, { query: { enabled: true } });
     exports.glob.services = services.map(s => s.name);
     for (const db of exports.glob.services) {
         try {
@@ -1602,7 +1602,7 @@ function getAllEntities(cn) {
 }
 exports.getAllEntities = getAllEntities;
 async function dropDatabase(dbName) {
-    let db = await dbConnection({ db: dbName });
+    let db = await dbConnection(dbName);
     return db.dropDatabase();
 }
 exports.dropDatabase = dropDatabase;
@@ -1632,7 +1632,7 @@ async function getInnerPropertyReferenceValues(cn, foreignObj, db, prop, instanc
     let val = instance ? instance[prop.dependsOn] : null;
     if (!val)
         return [];
-    let result = await get({ db }, foreignObj.name, { itemId: val });
+    let result = await get(db, foreignObj.name, { itemId: val });
     if (!result)
         return [];
     let foreignProp = foreignObj.properties.find(p => p.name == prop.foreignProperty);
@@ -1727,7 +1727,7 @@ async function getPropertyObjectReferenceValues(cn, obj, prop, instance, phrase,
             }
         }
     }
-    let result = await get({ db }, obj.name, { count: types_1.Constants.referenceValuesLoadCount, query });
+    let result = await get(db, obj.name, { count: types_1.Constants.referenceValuesLoadCount, query });
     if (result)
         return result.map(item => {
             return {

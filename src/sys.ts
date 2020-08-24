@@ -110,8 +110,8 @@ const bcrypt = require('bcrypt');
 async function loadHosts() {
     glob.hosts = [];
 
-    let hosts: Host[] = await get({db: process.env.NODE_NAME}, Objects.hosts);
-    let services: Service[] = await get({db: process.env.NODE_NAME}, Objects.services, {query: {enabled: true}});
+    let hosts: Host[] = await get(process.env.NODE_NAME, Objects.hosts);
+    let services: Service[] = await get(process.env.NODE_NAME, Objects.services, {query: {enabled: true}});
 
     for (const host of hosts) {
         let service = services.find(c => c._id.equals(host.service));
@@ -425,7 +425,7 @@ export async function portionsToMongoPath(cn: Context | string, rootId: ID, port
     return path.replace(/^\.+|\.+$/, '');
 }
 
-export async function count(cn: Context, objectName: string, options: GetOptions) {
+export async function count(cn: Context | string, objectName: string, options: GetOptions) {
     let collection = await getCollection(cn, objectName);
     options = options || {} as GetOptions;
     let query = options.query || {};
@@ -917,7 +917,7 @@ async function loadPackageSystemCollections(db: string) {
     for (const app of apps) {
         app._ = {db};
         app.dependencies = app.dependencies || [];
-        app.dependencies = [...app.dependencies, 'sys', 'web'].filter(onlyUnique);
+        app.dependencies = [...app.dependencies, 'sys', 'web', 'auth'].filter(onlyUnique);
         glob.apps.push(app);
     }
 
@@ -973,10 +973,10 @@ export function onlyUnique(value, index, self) {
 async function loadServiceConfigs() {
     glob.serviceConfigs = {};
 
-    let appGroups: AppGroup[] = await get({db: Constants.sysDb}, Objects.appGroups);
+    let appGroups: AppGroup[] = await get(Constants.sysDb, Objects.appGroups);
 
     for (const db of glob.services) {
-        let serviceConfig: ServiceConfig = await getOne({db}, Objects.serviceConfig);
+        let serviceConfig: ServiceConfig = await getOne(db, Objects.serviceConfig);
         if (!serviceConfig) {
             error(`Service Config for service '${db}' is not ready!`);
             glob.services.splice(glob.services.indexOf(db), 1);
@@ -1005,7 +1005,7 @@ async function loadSystemCollections() {
     glob.apps = [];
 
     // Load Services
-    let services: Service[] = await get({db: process.env.NODE_NAME}, Objects.services, {query: {enabled: true}});
+    let services: Service[] = await get(process.env.NODE_NAME, Objects.services, {query: {enabled: true}});
     glob.services = services.map(s => s.name);
 
     for (const db of glob.services) {
@@ -1822,7 +1822,7 @@ export function getAllEntities(cn: Context) {
 }
 
 export async function dropDatabase(dbName: string) {
-    let db = await dbConnection({db: dbName});
+    let db = await dbConnection(dbName);
     return db.dropDatabase();
 }
 
@@ -1853,7 +1853,7 @@ async function getInnerPropertyReferenceValues(cn: Context, foreignObj: mObject,
 
     let val = instance ? instance[prop.dependsOn] : null;
     if (!val) return [];
-    let result = await get({db}, foreignObj.name, {itemId: val});
+    let result = await get(db, foreignObj.name, {itemId: val});
     if (!result) return [];
 
     let foreignProp = foreignObj.properties.find(p => p.name == prop.foreignProperty);
@@ -1953,7 +1953,7 @@ async function getPropertyObjectReferenceValues(cn: Context, obj: mObject, prop:
         }
     }
 
-    let result = await get({db}, obj.name, {count: Constants.referenceValuesLoadCount, query});
+    let result = await get(db, obj.name, {count: Constants.referenceValuesLoadCount, query});
     if (result)
         return result.map(item => {
             return {

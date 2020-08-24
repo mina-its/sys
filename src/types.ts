@@ -1,26 +1,41 @@
 import {ID} from 'bson-util';
-import {newID} from "./sys";
+import * as Url from 'url';
 
 export {ID};
 
-export interface Context {
-    locale?: Locale;
-    user?: User;
-    service?: ServiceConfig;
-    sessionID?: string;
-    portions?: RefPortion[];
-    host?: Host;
-    db?: string;
-    app?: App;
-    sort?: any;
-    query?: any;
-    prefix?: string;
-    page?: number;
-    pages?: number;
-    count?: number;
-    req?: any;
-    res?: WebResponse;
-    url?: URL;
+export class Context {
+    httpReq;
+    httpRes;
+    req: any;
+    res: WebResponse;
+    app: App;
+    access: AccessAction;
+    publish: boolean;
+    user: User;
+    sessionID: string;
+    host: Host;
+    prefix: string;
+    locale: Locale;
+    // context db which is context host db, but if entity is 'service data' object, db would be the entity db!
+    db: string;
+    service: ServiceConfig;
+    timeOffset: number;
+    originalUrl: string;
+    url: Url.URL;
+    portions: RefPortion[];
+    entity: Entity;
+    apiVersion: string;
+    query: any;
+    referer: string;
+    mode: RequestMode;
+    objectViewType: ObjectViewType;
+    reqNewItem: boolean;
+    reqNewItemDefaults: any;
+    page: number;
+    pages: number;
+    count: number;
+    approximateCount: number;
+    sort: any;
 }
 
 export class AuditArgs {
@@ -128,6 +143,7 @@ export class ServiceConfig {
     title: string | MultilangText;
     version: string;
     packages: string[];
+    s3Bucket: string;
     emailAccounts: EmailAccount[];
     smsAccounts: SmsAccount[];
     emailVerificationTemplate: EmailTemplateConfig;
