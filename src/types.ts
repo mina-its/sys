@@ -144,6 +144,7 @@ export class ServiceConfig {
     version: string;
     packages: string[];
     s3Bucket: string;
+    s3Uri: string;
     emailAccounts: EmailAccount[];
     smsAccounts: SmsAccount[];
     emailVerificationTemplate: EmailTemplateConfig;
@@ -392,6 +393,7 @@ export class Property implements IProperties {
 
 export class Drive extends Entity {
     type: SourceType;
+    sourceClass: EntitySourceClass;
     address: string;
     _: {
         db: string;

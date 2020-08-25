@@ -64,6 +64,7 @@ async function reload(cn) {
     await applyAmazonConfig();
     await loadSystemCollections();
     await loadServiceConfigs();
+    await loadDrives();
     await loadTimeZones();
     await loadAuditTypes();
     await initializeEnums();
@@ -235,8 +236,15 @@ function getFileUri(cn, prop, file) {
     if (!file || !prop.file || !prop.file.drive)
         return null;
     let drive = exports.glob.drives.find(d => d._id.equals(prop.file.drive));
-    let uri = joinUri(drive._.uri, file.path, file.name).replace(/\\/g, '/');
-    return `${cn.url ? cn.url.protocol : 'http:'}//${encodeURI(uri)}`;
+    let driveUri;
+    if (drive.type == types_1.SourceType.S3 && drive.sourceClass == types_1.EntitySourceClass.Default) {
+        driveUri = exports.glob.serviceConfigs[cn.host._.db].s3Uri;
+        if (!driveUri)
+            throw `s3Uri for drive '${cn.host._.db}' must be configured!`;
+    }
+    else
+        driveUri = drive._.uri;
+    return joinUri(driveUri, file.path, file.name);
 }
 exports.getFileUri = getFileUri;
 async function getOne(cn, objectName) {
@@ -562,7 +570,7 @@ async function putFileProperty(cn, objectName, item, propertyName, fileName, buf
     assert(property.file && property.file.drive, `putFileProperty Property: '${propertyName}' should have file config`);
     let drive = exports.glob.drives.find(d => d._id.equals(property.file.drive));
     let relativePath = joinUri(property.file.path, fileName);
-    await putFile(drive, relativePath, buffer);
+    await putFile(cn, drive, relativePath, buffer);
     let file = { name: fileName, size: buffer.length, path: property.file.path };
     let patchData = {};
     patchData[propertyName] = file;
@@ -571,7 +579,7 @@ async function putFileProperty(cn, objectName, item, propertyName, fileName, buf
     item[propertyName] = file;
 }
 exports.putFileProperty = putFileProperty;
-async function putFile(drive, relativePath, file) {
+async function putFile(cn, drive, relativePath, file) {
     switch (drive.type) {
         case types_1.SourceType.File:
             let _path = path.join(getAbsolutePath(drive.address), relativePath);
@@ -589,14 +597,24 @@ async function putFile(drive, relativePath, file) {
             break;
         case types_1.SourceType.S3:
             try {
-                let s3 = new aws.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion, region: process.env.AWS_S3_REGION });
-                const config = {
-                    Bucket: drive.address,
-                    Key: relativePath,
-                    Body: file,
-                    ACL: "public-read"
-                };
-                return await s3.upload(config).promise();
+                let s3 = new aws.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion, region: process.env.AWS_DEFAULT_REGION });
+                let bucket;
+                switch (drive.sourceClass) {
+                    case types_1.EntitySourceClass.Internal:
+                        bucket = drive._.db;
+                        break;
+                    case types_1.EntitySourceClass.Default:
+                        bucket = exports.glob.serviceConfigs[cn.host._.db].s3Bucket;
+                        break;
+                    case types_1.EntitySourceClass.Node:
+                        bucket = process.env.NODE_NAME;
+                        break;
+                    case types_1.EntitySourceClass.Cluster:
+                        bucket = process.env.CLUSTER_NAME;
+                        break;
+                }
+                const params = { Bucket: bucket, Key: relativePath, Body: file, ACL: "public-read" };
+                return await s3.upload(params).promise();
             }
             catch (ex) {
                 error(`putFile error, drive: ${drive.title}`, ex);
@@ -812,11 +830,6 @@ async function loadPackageSystemCollections(db) {
         role._ = { db };
         exports.glob.roles.push(role);
     }
-    let drives = await get(cn, types_1.Objects.drives);
-    for (const drive of drives) {
-        drive._ = { db };
-        exports.glob.drives.push(drive);
-    }
 }
 function onlyUnique(value, index, self) {
     return self.indexOf(value) === index;
@@ -844,12 +857,43 @@ async function loadServiceConfigs() {
         serviceConfig._.apps = apps.map(a => exports.glob.apps.find(app => app._id.equals(a))).filter(Boolean);
     }
 }
+async function loadDrives() {
+    exports.glob.drives = [];
+    for (const db of exports.glob.services) {
+        let drives = await get(db, types_1.Objects.drives);
+        for (const drive of drives) {
+            drive._ = { db };
+            drive.entityType = types_1.EntityType.Drive;
+            switch (drive.type) {
+                case types_1.SourceType.File:
+                    drive._.uri = `/${db}/${drive.name}/`;
+                    break;
+                case types_1.SourceType.S3:
+                    switch (drive.sourceClass) {
+                        case types_1.EntitySourceClass.Cluster:
+                            drive._.uri = `https://${process.env.CLUSTER_NAME}.s3.${process.env.AWS_DEFAULT_REGION}.amazonaws.com`;
+                            break;
+                        case types_1.EntitySourceClass.Internal:
+                            drive._.uri = exports.glob.serviceConfigs[db].s3Uri;
+                            if (!drive._.uri)
+                                error(`s3Uri not set for service '${drive._.db}'!`);
+                            break;
+                        case types_1.EntitySourceClass.Node:
+                            drive._.uri = `https://${process.env.NODE_NAME}.s3.${process.env.AWS_DEFAULT_REGION}.amazonaws.com`;
+                            break;
+                    }
+                    break;
+            }
+            exports.glob.entities.push(drive);
+            exports.glob.drives.push(drive);
+        }
+    }
+}
 async function loadSystemCollections() {
     exports.glob.entities = [];
     exports.glob.dictionary = {};
     exports.glob.menus = [];
     exports.glob.roles = [];
-    exports.glob.drives = [];
     exports.glob.apps = [];
     let services = await get(process.env.NODE_NAME, types_1.Objects.services, { query: { enabled: true } });
     exports.glob.services = services.map(s => s.name);
@@ -930,11 +974,11 @@ function initializeRolePermissions(justEntity) {
         if (!role.permissions)
             continue;
         for (let permit of role.permissions) {
-            let entity = findEntity(permit.obj || permit.func || permit.form);
+            let entity = findEntity(permit.obj || permit.func || permit.form || permit.drive);
             if (!entity || (justEntity && !justEntity.equals(entity._id)))
                 continue;
             entity._.permissions = entity._.permissions || [];
-            let permission = (permit.objAction || permit.funcAction || permit.formAction);
+            let permission = (permit.objAction || permit.funcAction || permit.formAction || permit.driveAction);
             entity._.permissions.push({ role: role._id, permission });
         }
     }
