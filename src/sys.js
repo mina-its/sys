@@ -834,7 +834,7 @@ function onlyUnique(value, index, self) {
 exports.onlyUnique = onlyUnique;
 async function loadServiceConfigs() {
     exports.glob.serviceConfigs = {};
-    let appGroups = await get(types_1.Constants.sysDb, types_1.Objects.appGroups);
+    let appGroups = await get(process.env.CLUSTER_NAME, types_1.Objects.appGroups);
     for (const db of exports.glob.services) {
         let service = await getOne(db, types_1.Objects.serviceConfig);
         if (!service) {
@@ -1703,14 +1703,15 @@ function getEntityDatabase(cn, entity) {
     if (entity.entityType == types_1.EntityType.Object) {
         let obj = entity;
         switch (obj.sourceClass) {
-            case types_1.EntitySourceClass.Default:
-                return cn.host._.db;
             case types_1.EntitySourceClass.Cluster:
                 return process.env.CLUSTER_NAME;
             case types_1.EntitySourceClass.Node:
                 return process.env.NODE_NAME;
             case types_1.EntitySourceClass.Internal:
                 return cn.app._.db;
+            default:
+            case types_1.EntitySourceClass.Default:
+                return cn.host._.db;
         }
     }
     return cn.host._.db;

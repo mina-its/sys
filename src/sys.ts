@@ -988,7 +988,7 @@ export function onlyUnique(value, index, self) {
 async function loadServiceConfigs() {
     glob.serviceConfigs = {};
 
-    let appGroups: AppGroup[] = await get(Constants.sysDb, Objects.appGroups);
+    let appGroups: AppGroup[] = await get(process.env.CLUSTER_NAME, Objects.appGroups);
 
     for (const db of glob.services) {
         let service: ServiceConfig = await getOne(db, Objects.serviceConfig);
@@ -1937,9 +1937,6 @@ export function getEntityDatabase(cn: Context, entity: Entity): string {
     if (entity.entityType == EntityType.Object) {
         let obj = entity as mObject;
         switch (obj.sourceClass) {
-            case EntitySourceClass.Default:
-                return cn.host._.db;
-
             case EntitySourceClass.Cluster:
                 return process.env.CLUSTER_NAME;
 
@@ -1948,6 +1945,10 @@ export function getEntityDatabase(cn: Context, entity: Entity): string {
 
             case EntitySourceClass.Internal:
                 return cn.app._.db;
+
+            default:
+            case EntitySourceClass.Default:
+                return cn.host._.db;
         }
     }
 
