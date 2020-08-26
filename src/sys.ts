@@ -115,9 +115,8 @@ async function loadHosts() {
 
     for (const host of hosts) {
         let service = services.find(c => c._id.equals(host.service));
-        host._ = {db: service.name};
         let serviceConfig = glob.serviceConfigs[service.name];
-        host._.apps = serviceConfig._.apps;
+        host._ = {db: service.name, service: serviceConfig};
         host.aliases = host.aliases || [];
         host._.defaultApp = glob.apps.find(app => app._id.equals(host.defaultApp));
         glob.hosts.push(host);
@@ -206,7 +205,7 @@ export async function audit(cn: Context, auditType: string, args: AuditArgs) {
             case LogType.Info:
                 info(msg);
                 break;
-            case LogType.Warning:
+            case LogType.Warn:
                 warn(msg);
                 break;
         }
@@ -940,8 +939,6 @@ async function loadPackageSystemCollections(db: string) {
     let apps: App[] = await get(cn, Objects.apps);
     for (const app of apps) {
         app._ = {db};
-        app.dependencies = app.dependencies || [];
-        app.dependencies = [...app.dependencies, 'sys', 'web', 'auth'].filter(onlyUnique);
         glob.apps.push(app);
     }
 
@@ -994,23 +991,26 @@ async function loadServiceConfigs() {
     let appGroups: AppGroup[] = await get(Constants.sysDb, Objects.appGroups);
 
     for (const db of glob.services) {
-        let serviceConfig: ServiceConfig = await getOne(db, Objects.serviceConfig);
-        if (!serviceConfig) {
+        let service: ServiceConfig = await getOne(db, Objects.serviceConfig);
+        if (!service) {
             error(`Service Config for service '${db}' is not ready!`);
             glob.services.splice(glob.services.indexOf(db), 1);
             continue;
         }
-        glob.serviceConfigs[db] = serviceConfig;
+        glob.serviceConfigs[db] = service;
+
+        service.dependencies = service.dependencies || [];
+        service.dependencies = [...service.dependencies, 'sys', 'web', 'auth'].filter(onlyUnique);
 
         let apps: ID[];
-        if (serviceConfig.appGroup)
-            apps = appGroups.find(ap => ap._id.equals(serviceConfig.appGroup)).apps;
+        if (service.appGroup)
+            apps = appGroups.find(ap => ap._id.equals(service.appGroup)).apps;
         else
-            apps = serviceConfig.apps;
+            apps = service.apps;
 
-        serviceConfig._ = {apps: []};
+        service._ = {apps: []};
         if (!apps) continue;
-        serviceConfig._.apps = apps.map(a => glob.apps.find(app => app._id.equals(a))).filter(Boolean);
+        service._.apps = apps.map(a => glob.apps.find(app => app._id.equals(a))).filter(Boolean);
     }
 }
 
@@ -1188,9 +1188,6 @@ function initializePackages() {
     let sysTemplateRender = templateRender(Constants.sysDb, Constants.DEFAULT_APP_TEMPLATE);
 
     for (const app of glob.apps) {
-        app.dependencies = app.dependencies || [];
-        app.dependencies.push(Constants.sysDb);
-
         if (app.template)
             app._.templateRender = templateRender(app._.db, app.template);
         else
@@ -1676,7 +1673,7 @@ export function getEnumText(cn: Context, enumType: string, value: number): strin
     if (value == null)
         return "";
 
-    let theEnum = getEnumByName(cn.db, cn.app ? cn.app.dependencies : null, enumType);
+    let theEnum = getEnumByName(cn.db, cn.service ? cn.service.dependencies : null, enumType);
     if (!theEnum)
         return value.toString();
 
@@ -1860,7 +1857,7 @@ export async function getTypes(cn: Context) {
 }
 
 export function containsPack(cn: Context, db: string): boolean {
-    return db == cn.db || cn.app.dependencies.indexOf(db) > -1 || cn.app._.db == db;
+    return db == cn.db || cn.service.dependencies.indexOf(db) > -1 || cn.app._.db == db;
 }
 
 export async function getDataEntities(cn: Context) {
@@ -1869,7 +1866,7 @@ export async function getDataEntities(cn: Context) {
 }
 
 export function getAllEntities(cn: Context) {
-    let entities = glob.entities.filter(en => cn.db == en._.db || cn.app.dependencies.indexOf(en._.db) > -1);
+    let entities = glob.entities.filter(en => cn.db == en._.db || cn.service.dependencies.indexOf(en._.db) > -1);
     let end = entities.find((e => e.name == "clients"));
     return makeEntityList(cn, entities);
 }
@@ -2179,14 +2176,11 @@ export async function invoke(cn: Context, func: Function, args: any[]) {
 
     let pathPath = getAbsolutePath('./' + (func._.db == "web" ? "web/src/web" : func._.db));
     let action = require(pathPath)[func.name];
-    if (!action) {
-        if (!action) {
-            let app = glob.apps.find(app => app._.db == cn.db);
-            for (const pack of app.dependencies) {
-                action = require(pathPath)[func.name];
-                if (action)
-                    break;
-            }
+    if (!action && cn.service) {
+        for (const pack of cn.service.dependencies) {
+            action = require(pathPath)[func.name];
+            if (action)
+                break;
         }
     }
     if (!action) throw StatusCode.NotImplemented;

@@ -246,7 +246,7 @@ var LogType;
 (function (LogType) {
     LogType[LogType["Fatal"] = 0] = "Fatal";
     LogType[LogType["Error"] = 3] = "Error";
-    LogType[LogType["Warning"] = 4] = "Warning";
+    LogType[LogType["Warn"] = 4] = "Warn";
     LogType[LogType["Info"] = 6] = "Info";
     LogType[LogType["Debug"] = 7] = "Debug";
     LogType[LogType["Silly"] = 8] = "Silly";
@@ -494,6 +494,8 @@ var Objects;
     Objects["apps"] = "apps";
     Objects["hosts"] = "hosts";
     Objects["menus"] = "menus";
+    Objects["collections"] = "collections";
+    Objects["migrations"] = "migrations";
     Objects["drives"] = "drives";
     Objects["notes"] = "notes";
     Objects["forms"] = "forms";

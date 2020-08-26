@@ -154,6 +154,7 @@ export class ServiceConfig {
     sso: boolean;
     apps: ID[];
     appGroup: ID;
+    dependencies: string[];
 
     _: {
         apps?: App[];
@@ -583,7 +584,6 @@ export class App {
     timeZone: TimeZone;
     timeOffset: number;
     https: boolean;
-    dependencies: string[];
     favicon: string;
     brandingLogo: string;
     interactive: boolean;
@@ -605,8 +605,8 @@ export class Host {
     service: ID;
     _: {
         defaultApp?: App;
+        service: ServiceConfig;
         db: string;
-        apps?: App[];
     }
 }
 
@@ -778,7 +778,7 @@ export class UploadedFile {
 export enum LogType {
     Fatal = 0,
     Error = 3,
-    Warning = 4,
+    Warn = 4,
     Info = 6,
     Debug = 7,
     Silly = 8
@@ -1005,6 +1005,8 @@ export enum Objects {
     apps = "apps",
     hosts = "hosts",
     menus = "menus",
+    collections = "collections",
+    migrations = "migrations",
     drives = "drives",
     notes = "notes",
     forms = "forms",

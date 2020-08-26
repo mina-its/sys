@@ -48,9 +48,8 @@ async function loadHosts() {
     let services = await get(process.env.NODE_NAME, types_1.Objects.services, { query: { enabled: true } });
     for (const host of hosts) {
         let service = services.find(c => c._id.equals(host.service));
-        host._ = { db: service.name };
         let serviceConfig = exports.glob.serviceConfigs[service.name];
-        host._.apps = serviceConfig._.apps;
+        host._ = { db: service.name, service: serviceConfig };
         host.aliases = host.aliases || [];
         host._.defaultApp = exports.glob.apps.find(app => app._id.equals(host.defaultApp));
         exports.glob.hosts.push(host);
@@ -129,7 +128,7 @@ async function audit(cn, auditType, args) {
             case types_1.LogType.Info:
                 info(msg);
                 break;
-            case types_1.LogType.Warning:
+            case types_1.LogType.Warn:
                 warn(msg);
                 break;
         }
@@ -794,8 +793,6 @@ async function loadPackageSystemCollections(db) {
     let apps = await get(cn, types_1.Objects.apps);
     for (const app of apps) {
         app._ = { db };
-        app.dependencies = app.dependencies || [];
-        app.dependencies = [...app.dependencies, 'sys', 'web', 'auth'].filter(onlyUnique);
         exports.glob.apps.push(app);
     }
     let objects = await get(cn, types_1.Objects.objects);
@@ -839,22 +836,24 @@ async function loadServiceConfigs() {
     exports.glob.serviceConfigs = {};
     let appGroups = await get(types_1.Constants.sysDb, types_1.Objects.appGroups);
     for (const db of exports.glob.services) {
-        let serviceConfig = await getOne(db, types_1.Objects.serviceConfig);
-        if (!serviceConfig) {
+        let service = await getOne(db, types_1.Objects.serviceConfig);
+        if (!service) {
             error(`Service Config for service '${db}' is not ready!`);
             exports.glob.services.splice(exports.glob.services.indexOf(db), 1);
             continue;
         }
-        exports.glob.serviceConfigs[db] = serviceConfig;
+        exports.glob.serviceConfigs[db] = service;
+        service.dependencies = service.dependencies || [];
+        service.dependencies = [...service.dependencies, 'sys', 'web', 'auth'].filter(onlyUnique);
         let apps;
-        if (serviceConfig.appGroup)
-            apps = appGroups.find(ap => ap._id.equals(serviceConfig.appGroup)).apps;
+        if (service.appGroup)
+            apps = appGroups.find(ap => ap._id.equals(service.appGroup)).apps;
         else
-            apps = serviceConfig.apps;
-        serviceConfig._ = { apps: [] };
+            apps = service.apps;
+        service._ = { apps: [] };
         if (!apps)
             continue;
-        serviceConfig._.apps = apps.map(a => exports.glob.apps.find(app => app._id.equals(a))).filter(Boolean);
+        service._.apps = apps.map(a => exports.glob.apps.find(app => app._id.equals(a))).filter(Boolean);
     }
 }
 async function loadDrives() {
@@ -1012,8 +1011,6 @@ function initializePackages() {
     log(`initializePackages`);
     let sysTemplateRender = templateRender(types_1.Constants.sysDb, types_1.Constants.DEFAULT_APP_TEMPLATE);
     for (const app of exports.glob.apps) {
-        app.dependencies = app.dependencies || [];
-        app.dependencies.push(types_1.Constants.sysDb);
         if (app.template)
             app._.templateRender = templateRender(app._.db, app.template);
         else
@@ -1454,7 +1451,7 @@ exports.sendSms = sendSms;
 function getEnumText(cn, enumType, value) {
     if (value == null)
         return "";
-    let theEnum = getEnumByName(cn.db, cn.app ? cn.app.dependencies : null, enumType);
+    let theEnum = getEnumByName(cn.db, cn.service ? cn.service.dependencies : null, enumType);
     if (!theEnum)
         return value.toString();
     let text = theEnum[value];
@@ -1631,7 +1628,7 @@ async function getTypes(cn) {
 }
 exports.getTypes = getTypes;
 function containsPack(cn, db) {
-    return db == cn.db || cn.app.dependencies.indexOf(db) > -1 || cn.app._.db == db;
+    return db == cn.db || cn.service.dependencies.indexOf(db) > -1 || cn.app._.db == db;
 }
 exports.containsPack = containsPack;
 async function getDataEntities(cn) {
@@ -1640,7 +1637,7 @@ async function getDataEntities(cn) {
 }
 exports.getDataEntities = getDataEntities;
 function getAllEntities(cn) {
-    let entities = exports.glob.entities.filter(en => cn.db == en._.db || cn.app.dependencies.indexOf(en._.db) > -1);
+    let entities = exports.glob.entities.filter(en => cn.db == en._.db || cn.service.dependencies.indexOf(en._.db) > -1);
     let end = entities.find((e => e.name == "clients"));
     return makeEntityList(cn, entities);
 }
@@ -1919,14 +1916,11 @@ async function invoke(cn, func, args) {
     }
     let pathPath = getAbsolutePath('./' + (func._.db == "web" ? "web/src/web" : func._.db));
     let action = require(pathPath)[func.name];
-    if (!action) {
-        if (!action) {
-            let app = exports.glob.apps.find(app => app._.db == cn.db);
-            for (const pack of app.dependencies) {
-                action = require(pathPath)[func.name];
-                if (action)
-                    break;
-            }
+    if (!action && cn.service) {
+        for (const pack of cn.service.dependencies) {
+            action = require(pathPath)[func.name];
+            if (action)
+                break;
         }
     }
     if (!action)
