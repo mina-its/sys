@@ -73,6 +73,11 @@ export class AccessPermission {
     properties: string[];
 }
 
+export enum AppTheme {
+    dark = 0,
+    light = 1,
+}
+
 export class User {
     _id: ID;
     roles: ID[] = [];
@@ -92,6 +97,7 @@ export class User {
     lastOffline: Date;
     time: Date = new Date();
     service: ID;
+    theme: AppTheme;
     _: {
         db?: string;
         isOnline?: boolean;
@@ -1159,6 +1165,7 @@ export class AppStateConfig {
         signinUrl?: string;
         signoutUrl?: string;
         photoUrl?: string;
+        theme: string;
         title?: string;
         email?: string;
         accountUrl?: string;
