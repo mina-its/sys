@@ -51,7 +51,7 @@ class ServiceConfig {
 exports.ServiceConfig = ServiceConfig;
 class Global {
     constructor() {
-        this.dbs = {}; // any not mongodb.Db because of client side reference
+        this.dbs = {};
         this.countries = {};
         this.clientQuestionCallbacks = {};
         this.suspendService = false;
@@ -260,7 +260,6 @@ var PanelType;
 (function (PanelType) {
     PanelType[PanelType["Stack"] = 1] = "Stack";
     PanelType[PanelType["Dock"] = 2] = "Dock";
-    // Grid = 3,
     PanelType[PanelType["Wrap"] = 4] = "Wrap";
     PanelType[PanelType["Flex"] = 5] = "Flex";
     PanelType[PanelType["Modal"] = 6] = "Modal";
@@ -278,13 +277,9 @@ var ElemType;
     ElemType[ElemType["Object"] = 4] = "Object";
     ElemType[ElemType["Function"] = 5] = "Function";
     ElemType[ElemType["Image"] = 6] = "Image";
-    // Map = 7,
     ElemType[ElemType["Chart"] = 8] = "Chart";
-    // Viewer = 9, // audio, video, pdf, ...
     ElemType[ElemType["Component"] = 10] = "Component";
-    // Tree = 11,
     ElemType[ElemType["Document"] = 12] = "Document";
-    // View = 13,
 })(ElemType = exports.ElemType || (exports.ElemType = {}));
 var EntityType;
 (function (EntityType) {
