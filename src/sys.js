@@ -1970,6 +1970,8 @@ function isID(value) {
 }
 exports.isID = isID;
 function throwError(code, message) {
+    if (!message)
+        message = types_1.StatusCode[code];
     throw new types_1.ErrorObject(code, message);
 }
 exports.throwError = throwError;

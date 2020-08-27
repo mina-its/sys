@@ -2230,6 +2230,7 @@ export function isID(value: any): boolean {
 }
 
 export function throwError(code: StatusCode, message?: string) {
+    if (!message) message = StatusCode[code];
     throw new ErrorObject(code, message);
 }
 
