@@ -1,6 +1,6 @@
 {
   "name": "mina-sys",
-  "version": "5.5.1",
+  "version": "5.5.2",
   "description": "mina sys package",
   "main": "index.d.js",
   "types": "index.d.ts",
@@ -47,6 +47,7 @@
     "mongodb": "^3.3.2",
     "nodemailer": "^6.4.6",
     "numeral": "^2.0.6",
+    "qs": "^6.9.4",
     "rimraf": "^3.0.2",
     "saslprep": "^1.0.3",
     "shelljs": "^0.8.3",
