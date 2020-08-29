@@ -701,6 +701,8 @@ var ReqParams;
     ReqParams["mode"] = "m";
     ReqParams["token"] = "k";
     ReqParams["functionType"] = "f";
+    ReqParams["newItem"] = "n";
+    ReqParams["newItemDefaults"] = "d";
 })(ReqParams = exports.ReqParams || (exports.ReqParams = {}));
 class ApiDocParameter {
 }

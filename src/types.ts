@@ -1322,7 +1322,9 @@ export enum ReqParams {
     sort = "s",
     mode = "m",
     token = "k",
-    functionType = "f"
+    functionType = "f",
+    newItem = "n",
+    newItemDefaults = "d",
 }
 
 export class ApiDocParameter {
