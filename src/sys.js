@@ -236,10 +236,18 @@ function getFileUri(cn, prop, file) {
         return null;
     let drive = exports.glob.drives.find(d => d._id.equals(prop.file.drive));
     let driveUri;
-    if (drive.type == types_1.SourceType.S3 && drive.sourceClass == types_1.EntitySourceClass.Default) {
-        driveUri = exports.glob.serviceConfigs[cn.host._.db].s3Uri;
-        if (!driveUri)
-            throw `s3Uri for drive '${cn.host._.db}' must be configured!`;
+    if (drive.type == types_1.SourceType.S3) {
+        switch (drive.sourceClass) {
+            case types_1.DriveSourceClass.Public:
+                driveUri = `${types_1.Constants.PUBLIC_BUCKET_URI}/${drive._.db}/${drive.name}`;
+                break;
+            case types_1.DriveSourceClass.Cluster:
+                driveUri = `${process.env.SYSTEM_ROOT_URL}/${drive._.db}/${drive.name}`;
+                break;
+            default:
+                driveUri = `${cn.url.origin}/${drive._.db}/${drive.name}`;
+                break;
+        }
     }
     else
         driveUri = drive._.uri;
@@ -517,7 +525,7 @@ async function createDir(drive, dir, recursive = true) {
     }
 }
 exports.createDir = createDir;
-async function getFile(drive, filePath) {
+async function getFile(cn, drive, filePath) {
     switch (drive.type) {
         case types_1.SourceType.File:
             let _path = path.join(getAbsolutePath(drive.address), filePath);
@@ -536,6 +544,33 @@ async function getFile(drive, filePath) {
                     reject(err);
                 });
             });
+            break;
+        case types_1.SourceType.S3:
+            try {
+                let s3 = new aws.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion, region: process.env.AWS_DEFAULT_REGION });
+                filePath = joinUri(drive._.db, drive.name, filePath);
+                let bucket;
+                switch (drive.sourceClass) {
+                    case types_1.DriveSourceClass.Public:
+                        bucket = types_1.Constants.PUBLIC_BUCKET_NAME;
+                        break;
+                    case types_1.DriveSourceClass.Node:
+                        bucket = process.env.AWS_NODE_S3_BUCKET_NAME;
+                        filePath = joinUri(cn.host._.db, filePath);
+                        break;
+                    case types_1.DriveSourceClass.Cluster:
+                        bucket = process.env.CLUSTER_NAME;
+                        break;
+                }
+                const params = { Bucket: bucket, Key: filePath };
+                let result = await s3.getObject(params).promise();
+                return result.Body;
+            }
+            catch (ex) {
+                error(`putFile error, drive: ${drive.name}`, ex);
+                throwError(types_1.StatusCode.ConfigurationProblem, `Could not save the file due to a problem.`);
+            }
+            break;
         default:
             throw types_1.StatusCode.NotImplemented;
     }
@@ -597,22 +632,21 @@ async function putFile(cn, drive, relativePath, file) {
         case types_1.SourceType.S3:
             try {
                 let s3 = new aws.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion, region: process.env.AWS_DEFAULT_REGION });
+                relativePath = joinUri(drive._.db, drive.name, relativePath);
                 let bucket;
                 switch (drive.sourceClass) {
-                    case types_1.EntitySourceClass.Internal:
-                        bucket = drive._.db;
+                    case types_1.DriveSourceClass.Public:
+                        bucket = types_1.Constants.PUBLIC_BUCKET_NAME;
                         break;
-                    case types_1.EntitySourceClass.Default:
-                        bucket = exports.glob.serviceConfigs[cn.host._.db].s3Bucket;
+                    case types_1.DriveSourceClass.Node:
+                        bucket = process.env.AWS_NODE_S3_BUCKET_NAME;
+                        relativePath = joinUri(cn.db, relativePath);
                         break;
-                    case types_1.EntitySourceClass.Node:
-                        bucket = process.env.NODE_NAME;
-                        break;
-                    case types_1.EntitySourceClass.Cluster:
+                    case types_1.DriveSourceClass.Cluster:
                         bucket = process.env.CLUSTER_NAME;
                         break;
                 }
-                const params = { Bucket: bucket, Key: relativePath, Body: file, ACL: "public-read" };
+                const params = { Bucket: bucket, Key: relativePath, Body: file };
                 return await s3.upload(params).promise();
             }
             catch (ex) {
@@ -882,16 +916,11 @@ async function loadDrives() {
                     break;
                 case types_1.SourceType.S3:
                     switch (drive.sourceClass) {
-                        case types_1.EntitySourceClass.Cluster:
-                            drive._.uri = `https://${process.env.CLUSTER_NAME}.s3.${process.env.AWS_DEFAULT_REGION}.amazonaws.com`;
+                        case types_1.DriveSourceClass.Public:
+                            drive._.uri = `${types_1.Constants.PUBLIC_BUCKET_URI}/${drive.name}`;
                             break;
-                        case types_1.EntitySourceClass.Internal:
-                            drive._.uri = exports.glob.serviceConfigs[db].s3Uri;
-                            if (!drive._.uri)
-                                error(`s3Uri not set for service '${drive._.db}'!`);
-                            break;
-                        case types_1.EntitySourceClass.Node:
-                            drive._.uri = `https://${process.env.NODE_NAME}.s3.${process.env.AWS_DEFAULT_REGION}.amazonaws.com`;
+                        default:
+                            drive._.uri = `${process.env.SYSTEM_ROOT_URL}/${drive._.db}/${drive.name}`;
                             break;
                     }
                     break;
@@ -1716,14 +1745,14 @@ function getEntityDatabase(cn, entity) {
     if (entity.entityType == types_1.EntityType.Object) {
         let obj = entity;
         switch (obj.sourceClass) {
-            case types_1.EntitySourceClass.Cluster:
+            case types_1.ObjectSourceClass.Cluster:
                 return process.env.CLUSTER_NAME;
-            case types_1.EntitySourceClass.Node:
+            case types_1.ObjectSourceClass.Node:
                 return process.env.NODE_NAME;
-            case types_1.EntitySourceClass.Internal:
+            case types_1.ObjectSourceClass.Internal:
                 return cn.app._.db;
             default:
-            case types_1.EntitySourceClass.Default:
+            case types_1.ObjectSourceClass.Default:
                 return cn.host._.db;
         }
     }

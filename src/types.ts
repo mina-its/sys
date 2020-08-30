@@ -149,8 +149,6 @@ export class ServiceConfig {
     title: string | MultilangText;
     version: string;
     packages: string[];
-    s3Bucket: string;
-    s3Uri: string;
     emailAccounts: EmailAccount[];
     smsAccounts: SmsAccount[];
     emailVerificationTemplate: EmailTemplateConfig;
@@ -216,7 +214,7 @@ export class mObject extends Entity implements IProperties {
     source: SourceType;
     rowHeaderStyle: GridRowHeaderStyle;
     reorderable: boolean;
-    sourceClass: EntitySourceClass;
+    sourceClass: ObjectSourceClass;
     approximateCount: number;
     modified: ID;
     detailsViewType: ObjectDetailsViewType;
@@ -400,7 +398,7 @@ export class Property implements IProperties {
 
 export class Drive extends Entity {
     type: SourceType;
-    sourceClass: EntitySourceClass;
+    sourceClass: DriveSourceClass;
     address: string;
     _: {
         db: string;
@@ -1109,7 +1107,9 @@ export const Constants = {
     timeZonesCollection: "timeZones",
     DEFAULT_APP_TEMPLATE: `<!DOCTYPE html><html><head><%- head_main %></head><body><div id='app'></div><%- main_state() %></body><script>window['start']();</script></html>`,
     PASSWORD_EXPIRE_AGE: 180, // days
-  };
+    PUBLIC_BUCKET_NAME: "mina-public",
+    PUBLIC_BUCKET_URI: "https://mina-public.s3.eu-central-1.amazonaws.com",
+};
 
 export enum PropertyConditionBehavior {
     Visible = 1,
@@ -1161,9 +1161,11 @@ export class AppStateConfig {
     rtl: boolean = false;
     appLocales: Pair[] = [];
     user: {
-        loginTitle?: string;
+        loginTitle: string; // Todo: obsoleted
+        signinTitle: string;
         signinUrl?: string;
         signoutUrl?: string;
+        authenticated: boolean;
         photoUrl?: string;
         theme: string;
         title?: string;
@@ -1440,11 +1442,17 @@ export enum PermissionDriveAction {
     Full = 255,
 }
 
-export enum EntitySourceClass {
+export enum ObjectSourceClass {
     Default = 0,
     Internal = 2,
     Node = 3,
     Cluster = 4,
+}
+
+export enum DriveSourceClass {
+    Public = 1,
+    Node = 0,
+    Cluster = 2,
 }
 
 export class ClusterConfig {
@@ -1465,5 +1473,6 @@ export class Node {
         application: string;
         environment: string;
         s3Bucket: string;
+        driveS3Bucket: string;
     }
 }
