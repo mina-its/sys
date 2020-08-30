@@ -730,6 +730,16 @@ export async function putFile(cn: Context, drive: Drive, relativePath: string, f
     }
 }
 
+export async function listDatabases() {
+    let dbc = await MongoClient.connect(process.env.DB_ADDRESS, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        poolSize: Constants.mongodbPoolSize
+    });
+    let listDatabases = await dbc.db("admin").admin().listDatabases();
+    return listDatabases;
+}
+
 export async function listDir(drive: Drive, dir: string): Promise<DirFile[]> {
     switch (drive.type) {
         case SourceType.File:
@@ -1003,9 +1013,11 @@ async function loadServiceConfigs() {
         service.dependencies = [...service.dependencies, 'sys', 'web', 'auth'].filter(onlyUnique);
 
         let apps: ID[];
-        if (service.appGroup)
-            apps = appGroups.find(ap => ap._id.equals(service.appGroup)).apps;
-        else
+        if (service.appGroup) {
+            let appGroup = appGroups.find(ap => ap._id.equals(service.appGroup));
+            assert(appGroup, `AppGroup for service '${db}' not found!`);
+            apps = appGroup.apps;
+        } else
             apps = service.apps;
 
         service._ = {apps: []};

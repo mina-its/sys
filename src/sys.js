@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.toPublicUrl = exports.getSigninUrl = exports.sessionSignin = exports.makeLinksReady = exports.checkAccess = exports.preparePropertyDeclare = exports.prepareUrl = exports.getPageLinks = exports.applyPropertiesDefaultValue = exports.createDeclare = exports.filterAndSortProperties = exports.getPortionProperties = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.getEntityDatabase = exports.makeEntityList = exports.dropDatabase = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.checkPropertyGtype = exports.initializeRoles = exports.initializeRolePermissions = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getCollection = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
+exports.toPublicUrl = exports.getSigninUrl = exports.sessionSignin = exports.makeLinksReady = exports.checkAccess = exports.preparePropertyDeclare = exports.prepareUrl = exports.getPageLinks = exports.applyPropertiesDefaultValue = exports.createDeclare = exports.filterAndSortProperties = exports.getPortionProperties = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.getEntityDatabase = exports.makeEntityList = exports.dropDatabase = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.checkPropertyGtype = exports.initializeRoles = exports.initializeRolePermissions = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.listDatabases = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getCollection = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
 let index = {
     "Start                                              ": reload,
     "   loadSystemCollections                           ": loadSystemCollections,
@@ -625,6 +625,16 @@ async function putFile(cn, drive, relativePath, file) {
     }
 }
 exports.putFile = putFile;
+async function listDatabases() {
+    let dbc = await mongodb_1.MongoClient.connect(process.env.DB_ADDRESS, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        poolSize: types_1.Constants.mongodbPoolSize
+    });
+    let listDatabases = await dbc.db("admin").admin().listDatabases();
+    return listDatabases;
+}
+exports.listDatabases = listDatabases;
 async function listDir(drive, dir) {
     switch (drive.type) {
         case types_1.SourceType.File:
@@ -846,8 +856,11 @@ async function loadServiceConfigs() {
         service.dependencies = service.dependencies || [];
         service.dependencies = [...service.dependencies, 'sys', 'web', 'auth'].filter(onlyUnique);
         let apps;
-        if (service.appGroup)
-            apps = appGroups.find(ap => ap._id.equals(service.appGroup)).apps;
+        if (service.appGroup) {
+            let appGroup = appGroups.find(ap => ap._id.equals(service.appGroup));
+            assert(appGroup, `AppGroup for service '${db}' not found!`);
+            apps = appGroup.apps;
+        }
         else
             apps = service.apps;
         service._ = { apps: [] };

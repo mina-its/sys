@@ -1109,7 +1109,7 @@ export const Constants = {
     timeZonesCollection: "timeZones",
     DEFAULT_APP_TEMPLATE: `<!DOCTYPE html><html><head><%- head_main %></head><body><div id='app'></div><%- main_state() %></body><script>window['start']();</script></html>`,
     PASSWORD_EXPIRE_AGE: 180, // days
-};
+  };
 
 export enum PropertyConditionBehavior {
     Visible = 1,
