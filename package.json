@@ -28,6 +28,7 @@
     "jest": "^25.1.0"
   },
   "dependencies": {
+    "@slack/web-api": "^5.11.0",
     "archiver": "^4.0.1",
     "async": "^2.6.2",
     "aws-sdk": "^2.611.0",
@@ -38,6 +39,7 @@
     "expect": "^25.1.0",
     "fs-extra": "^8.1.0",
     "graphlib": "^2.1.8",
+    "import": "0.0.6",
     "jalali-moment": "^3.3.3",
     "jszip": "^3.2.2",
     "lodash": "^4.17.14",

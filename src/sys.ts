@@ -28,6 +28,7 @@ import marked = require('marked');
 import Jalali = require('jalali-moment');
 import sourceMapSupport = require('source-map-support');
 import ejs = require('ejs');
+import { WebClient } from '@slack/web-api';
 import aws = require('aws-sdk');
 import rimraf = require("rimraf");
 import {ID, stringify} from 'bson-util';
@@ -106,6 +107,7 @@ const {exec} = require("child_process");
 export let glob = new Global();
 const fsPromises = fs.promises;
 const bcrypt = require('bcrypt');
+const slack = new WebClient(process.env.SLACK_TOKEN);
 
 async function loadHosts() {
     glob.hosts = [];
@@ -212,6 +214,11 @@ export async function audit(cn: Context, auditType: string, args: AuditArgs) {
 
         if (type && type.disabled) return;
         await put(cn, Objects.audits, args);
+
+        await slack.chat.postMessage({
+            text: msg,
+            channel: '#audit',
+        });
 
         // exist on FaTAL ERROR
         // process.exit();

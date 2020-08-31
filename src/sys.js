@@ -27,6 +27,7 @@ const marked = require("marked");
 const Jalali = require("jalali-moment");
 const sourceMapSupport = require("source-map-support");
 const ejs = require("ejs");
+const web_api_1 = require("@slack/web-api");
 const aws = require("aws-sdk");
 const rimraf = require("rimraf");
 const bson_util_1 = require("bson-util");
@@ -42,6 +43,7 @@ const { exec } = require("child_process");
 exports.glob = new types_1.Global();
 const fsPromises = fs.promises;
 const bcrypt = require('bcrypt');
+const slack = new web_api_1.WebClient(process.env.SLACK_TOKEN);
 async function loadHosts() {
     exports.glob.hosts = [];
     let hosts = await get(process.env.NODE_NAME, types_1.Objects.hosts);
@@ -135,6 +137,10 @@ async function audit(cn, auditType, args) {
         if (type && type.disabled)
             return;
         await put(cn, types_1.Objects.audits, args);
+        await slack.chat.postMessage({
+            text: msg,
+            channel: '#audit',
+        });
     }
     catch (e) {
         error(`Audit '${auditType}' error: ${e.stack}`);
