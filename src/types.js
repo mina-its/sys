@@ -522,19 +522,18 @@ exports.DocumentDirectory = DocumentDirectory;
 class Document {
 }
 exports.Document = Document;
-var SysAuditTypes;
-(function (SysAuditTypes) {
-    SysAuditTypes["addItem"] = "5d7b8fbd10f5321b74a1b83b";
-    SysAuditTypes["edit"] = "5d7b91d410f5321b74a1b83c";
-    SysAuditTypes["deleteItem"] = "5d7b91e810f5321b74a1b83d";
-    SysAuditTypes["login"] = "5d7b91f710f5321b74a1b83e";
-    SysAuditTypes["logout"] = "5d7b920410f5321b74a1b83f";
-    SysAuditTypes["start"] = "5d7b920d10f5321b74a1b840";
-    SysAuditTypes["stop"] = "5d7b921b10f5321b74a1b841";
-    SysAuditTypes["uncaughtException"] = "5d7b922910f5321b74a1b842";
-    SysAuditTypes["unhandledRejection"] = "5d7b923510f5321b74a1b843";
-    SysAuditTypes["tryNotAllowedModify"] = "5d7b920d10f5321b74a1b840";
-})(SysAuditTypes = exports.SysAuditTypes || (exports.SysAuditTypes = {}));
+exports.SysAuditTypes = {
+    addItem: new bson_util_1.ID("5d7b8fbd10f5321b74a1b83b"),
+    edit: new bson_util_1.ID("5d7b91d410f5321b74a1b83c"),
+    deleteItem: new bson_util_1.ID("5d7b91e810f5321b74a1b83d"),
+    login: new bson_util_1.ID("5d7b91f710f5321b74a1b83e"),
+    logout: new bson_util_1.ID("5d7b920410f5321b74a1b83f"),
+    start: new bson_util_1.ID("5d7b920d10f5321b74a1b840"),
+    stop: new bson_util_1.ID("5d7b921b10f5321b74a1b841"),
+    uncaughtException: new bson_util_1.ID("5d7b922910f5321b74a1b842"),
+    unhandledRejection: new bson_util_1.ID("5d7b923510f5321b74a1b843"),
+    tryNotAllowedModify: new bson_util_1.ID("5d7b920d10f5321b74a1b844"),
+};
 var SystemProperty;
 (function (SystemProperty) {
     SystemProperty["title"] = "title";

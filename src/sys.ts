@@ -28,7 +28,7 @@ import marked = require('marked');
 import Jalali = require('jalali-moment');
 import sourceMapSupport = require('source-map-support');
 import ejs = require('ejs');
-import { WebClient } from '@slack/web-api';
+import {WebClient} from '@slack/web-api';
 import aws = require('aws-sdk');
 import rimraf = require("rimraf");
 import {ID, stringify} from 'bson-util';
@@ -107,7 +107,7 @@ const {exec} = require("child_process");
 export let glob = new Global();
 const fsPromises = fs.promises;
 const bcrypt = require('bcrypt');
-const slack = new WebClient(process.env.SLACK_TOKEN);
+let slack: WebClient;
 
 async function loadHosts() {
     glob.hosts = [];
@@ -152,15 +152,17 @@ export async function reload(cn?: Context) {
 
 export async function start() {
     try {
+        slack = new WebClient(process.env.SLACK_TOKEN);
+
         process.on('uncaughtException', async err =>
-            await audit({db: Constants.sysDb} as Context, SysAuditTypes.uncaughtException, {
+            await audit(Constants.sysDb, SysAuditTypes.uncaughtException, {
                 level: LogType.Fatal,
                 comment: err.message + ". " + err.stack
             })
         );
 
         process.on('unhandledRejection', async (err: any) => {
-            await audit({db: Constants.sysDb} as Context, SysAuditTypes.unhandledRejection, {
+            await audit(Constants.sysDb, SysAuditTypes.unhandledRejection, {
                 level: LogType.Fatal,
                 comment: typeof err == "number" ? err.toString() : err.message + ". " + err.stack
             });
@@ -189,42 +191,43 @@ export function newID(id?: string): ID {
     return new ObjectId(id) as any;
 }
 
-export async function audit(cn: Context, auditType: string, args: AuditArgs) {
+export async function audit(cn: Context | string, auditType: ID, args: AuditArgs) {
+    let typeName = auditType.toString();
     try {
-        args.type = args.type || newID(auditType);
-        args.time = new Date();
-        let comment = args.comment || "";
+        args.type = args.type || auditType;
+        args.type = new ObjectId(args.type.toString()); // serialization problem of ID
         let type = glob.auditTypes.find(type => type._id.equals(args.type));
-        let msg = "audit(" + (type ? type.name : args.type) + "): " + comment;
+        if (type) typeName = type.name;
+        args.time = new Date();
+        let message = `Audit (${typeName})` + (args.comment ? ": " + args.comment : "");
 
         switch (args.level) {
             case LogType.Fatal:
-                fatal(msg);
+                fatal(message);
                 break;
             case LogType.Error:
-                error(msg);
+                error(message);
                 break;
             case LogType.Info:
-                info(msg);
+                info(message);
                 break;
             case LogType.Warn:
-                warn(msg);
+                warn(message);
                 break;
         }
 
         if (type && type.disabled) return;
-        await put(cn, Objects.audits, args);
+        await put(cn, Objects.audits, [args]);
 
-        await slack.chat.postMessage({
-            text: msg,
-            channel: '#audit',
-        });
-
-        // exist on FaTAL ERROR
-        // process.exit();
+        if (type.channel)
+            await postSlackMessage(type.channel, message);
     } catch (e) {
-        error(`Audit '${auditType}' error: ${e.stack}`);
+        error(`Audit (${typeName}) error: ${e.stack}`);
     }
+}
+
+export async function postSlackMessage(channel: string, message: string) {
+    await slack.chat.postMessage({text: message, channel});
 }
 
 export function run(cn, func: string, ...args) {
@@ -340,7 +343,7 @@ export function getFileUri(cn: Context, prop: Property, file: mFile): string {
     } else
         driveUri = drive._.uri;
 
-    return joinUri(driveUri, file.path, file.name);
+    return uriJoin(driveUri, file.path, file.name);
 }
 
 export async function getOne(cn: Context | string, objectName: string) {
@@ -644,7 +647,7 @@ export async function getFile(cn: Context, drive: Drive, filePath: string): Prom
         case SourceType.S3:
             try {
                 let s3 = new aws.S3({apiVersion: Constants.amazonS3ApiVersion, region: process.env.AWS_DEFAULT_REGION});
-                filePath = joinUri(drive._.db, drive.name, filePath);
+                filePath = uriJoin(drive._.db, drive.name, filePath);
 
                 let bucket;
                 switch (drive.sourceClass) {
@@ -654,7 +657,7 @@ export async function getFile(cn: Context, drive: Drive, filePath: string): Prom
 
                     case DriveSourceClass.Node:
                         bucket = process.env.AWS_NODE_S3_BUCKET_NAME; // Private
-                        filePath = joinUri(cn.host._.db, filePath);
+                        filePath = uriJoin(cn.host._.db, filePath);
                         break;
 
                     case DriveSourceClass.Cluster:
@@ -708,7 +711,7 @@ export async function putFileProperty(cn: Context, objectName: string, item: any
 
     // Find Drive And Put File
     let drive = glob.drives.find(d => d._id.equals(property.file.drive));
-    let relativePath = joinUri(property.file.path, fileName);
+    let relativePath = uriJoin(property.file.path, fileName);
     await putFile(cn, drive, relativePath, buffer);
 
     // Update Property File Value
@@ -744,7 +747,7 @@ export async function putFile(cn: Context, drive: Drive, relativePath: string, f
         case SourceType.S3:
             try {
                 let s3 = new aws.S3({apiVersion: Constants.amazonS3ApiVersion, region: process.env.AWS_DEFAULT_REGION});
-                relativePath = joinUri(drive._.db, drive.name, relativePath);
+                relativePath = uriJoin(drive._.db, drive.name, relativePath);
 
                 let bucket;
                 switch (drive.sourceClass) {
@@ -754,7 +757,7 @@ export async function putFile(cn: Context, drive: Drive, relativePath: string, f
 
                     case DriveSourceClass.Node:
                         bucket = process.env.AWS_NODE_S3_BUCKET_NAME; // Private
-                        relativePath = joinUri(cn.db, relativePath);
+                        relativePath = uriJoin(cn.db, relativePath);
                         break;
 
                     case DriveSourceClass.Cluster:
@@ -893,13 +896,17 @@ export async function movFile(pack: string | Context, sourcePath: string, target
     // }
 }
 
-export function joinUri(...parts: string[]): string {
+export function trimSlash(path: string, insertSlash: boolean = false) {
+    path = (path || "").replace(/^\/|\/$/g, "");
+    return insertSlash ? "/" + path : path;
+}
+
+export function uriJoin(...parts: string[]): string {
     let uri = "";
     for (const part of parts) {
-        if (part)
-            uri += "/" + part.replace(/^\//, '').replace(/\/$/, '');
+        if (part) uri += trimSlash(part, true);
     }
-    return uri.substr(1);
+    return trimSlash(uri);
 }
 
 export function silly(...message) {
@@ -1779,11 +1786,11 @@ export function getAllFiles(path) {
     if (fs.statSync(path).isFile())
         return [path];
     return _.flatten(fs.readdirSync(path).map(file => {
-        let fileOrDir = fs.statSync(joinUri(path, file));
+        let fileOrDir = fs.statSync(uriJoin(path, file));
         if (fileOrDir.isFile())
             return (path + '/' + file).replace(/^\.\/\/?/, '');
         else if (fileOrDir.isDirectory())
-            return getAllFiles(joinUri(path, file));
+            return getAllFiles(uriJoin(path, file));
     }));
 }
 

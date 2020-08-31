@@ -42,7 +42,6 @@ export class AuditArgs {
     detail?: any;
     comment?: string;
     level: LogType;
-    pack?: string;
     type?: ID;
     user?: ID;
     time?: Date;
@@ -108,7 +107,7 @@ export class User {
 export class AuditType {
     _id: ID;
     name: string;
-    title: string | MultilangText;
+    channel: string;
     disabled: boolean
 }
 
@@ -442,7 +441,6 @@ export class Elem {
     toolbar?: boolean;
     comment?: string;
     styles?: string;
-    title?: string;
 
     _: {
         ref: string;
@@ -505,7 +503,6 @@ export class Elem {
     };
     text?: {
         content: string;
-        markdown?: boolean;
     };
     document?: {
         value: any;
@@ -1050,17 +1047,17 @@ export class Document {
     lastModified: Date;
 }
 
-export enum SysAuditTypes {
-    addItem = "5d7b8fbd10f5321b74a1b83b",
-    edit = "5d7b91d410f5321b74a1b83c",
-    deleteItem = "5d7b91e810f5321b74a1b83d",
-    login = "5d7b91f710f5321b74a1b83e",
-    logout = "5d7b920410f5321b74a1b83f",
-    start = "5d7b920d10f5321b74a1b840",
-    stop = "5d7b921b10f5321b74a1b841",
-    uncaughtException = "5d7b922910f5321b74a1b842",
-    unhandledRejection = "5d7b923510f5321b74a1b843",
-    tryNotAllowedModify = "5d7b920d10f5321b74a1b840",
+export const SysAuditTypes = {
+    addItem: new ID("5d7b8fbd10f5321b74a1b83b"),
+    edit: new ID("5d7b91d410f5321b74a1b83c"),
+    deleteItem: new ID("5d7b91e810f5321b74a1b83d"),
+    login: new ID("5d7b91f710f5321b74a1b83e"),
+    logout: new ID("5d7b920410f5321b74a1b83f"),
+    start: new ID("5d7b920d10f5321b74a1b840"),
+    stop: new ID("5d7b921b10f5321b74a1b841"),
+    uncaughtException: new ID("5d7b922910f5321b74a1b842"),
+    unhandledRejection: new ID("5d7b923510f5321b74a1b843"),
+    tryNotAllowedModify: new ID("5d7b920d10f5321b74a1b844"),
 }
 
 export enum SystemProperty {

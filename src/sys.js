@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.toPublicUrl = exports.getSigninUrl = exports.sessionSignin = exports.makeLinksReady = exports.checkAccess = exports.preparePropertyDeclare = exports.prepareUrl = exports.getPageLinks = exports.applyPropertiesDefaultValue = exports.createDeclare = exports.filterAndSortProperties = exports.getPortionProperties = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.getEntityDatabase = exports.makeEntityList = exports.dropDatabase = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.checkPropertyGtype = exports.initializeRoles = exports.initializeRolePermissions = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.joinUri = exports.movFile = exports.delFile = exports.listDir = exports.listDatabases = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getCollection = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
+exports.toPublicUrl = exports.getSigninUrl = exports.sessionSignin = exports.makeLinksReady = exports.checkAccess = exports.preparePropertyDeclare = exports.prepareUrl = exports.getPageLinks = exports.applyPropertiesDefaultValue = exports.createDeclare = exports.filterAndSortProperties = exports.getPortionProperties = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.getEntityDatabase = exports.makeEntityList = exports.dropDatabase = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.checkPropertyGtype = exports.initializeRoles = exports.initializeRolePermissions = exports.downloadLogFiles = exports.configureLogger = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.uriJoin = exports.trimSlash = exports.movFile = exports.delFile = exports.listDir = exports.listDatabases = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getCollection = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.postSlackMessage = exports.audit = exports.newID = exports.markDown = exports.start = exports.reload = exports.glob = void 0;
 let index = {
     "Start                                              ": reload,
     "   loadSystemCollections                           ": loadSystemCollections,
@@ -43,7 +43,7 @@ const { exec } = require("child_process");
 exports.glob = new types_1.Global();
 const fsPromises = fs.promises;
 const bcrypt = require('bcrypt');
-const slack = new web_api_1.WebClient(process.env.SLACK_TOKEN);
+let slack;
 async function loadHosts() {
     exports.glob.hosts = [];
     let hosts = await get(process.env.NODE_NAME, types_1.Objects.hosts);
@@ -81,12 +81,13 @@ async function reload(cn) {
 exports.reload = reload;
 async function start() {
     try {
-        process.on('uncaughtException', async (err) => await audit({ db: types_1.Constants.sysDb }, types_1.SysAuditTypes.uncaughtException, {
+        slack = new web_api_1.WebClient(process.env.SLACK_TOKEN);
+        process.on('uncaughtException', async (err) => await audit(types_1.Constants.sysDb, types_1.SysAuditTypes.uncaughtException, {
             level: types_1.LogType.Fatal,
             comment: err.message + ". " + err.stack
         }));
         process.on('unhandledRejection', async (err) => {
-            await audit({ db: types_1.Constants.sysDb }, types_1.SysAuditTypes.unhandledRejection, {
+            await audit(types_1.Constants.sysDb, types_1.SysAuditTypes.unhandledRejection, {
                 level: types_1.LogType.Fatal,
                 comment: typeof err == "number" ? err.toString() : err.message + ". " + err.stack
             });
@@ -114,39 +115,44 @@ function newID(id) {
 }
 exports.newID = newID;
 async function audit(cn, auditType, args) {
+    let typeName = auditType.toString();
     try {
-        args.type = args.type || newID(auditType);
-        args.time = new Date();
-        let comment = args.comment || "";
+        args.type = args.type || auditType;
+        args.type = new mongodb_1.ObjectId(args.type.toString());
         let type = exports.glob.auditTypes.find(type => type._id.equals(args.type));
-        let msg = "audit(" + (type ? type.name : args.type) + "): " + comment;
+        if (type)
+            typeName = type.name;
+        args.time = new Date();
+        let message = `Audit (${typeName})` + (args.comment ? ": " + args.comment : "");
         switch (args.level) {
             case types_1.LogType.Fatal:
-                fatal(msg);
+                fatal(message);
                 break;
             case types_1.LogType.Error:
-                error(msg);
+                error(message);
                 break;
             case types_1.LogType.Info:
-                info(msg);
+                info(message);
                 break;
             case types_1.LogType.Warn:
-                warn(msg);
+                warn(message);
                 break;
         }
         if (type && type.disabled)
             return;
-        await put(cn, types_1.Objects.audits, args);
-        await slack.chat.postMessage({
-            text: msg,
-            channel: '#audit',
-        });
+        await put(cn, types_1.Objects.audits, [args]);
+        if (type.channel)
+            await postSlackMessage(type.channel, message);
     }
     catch (e) {
-        error(`Audit '${auditType}' error: ${e.stack}`);
+        error(`Audit (${typeName}) error: ${e.stack}`);
     }
 }
 exports.audit = audit;
+async function postSlackMessage(channel, message) {
+    await slack.chat.postMessage({ text: message, channel });
+}
+exports.postSlackMessage = postSlackMessage;
 function run(cn, func, ...args) {
     try {
         let theFunction = eval(_.camelCase(func));
@@ -257,7 +263,7 @@ function getFileUri(cn, prop, file) {
     }
     else
         driveUri = drive._.uri;
-    return joinUri(driveUri, file.path, file.name);
+    return uriJoin(driveUri, file.path, file.name);
 }
 exports.getFileUri = getFileUri;
 async function getOne(cn, objectName) {
@@ -554,7 +560,7 @@ async function getFile(cn, drive, filePath) {
         case types_1.SourceType.S3:
             try {
                 let s3 = new aws.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion, region: process.env.AWS_DEFAULT_REGION });
-                filePath = joinUri(drive._.db, drive.name, filePath);
+                filePath = uriJoin(drive._.db, drive.name, filePath);
                 let bucket;
                 switch (drive.sourceClass) {
                     case types_1.DriveSourceClass.Public:
@@ -562,7 +568,7 @@ async function getFile(cn, drive, filePath) {
                         break;
                     case types_1.DriveSourceClass.Node:
                         bucket = process.env.AWS_NODE_S3_BUCKET_NAME;
-                        filePath = joinUri(cn.host._.db, filePath);
+                        filePath = uriJoin(cn.host._.db, filePath);
                         break;
                     case types_1.DriveSourceClass.Cluster:
                         bucket = process.env.CLUSTER_NAME;
@@ -609,7 +615,7 @@ async function putFileProperty(cn, objectName, item, propertyName, fileName, buf
     assert(property, `putFileProperty Invalid property: '${objectName}.${propertyName}'`);
     assert(property.file && property.file.drive, `putFileProperty Property: '${propertyName}' should have file config`);
     let drive = exports.glob.drives.find(d => d._id.equals(property.file.drive));
-    let relativePath = joinUri(property.file.path, fileName);
+    let relativePath = uriJoin(property.file.path, fileName);
     await putFile(cn, drive, relativePath, buffer);
     let file = { name: fileName, size: buffer.length, path: property.file.path };
     let patchData = {};
@@ -638,7 +644,7 @@ async function putFile(cn, drive, relativePath, file) {
         case types_1.SourceType.S3:
             try {
                 let s3 = new aws.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion, region: process.env.AWS_DEFAULT_REGION });
-                relativePath = joinUri(drive._.db, drive.name, relativePath);
+                relativePath = uriJoin(drive._.db, drive.name, relativePath);
                 let bucket;
                 switch (drive.sourceClass) {
                     case types_1.DriveSourceClass.Public:
@@ -646,7 +652,7 @@ async function putFile(cn, drive, relativePath, file) {
                         break;
                     case types_1.DriveSourceClass.Node:
                         bucket = process.env.AWS_NODE_S3_BUCKET_NAME;
-                        relativePath = joinUri(cn.db, relativePath);
+                        relativePath = uriJoin(cn.db, relativePath);
                         break;
                     case types_1.DriveSourceClass.Cluster:
                         bucket = process.env.CLUSTER_NAME;
@@ -749,15 +755,20 @@ exports.delFile = delFile;
 async function movFile(pack, sourcePath, targetPath) {
 }
 exports.movFile = movFile;
-function joinUri(...parts) {
+function trimSlash(path, insertSlash = false) {
+    path = (path || "").replace(/^\/|\/$/g, "");
+    return insertSlash ? "/" + path : path;
+}
+exports.trimSlash = trimSlash;
+function uriJoin(...parts) {
     let uri = "";
     for (const part of parts) {
         if (part)
-            uri += "/" + part.replace(/^\//, '').replace(/\/$/, '');
+            uri += trimSlash(part, true);
     }
-    return uri.substr(1);
+    return trimSlash(uri);
 }
-exports.joinUri = joinUri;
+exports.uriJoin = uriJoin;
 function silly(...message) {
     logger.silly(message);
 }
@@ -1554,11 +1565,11 @@ function getAllFiles(path) {
     if (fs.statSync(path).isFile())
         return [path];
     return _.flatten(fs.readdirSync(path).map(file => {
-        let fileOrDir = fs.statSync(joinUri(path, file));
+        let fileOrDir = fs.statSync(uriJoin(path, file));
         if (fileOrDir.isFile())
             return (path + '/' + file).replace(/^\.\/\/?/, '');
         else if (fileOrDir.isDirectory())
-            return getAllFiles(joinUri(path, file));
+            return getAllFiles(uriJoin(path, file));
     }));
 }
 exports.getAllFiles = getAllFiles;
