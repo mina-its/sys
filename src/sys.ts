@@ -1077,6 +1077,10 @@ async function loadServiceConfigs() {
     }
 }
 
+export function getGlobal(): Global {
+    return glob;
+}
+
 async function loadDrives() {
     glob.drives = [];
     for (const db of glob.services) {

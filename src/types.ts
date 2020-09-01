@@ -578,7 +578,8 @@ export class App {
     redirect: RedirectType;
     menu: ID;
     headerMenu: boolean;
-    title: string;
+    title: string | MultilangText;
+    comment: string | MultilangText;
     gridPageSize: number;
     addressRules: PackageAddressRule[];
     userSingleSession: boolean;
