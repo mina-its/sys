@@ -2897,31 +2897,6 @@ function getPropertyTypedValue(prop: Property, value, ignoreArray?): any {
     }
 }
 
-export async function sessionSignin(cn: Context, user: User) {
-    return new Promise((resolve, reject) => {
-        // req.login handles serializing the user id to the session store and inside our request object and also adds the user object to our request object.
-        cn["httpReq"].login(user, async (err) => {
-            if (err) return reject(err);
-
-            let ip = cn["httpReq"].headers['x-forwarded-for'] || cn["httpReq"].connection.remoteAddress;
-            let country = await countryNameLookup(ip);
-            await audit(cn, SysAuditTypes.login, {
-                user: cn["httpReq"].user._id,
-                level: LogType.Info,
-                comment: `User '${cn["httpReq"].user.email}' legged-in!\r\nIP:${ip}\r\nCountry:${country}`
-            });
-            resolve();
-        });
-    });
-}
-
-export function getSigninUrl(cn: Context, back?: string) {
-    let url = glob.serviceConfigs[cn.db].sso ? process.env.SSO_SIGNIN_URL : toPublicUrl(cn, Constants.defaultSignInUri, true);
-    if (back)
-        url += `?back=${encodeURI(back)}`;
-    return url;
-}
-
 export function toPublicUrl(cn: Context, uri: string, addPrefix: boolean = false): string {
     uri = _.trim(uri, '/');
     if (addPrefix && cn.prefix)

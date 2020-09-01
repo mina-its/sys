@@ -28,6 +28,7 @@ export class Context {
     query: any;
     referer: string;
     mode: RequestMode;
+    functionMode: FunctionMode;
     objectViewType: ObjectViewType;
     reqNewItem: boolean;
     reqNewItemDefaults: any;
@@ -1161,8 +1162,6 @@ export class AppStateConfig {
     user: {
         loginTitle: string; // Todo: obsoleted
         signinTitle: string;
-        signinUrl?: string;
-        signoutUrl?: string;
         authenticated: boolean;
         photoUrl?: string;
         theme: string;
@@ -1322,7 +1321,7 @@ export enum ReqParams {
     sort = "s",
     mode = "m",
     token = "k",
-    functionType = "f",
+    functionMode = "f",
     newItem = "n",
     newItemDefaults = "d",
 }
