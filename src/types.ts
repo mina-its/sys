@@ -1159,7 +1159,6 @@ export class AppStateConfig {
     rtl: boolean = false;
     appLocales: Pair[] = [];
     user: {
-        loginTitle: string; // Todo: obsoleted
         signinTitle: string;
         authenticated: boolean;
         photoUrl?: string;
