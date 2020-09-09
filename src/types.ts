@@ -985,7 +985,6 @@ export class Service {
     name: string;
     enabled: boolean;
     comment: string | MultilangText;
-    pure: boolean;
 }
 
 export enum Objects {
