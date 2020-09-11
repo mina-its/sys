@@ -179,6 +179,10 @@ export async function start() {
     }
 }
 
+export function isProductionMode() {
+    return process.env.NODE_ENV === EnvMode.Production;
+}
+
 export function markDown(text: string) {
     return marked(text);
 }
