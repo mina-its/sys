@@ -761,7 +761,7 @@ async function movFile(pack, sourcePath, targetPath) {
 exports.movFile = movFile;
 function trimSlash(path, insertSlash = false) {
     path = (path || "").replace(/^\/|\/$/g, "");
-    return insertSlash ? "/" + path : path;
+    return insertSlash && !/^http:/.test(path) ? "/" + path : path;
 }
 exports.trimSlash = trimSlash;
 function uriJoin(...parts) {

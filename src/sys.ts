@@ -902,7 +902,7 @@ export async function movFile(pack: string | Context, sourcePath: string, target
 
 export function trimSlash(path: string, insertSlash: boolean = false) {
     path = (path || "").replace(/^\/|\/$/g, "");
-    return insertSlash ? "/" + path : path;
+    return insertSlash && !/^http:/.test(path) ? "/" + path : path;
 }
 
 export function uriJoin(...parts: string[]): string {
