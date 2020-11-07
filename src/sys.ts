@@ -280,7 +280,7 @@ export async function get(cn: Context | string, objectName: string, options?: Ge
     return result;
 }
 
-export async function max(cn: Context, objectName: string, property: string) {
+export async function max(cn: Context | string, objectName: string, property: string) {
     let collection = await getCollection(cn, objectName);
     let sort = {};
     sort[property] = -1;
