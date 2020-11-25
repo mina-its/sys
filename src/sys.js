@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.toPublicUrl = exports.makeLinksReady = exports.checkAccess = exports.preparePropertyDeclare = exports.prepareUrl = exports.getPageLinks = exports.applyPropertiesDefaultValue = exports.createDeclare = exports.filterAndSortProperties = exports.getPortionProperties = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.getEntityDatabase = exports.makeEntityList = exports.dropDatabase = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.checkPropertyGtype = exports.initializeRoles = exports.initializeRolePermissions = exports.downloadLogFiles = exports.configureLogger = exports.getGlobal = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.uriJoin = exports.trimSlash = exports.movFile = exports.delFile = exports.listDir = exports.listDatabases = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.getCollection = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.postSlackMessage = exports.audit = exports.newID = exports.markDown = exports.isProductionMode = exports.start = exports.reload = exports.glob = void 0;
+exports.toPublicUrl = exports.makeLinksReady = exports.checkAccess = exports.preparePropertyDeclare = exports.prepareUrl = exports.getPageLinks = exports.applyPropertiesDefaultValue = exports.createDeclare = exports.filterAndSortProperties = exports.getPortionProperties = exports.hashPassword = exports.countryLookup = exports.countryNameLookup = exports.sort = exports.execShellCommand = exports.clientNotify = exports.clientAnswerReceived = exports.clientQuestion = exports.removeDir = exports.clientCommand = exports.clientLog = exports.getReference = exports.checkUserRole = exports.getErrorCodeMessage = exports.throwContextError = exports.throwError = exports.isID = exports.runFunction = exports.getUploadedFiles = exports.invoke = exports.mock = exports.getPropertyReferenceValues = exports.getEntityDatabase = exports.makeEntityList = exports.dropDatabase = exports.getAllEntities = exports.getDataEntities = exports.containsPack = exports.getTypes = exports.parseDate = exports.jsonReviver = exports.digitGroup = exports.toQueryString = exports.applyFileQuota = exports.getPathSize = exports.getAllFiles = exports.setIntervalAndExecute = exports.jsonToXml = exports.encodeXml = exports.isRightToLeftLanguage = exports.getEnumByName = exports.getEnum = exports.getEnumItems = exports.getEnumText = exports.sendSms = exports.sendEmail = exports.verifyEmailAccounts = exports.getText = exports.$t = exports.getEntityName = exports.initObject = exports.initProperties = exports.allForms = exports.allFunctions = exports.allObjects = exports.initializeEnums = exports.findObject = exports.findEntity = exports.findEnum = exports.dbConnection = exports.checkPropertyGtype = exports.initializeRoles = exports.initializeRolePermissions = exports.downloadLogFiles = exports.configureLogger = exports.getGlobal = exports.onlyUnique = exports.isRtl = exports.getFullname = exports.fatal = exports.error = exports.warn = exports.info = exports.log = exports.silly = exports.uriJoin = exports.trimSlash = exports.movFile = exports.delFile = exports.listDir = exports.listDatabases = exports.putFile = exports.putFileProperty = exports.fileExists = exports.pathExists = exports.getFile = exports.createDir = exports.getAbsolutePath = exports.toAsync = exports.findDrive = exports.getDriveStatus = exports.del = exports.patch = exports.count = exports.portionsToMongoPath = exports.evalExpression = exports.put = exports.patchSub = exports.deleteSub = exports.putSub = exports.getCollection = exports.getOne = exports.getFileUri = exports.makeObjectReady = exports.max = exports.get = exports.getByID = exports.run = exports.postSlackMessage = exports.audit = exports.newID = exports.markDown = exports.isProductionMode = exports.start = exports.reload = exports.glob = void 0;
 let index = {
     "Start                                              ": reload,
     "   loadSystemCollections                           ": loadSystemCollections,
@@ -279,6 +279,27 @@ async function getCollection(cn, objectName) {
     return db.collection(objectName);
 }
 exports.getCollection = getCollection;
+async function putSub(cn, objectName, itemID, property, subItem) {
+    let collection = await getCollection(cn, objectName);
+    let command = { $addToSet: {} };
+    command.$addToSet[property] = subItem;
+    await collection.updateOne({ _id: itemID }, command);
+}
+exports.putSub = putSub;
+async function deleteSub(cn, objectName, itemID, property, subItemID) {
+    let collection = await getCollection(cn, objectName);
+    let command = { $pull: {} };
+    command.$pull[property] = { _id: subItemID };
+    await collection.updateOne({ _id: itemID }, command);
+}
+exports.deleteSub = deleteSub;
+async function patchSub(cn, objectName, itemID, property, subItemID, subItem) {
+    let collection = await getCollection(cn, objectName);
+    let command = { $set: {} };
+    command.$set[`${property}.$[elem]`] = subItem;
+    await collection.updateOne({ _id: itemID }, command, { arrayFilters: [{ "elem._id": subItemID }] });
+}
+exports.patchSub = patchSub;
 async function put(cn, objectName, data, options) {
     let collection = await getCollection(cn, objectName);
     data = data || {};
@@ -390,8 +411,7 @@ async function count(cn, objectName, options) {
 }
 exports.count = count;
 async function patch(cn, objectName, patchData, options) {
-    let db = await dbConnection(cn);
-    let collection = db.collection(objectName);
+    let collection = await getCollection(cn, objectName);
     if (!collection)
         throw types_1.StatusCode.BadRequest;
     if (options && options.filter && !options.portions) {
