@@ -1,0 +1,1 @@
+{"_id":{"$oid":"5fbcae863ed98e16f43211ef"},"changes":[{"op":1,"data":"[{\"query\":{\"_id\":{\"$oid\":\"5d790ceb7b7c752a18d096b9\"}},\"update\":{\"$set\":{\"publish\":false}}}]","ns":"forms","_id":{"$oid":"5fbcae863ed98e16f43211f0"}}],"filename":"5fbcae863ed98e16f43211ef.migration","service":"sys","node":"shila","commitDate":{"$date":"2020-11-24T06:56:06.561Z"},"state":0}
