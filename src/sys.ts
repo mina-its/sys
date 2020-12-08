@@ -359,6 +359,31 @@ export async function getCollection(cn: Context | string, objectName: string) {
     return db.collection(objectName);
 }
 
+export async function putSub(cn: Context | string, objectName: string, itemID: any, property: string, subItem: any) {
+    let collection = await getCollection(cn, objectName);
+    let command = {$addToSet: {}};
+    command.$addToSet[property] = subItem;
+    await collection.updateOne({_id: itemID}, command);
+}
+
+export async function deleteSub(cn: Context | string, objectName: string, itemID: any, property: string, subItemID: any) {
+    let collection = await getCollection(cn, objectName);
+    let command = {$pull: {}};
+    command.$pull[property] = {_id: subItemID};
+    await collection.updateOne({_id: itemID}, command);
+}
+
+export async function patchSub(cn: Context | string, objectName: string, itemID: any, property: string, subItemID: any, subItem: any) {
+    let collection = await getCollection(cn, objectName);
+    let command = {$set: {}};
+    command.$set[`${property}.$[elem]`] = subItem;
+    await collection.updateOne(
+        {_id: itemID},
+        command,
+        {arrayFilters: [{"elem._id": subItemID}]}
+    );
+}
+
 export async function put(cn: Context | string, objectName: string, data: any, options?: PutOptions): Promise<ObjectModifyState> {
     let collection = await getCollection(cn, objectName);
     data = data || {};
@@ -465,8 +490,7 @@ export async function count(cn: Context | string, objectName: string, options: G
 }
 
 export async function patch(cn: Context | string, objectName: string, patchData: any, options?: PutOptions) {
-    let db = await dbConnection(cn);
-    let collection = db.collection(objectName);
+    let collection = await getCollection(cn, objectName);
     if (!collection) throw StatusCode.BadRequest;
 
     // Use patch in normal case
