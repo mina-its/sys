@@ -86,8 +86,8 @@ export class User {
     password: string;
     title: string;
     firstName: string;
-    country: ID;
     lastName: string;
+    country: ID;
     passwordExpireTime: Date;
     passwordResetLinkExpire?: Date;
     image: mFile;
