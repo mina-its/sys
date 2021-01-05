@@ -41,7 +41,6 @@ import {
     Access,
     AccessAction,
     App,
-    AppGroup,
     AuditArgs,
     ClientCommand,
     Constants,
@@ -98,7 +97,7 @@ import {
     Text,
     UploadedFile,
     User,
-    ClusterConfig, EmailAccount, DriveSourceClass,
+    EmailAccount, DriveSourceClass,
 } from './types';
 
 const nodemailer = require('nodemailer');
@@ -117,6 +116,11 @@ async function loadHosts() {
 
     for (const host of hosts) {
         let service = services.find(c => c._id.equals(host.service));
+        if (!service) {
+            error(`service for host ${host.address} not configured!`);
+            continue;
+        }
+
         let serviceConfig = glob.serviceConfigs[service.name];
         host._ = {db: service.name, service: serviceConfig};
         host.aliases = host.aliases || [];
@@ -336,12 +340,9 @@ export function getFileUri(cn: Context, prop: Property, file: mFile): string {
                 driveUri = `${Constants.PUBLIC_BUCKET_URI}/${drive._.db}/${drive.name}`;
                 break;
 
-            case DriveSourceClass.Cluster:
-                driveUri = `${process.env.SYSTEM_ROOT_URL}/${drive._.db}/${drive.name}`;
-                break;
-
             default:
-                driveUri = `${cn.url.origin}/${drive._.db}/${drive.name}`;
+            case DriveSourceClass.Node:
+                driveUri = `${process.env.SYSTEM_ROOT_URL}/${drive._.db}/${drive.name}`;
                 break;
         }
     } else
@@ -673,9 +674,9 @@ export async function getFile(cn: Context, drive: Drive, filePath: string): Prom
             break;
 
         case SourceType.S3:
+            let s3Path = uriJoin(drive._.db, drive.name, filePath);
             try {
                 let s3 = new aws.S3({apiVersion: Constants.amazonS3ApiVersion, region: process.env.AWS_DEFAULT_REGION});
-                filePath = uriJoin(drive._.db, drive.name, filePath);
 
                 let bucket;
                 switch (drive.sourceClass) {
@@ -683,20 +684,17 @@ export async function getFile(cn: Context, drive: Drive, filePath: string): Prom
                         bucket = Constants.PUBLIC_BUCKET_NAME; // Public
                         break;
 
+                    default:
                     case DriveSourceClass.Node:
                         bucket = process.env.AWS_NODE_S3_BUCKET_NAME; // Private
-                        filePath = uriJoin(cn.host._.db, filePath);
-                        break;
-
-                    case DriveSourceClass.Cluster:
-                        bucket = process.env.CLUSTER_NAME; // Private
+                        s3Path = uriJoin(cn.host._.db, s3Path);
                         break;
                 }
-                const params = {Bucket: bucket, Key: filePath};
+                const params = {Bucket: bucket, Key: s3Path};
                 let result = await s3.getObject(params).promise();
                 return result.Body as Buffer;
             } catch (ex) {
-                error(`putFile error, drive: ${drive.name}`, ex);
+                error(`putFile error, drive: ${drive.name}, path: '${s3Path}'`, ex);
                 throwError(StatusCode.ConfigurationProblem, `Could not save the file due to a problem.`);
             }
             break;
@@ -786,10 +784,6 @@ export async function putFile(cn: Context, drive: Drive, relativePath: string, f
                     case DriveSourceClass.Node:
                         bucket = process.env.AWS_NODE_S3_BUCKET_NAME; // Private
                         relativePath = uriJoin(cn.db, relativePath);
-                        break;
-
-                    case DriveSourceClass.Cluster:
-                        bucket = process.env.CLUSTER_NAME; // Private
                         break;
                 }
                 const params = {Bucket: bucket, Key: relativePath, Body: file};
@@ -1002,7 +996,6 @@ async function loadAuditTypes() {
 async function globalCheck() {
     assert(process.env.DB_ADDRESS, "Environment variable 'DB_ADDRESS' is needed.")
     assert(process.env.NODE_NAME, "Environment variable 'NODE_NAME' is needed.")
-    assert(process.env.CLUSTER_NAME, "Environment variable 'CLUSTER_NAME' is needed.")
 
     try {
         await MongoClient.connect(process.env.DB_ADDRESS, {
@@ -1077,8 +1070,6 @@ export function onlyUnique(value, index, self) {
 async function loadServiceConfigs() {
     glob.serviceConfigs = {};
 
-    let appGroups: AppGroup[] = await get(process.env.CLUSTER_NAME, Objects.appGroups);
-
     for (const db of glob.services) {
         let service: ServiceConfig = await getOne(db, Objects.serviceConfig);
         if (!service) {
@@ -1091,14 +1082,7 @@ async function loadServiceConfigs() {
         service.dependencies = service.dependencies || [];
         service.dependencies = [...service.dependencies, 'sys', 'web', 'auth'].filter(onlyUnique);
 
-        let apps: ID[];
-        if (service.appGroup) {
-            let appGroup = appGroups.find(ap => ap._id.equals(service.appGroup));
-            assert(appGroup, `AppGroup for service '${db}' not found!`);
-            apps = appGroup.apps;
-        } else
-            apps = service.apps;
-
+        let apps: ID[] = service.apps;
         service._ = {apps: []};
         if (!apps) continue;
         service._.apps = apps.map(a => glob.apps.find(app => app._id.equals(a))).filter(Boolean);
@@ -1677,13 +1661,8 @@ export async function verifyEmailAccounts(cn: Context) {
 
 export async function sendEmail(cn: Context, from: string, to: string, subject: string, content: string, params?: SendEmailParams) {
     let account: EmailAccount;
-    if (cn.service.sso) {
-        let config: ClusterConfig = await getOne(process.env.CLUSTER_NAME, Objects.clusterConfig);
-        account = config.emailAccounts.find(account => account.email == from);
-    } else {
-        assert(glob.serviceConfigs[cn.db].emailAccounts, `Email accounts is empty`);
-        account = glob.serviceConfigs[cn.db].emailAccounts.find(account => account.email == from);
-    }
+    assert(glob.serviceConfigs[cn.db].emailAccounts, `Email accounts is empty`);
+    account = glob.serviceConfigs[cn.db].emailAccounts.find(account => account.email == from);
 
     assert(account, `Email account for account '${from}' not found!`);
     const transporter = nodemailer.createTransport({
@@ -2026,9 +2005,6 @@ export function getEntityDatabase(cn: Context, entity: Entity): string {
     if (entity.entityType == EntityType.Object) {
         let obj = entity as mObject;
         switch (obj.sourceClass) {
-            case ObjectSourceClass.Cluster:
-                return process.env.CLUSTER_NAME;
-
             case ObjectSourceClass.Node:
                 return process.env.NODE_NAME;
 

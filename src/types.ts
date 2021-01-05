@@ -99,7 +99,6 @@ export class User {
     service: ID;
     theme: AppTheme;
     _: {
-        db?: string;
         isOnline?: boolean;
         roles?: ID[];
     }
@@ -138,12 +137,6 @@ export enum TextEditor {
     HtmlText = 7,
 }
 
-export class AppGroup {
-    _id: ID;
-    title: string | MultilangText;
-    apps: ID[];
-}
-
 export class ServiceConfig {
     _id: ID;
     title: string | MultilangText;
@@ -155,9 +148,7 @@ export class ServiceConfig {
     welcomeEmailTemplate: EmailTemplateConfig;
     resetPasswordTemplate: EmailTemplateConfig;
     addressRules: PackageAddressRule[];
-    sso: boolean;
     apps: ID[];
-    appGroup: ID;
     dependencies: string[];
 
     _: {
@@ -341,6 +332,8 @@ export class Property implements IProperties {
     description: string;
     dependsOn: string;
     condition: string;
+    validation: string;
+    validationError: string;
     conditionBehavior: PropertyConditionBehavior;
     reorderable: boolean;
     text: {
@@ -991,7 +984,7 @@ export enum Objects {
     audits = "audits",
     users = "users",
     dictionary = "dictionary",
-    clusterConfig = "clusterConfig",
+    nodeConfig = "nodeConfig",
     auditTypes = "auditTypes",
     countries = "countries",
     documents = "documents",
@@ -1001,7 +994,6 @@ export enum Objects {
     services = "services",
     nodes = "nodes",
     serviceConfig = "serviceConfig",
-    appGroups = "appGroups",
     functions = "functions",
     roles = "roles",
     apps = "apps",
@@ -1301,6 +1293,7 @@ export class FunctionDec {
     _id: ID;
     name: string;
     title: string;
+    mode: FunctionMode;
     interactive: boolean;
     clientSide: boolean;
     properties: Property[];
@@ -1441,23 +1434,15 @@ export enum ObjectSourceClass {
     Default = 0,
     Internal = 2,
     Node = 3,
-    Cluster = 4,
+}
+
+export class NodeConfig {
+    inviteEmailTemplate: EmailTemplateConfig;
 }
 
 export enum DriveSourceClass {
     Public = 1,
     Node = 0,
-    Cluster = 2,
-}
-
-export class ClusterConfig {
-    lastServiceCode: number;
-    emailAccounts: EmailAccount[];
-    smsAccounts: SmsAccount[];
-    emailVerificationTemplate: EmailTemplateConfig;
-    welcomeEmailTemplate: EmailTemplateConfig;
-    inviteEmailTemplate: EmailTemplateConfig;
-    resetPasswordTemplate: EmailTemplateConfig;
 }
 
 export class Node {

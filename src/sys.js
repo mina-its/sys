@@ -50,6 +50,10 @@ async function loadHosts() {
     let services = await get(process.env.NODE_NAME, types_1.Objects.services, { query: { enabled: true } });
     for (const host of hosts) {
         let service = services.find(c => c._id.equals(host.service));
+        if (!service) {
+            error(`service for host ${host.address} not configured!`);
+            continue;
+        }
         let serviceConfig = exports.glob.serviceConfigs[service.name];
         host._ = { db: service.name, service: serviceConfig };
         host.aliases = host.aliases || [];
@@ -257,11 +261,9 @@ function getFileUri(cn, prop, file) {
             case types_1.DriveSourceClass.Public:
                 driveUri = `${types_1.Constants.PUBLIC_BUCKET_URI}/${drive._.db}/${drive.name}`;
                 break;
-            case types_1.DriveSourceClass.Cluster:
-                driveUri = `${process.env.SYSTEM_ROOT_URL}/${drive._.db}/${drive.name}`;
-                break;
             default:
-                driveUri = `${cn.url.origin}/${drive._.db}/${drive.name}`;
+            case types_1.DriveSourceClass.Node:
+                driveUri = `${process.env.SYSTEM_ROOT_URL}/${drive._.db}/${drive.name}`;
                 break;
         }
     }
@@ -582,28 +584,26 @@ async function getFile(cn, drive, filePath) {
             });
             break;
         case types_1.SourceType.S3:
+            let s3Path = uriJoin(drive._.db, drive.name, filePath);
             try {
                 let s3 = new aws.S3({ apiVersion: types_1.Constants.amazonS3ApiVersion, region: process.env.AWS_DEFAULT_REGION });
-                filePath = uriJoin(drive._.db, drive.name, filePath);
                 let bucket;
                 switch (drive.sourceClass) {
                     case types_1.DriveSourceClass.Public:
                         bucket = types_1.Constants.PUBLIC_BUCKET_NAME;
                         break;
+                    default:
                     case types_1.DriveSourceClass.Node:
                         bucket = process.env.AWS_NODE_S3_BUCKET_NAME;
-                        filePath = uriJoin(cn.host._.db, filePath);
-                        break;
-                    case types_1.DriveSourceClass.Cluster:
-                        bucket = process.env.CLUSTER_NAME;
+                        s3Path = uriJoin(cn.host._.db, s3Path);
                         break;
                 }
-                const params = { Bucket: bucket, Key: filePath };
+                const params = { Bucket: bucket, Key: s3Path };
                 let result = await s3.getObject(params).promise();
                 return result.Body;
             }
             catch (ex) {
-                error(`putFile error, drive: ${drive.name}`, ex);
+                error(`putFile error, drive: ${drive.name}, path: '${s3Path}'`, ex);
                 throwError(types_1.StatusCode.ConfigurationProblem, `Could not save the file due to a problem.`);
             }
             break;
@@ -677,9 +677,6 @@ async function putFile(cn, drive, relativePath, file) {
                     case types_1.DriveSourceClass.Node:
                         bucket = process.env.AWS_NODE_S3_BUCKET_NAME;
                         relativePath = uriJoin(cn.db, relativePath);
-                        break;
-                    case types_1.DriveSourceClass.Cluster:
-                        bucket = process.env.CLUSTER_NAME;
                         break;
                 }
                 const params = { Bucket: bucket, Key: relativePath, Body: file };
@@ -855,7 +852,6 @@ async function loadAuditTypes() {
 async function globalCheck() {
     assert(process.env.DB_ADDRESS, "Environment variable 'DB_ADDRESS' is needed.");
     assert(process.env.NODE_NAME, "Environment variable 'NODE_NAME' is needed.");
-    assert(process.env.CLUSTER_NAME, "Environment variable 'CLUSTER_NAME' is needed.");
     try {
         await mongodb_1.MongoClient.connect(process.env.DB_ADDRESS, {
             useNewUrlParser: true,
@@ -919,7 +915,6 @@ function onlyUnique(value, index, self) {
 exports.onlyUnique = onlyUnique;
 async function loadServiceConfigs() {
     exports.glob.serviceConfigs = {};
-    let appGroups = await get(process.env.CLUSTER_NAME, types_1.Objects.appGroups);
     for (const db of exports.glob.services) {
         let service = await getOne(db, types_1.Objects.serviceConfig);
         if (!service) {
@@ -930,14 +925,7 @@ async function loadServiceConfigs() {
         exports.glob.serviceConfigs[db] = service;
         service.dependencies = service.dependencies || [];
         service.dependencies = [...service.dependencies, 'sys', 'web', 'auth'].filter(onlyUnique);
-        let apps;
-        if (service.appGroup) {
-            let appGroup = appGroups.find(ap => ap._id.equals(service.appGroup));
-            assert(appGroup, `AppGroup for service '${db}' not found!`);
-            apps = appGroup.apps;
-        }
-        else
-            apps = service.apps;
+        let apps = service.apps;
         service._ = { apps: [] };
         if (!apps)
             continue;
@@ -1462,14 +1450,8 @@ async function verifyEmailAccounts(cn) {
 exports.verifyEmailAccounts = verifyEmailAccounts;
 async function sendEmail(cn, from, to, subject, content, params) {
     let account;
-    if (cn.service.sso) {
-        let config = await getOne(process.env.CLUSTER_NAME, types_1.Objects.clusterConfig);
-        account = config.emailAccounts.find(account => account.email == from);
-    }
-    else {
-        assert(exports.glob.serviceConfigs[cn.db].emailAccounts, `Email accounts is empty`);
-        account = exports.glob.serviceConfigs[cn.db].emailAccounts.find(account => account.email == from);
-    }
+    assert(exports.glob.serviceConfigs[cn.db].emailAccounts, `Email accounts is empty`);
+    account = exports.glob.serviceConfigs[cn.db].emailAccounts.find(account => account.email == from);
     assert(account, `Email account for account '${from}' not found!`);
     const transporter = nodemailer.createTransport({
         host: account.smtpServer,
@@ -1790,8 +1772,6 @@ function getEntityDatabase(cn, entity) {
     if (entity.entityType == types_1.EntityType.Object) {
         let obj = entity;
         switch (obj.sourceClass) {
-            case types_1.ObjectSourceClass.Cluster:
-                return process.env.CLUSTER_NAME;
             case types_1.ObjectSourceClass.Node:
                 return process.env.NODE_NAME;
             case types_1.ObjectSourceClass.Internal:
