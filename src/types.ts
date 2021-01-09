@@ -70,7 +70,10 @@ export class AccessPermission {
     funcAction: PermissionFunctionAction;
     formAction: PermissionFormAction;
     driveAction: PermissionDriveAction;
-    properties: string[];
+    properties: {
+        name: string;
+        action: PermissionObjectAction;
+    }[];
 }
 
 export enum AppTheme {
@@ -208,6 +211,7 @@ export class mObject extends Entity implements IProperties {
     sourceClass: ObjectSourceClass;
     approximateCount: number;
     modified: ID;
+    initializing: ID;
     detailsViewType: ObjectDetailsViewType;
     listsViewType: ObjectListsViewType;
     _: {
@@ -381,6 +385,7 @@ export class Property implements IProperties {
         fileUri?: string;
         isRef?: boolean;
         enum?: Enum;
+        permissions?: Access[];
         ref?: string;
         items?: Pair[];
         parentPropertiesCompared?: boolean;
@@ -396,6 +401,7 @@ export class Drive extends Entity {
     _: {
         db: string;
         uri?: string;
+        permissions?: Access[];
     }
 }
 

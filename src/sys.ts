@@ -97,7 +97,7 @@ import {
     Text,
     UploadedFile,
     User,
-    EmailAccount, DriveSourceClass,
+    EmailAccount, DriveSourceClass, PermissionObjectAction,
 } from './types';
 
 const nodemailer = require('nodemailer');
@@ -2510,6 +2510,30 @@ function checkPropertyPermission(property: Property, user: User): AccessAction {
     // }
 }
 
+function getPortionPermissions(cn, portion: RefPortion): AccessAction {
+    switch (portion.type) {
+        case RefPortionType.entity:
+            return checkAccess(cn, portion.entity.guestAccess, portion.entity._.permissions);
+
+        case RefPortionType.property:
+            if (portion.property._.permissions && portion.property._.permissions.length) return checkAccess(cn, null, portion.property._.permissions);
+            let parentPermission = getPortionPermissions(cn, portion.pre);
+            if (parentPermission & AccessAction.Edit)
+                parentPermission = AccessAction.Full; // If entity is editable inner properties have full access
+            return parentPermission;
+
+        case RefPortionType.item:
+            return getPortionPermissions(cn, portion.pre);
+    }
+}
+
+function getPropertyPermissions(cn, prop: Property, parentPermission: AccessAction): AccessAction {
+    if (prop._.permissions && prop._.permissions.length) return checkAccess(cn, null, prop._.permissions);
+    if (parentPermission & AccessAction.Edit)
+        parentPermission = AccessAction.Full; // If entity is editable inner properties have full access
+    return parentPermission;
+}
+
 export async function createDeclare(cn: Context, ref: string, properties: Property[], data: any, partial, obj: mObject, links: EntityLink[]): Promise<ObjectDec> {
     let dec = {
         ref,
@@ -2518,11 +2542,15 @@ export async function createDeclare(cn: Context, ref: string, properties: Proper
         count: cn.count,
         page: cn.page,
         comment: $t(cn, obj.comment),
-        access: cn["access"],
         links,
         rowHeaderStyle: obj.rowHeaderStyle,
         reorderable: obj.reorderable,
     } as ObjectDec;
+
+    dec.access = getPortionPermissions(cn, cn.portions[cn.portions.length - 1]);
+    if (dec.access != cn["access"]) {
+        warn(`Portion access '${AccessAction[dec.access] || dec.access}' is different rather than its parent '${AccessAction[cn["access"]] || cn["access"]}'`);
+    }
 
     let portion = cn.portions[cn.portions.length - 1];
     if (portion.type == RefPortionType.entity && obj.newItemMode)
@@ -2727,11 +2755,9 @@ function getPropertyEditMode(cn: Context, prop: Property): PropertyEditMode {
     return prop.editMode;
 }
 
-export function checkAccess(cn: Context, entity: Entity): AccessAction {
-    let permissions: Access[] = entity._.permissions;
-    let permission = entity.guestAccess || AccessAction.None;
-    if (!permissions || !permissions.length) return permission;
-    if (!cn.user) return permission;
+export function checkAccess(cn: Context, guestAccess: AccessAction, permissions: Access[]): AccessAction {
+    guestAccess = guestAccess || AccessAction.None;
+    if (!permissions || !permissions.length || !cn.user) return guestAccess;
 
     for (let access of permissions) {
         if (
@@ -2740,29 +2766,24 @@ export function checkAccess(cn: Context, entity: Entity): AccessAction {
         ) {
             switch (access.permission) {
                 case AccessAction.Full:
-                    permission = AccessAction.Full;
-                    break;
+                    return AccessAction.Full;
 
                 case AccessAction.View:
-                    permission = permission | AccessAction.View;
-                    break;
+                    return guestAccess | AccessAction.View;
 
                 case AccessAction.Edit:
-                    permission = permission | AccessAction.View | AccessAction.Edit;
-                    break;
+                    return guestAccess | AccessAction.View | AccessAction.Edit;
 
                 case AccessAction.NewItem:
-                    permission = permission | AccessAction.View | AccessAction.NewItem;
-                    break;
+                    return guestAccess | AccessAction.View | AccessAction.NewItem;
 
                 case AccessAction.DeleteItem:
-                    permission = permission | AccessAction.View | AccessAction.DeleteItem;
-                    break;
+                    return guestAccess | AccessAction.View | AccessAction.DeleteItem;
             }
         }
     }
 
-    return permission;
+    return guestAccess;
 }
 
 export function makeLinksReady(cn: Context, ref: string, data: any, links: EntityLink[]): EntityLink[] {
@@ -2810,17 +2831,18 @@ export function makeLinksReady(cn: Context, ref: string, data: any, links: Entit
     return links;
 }
 
-async function prepareObjectPropertyDeclare(cn: Context, ref: string, prop: Property, instance: any, partial: boolean, parentAccess: AccessAction) {
+async function prepareObjectPropertyDeclare(cn: Context, ref: string, prop: Property, instance: any, partial: boolean, parentPermission: AccessAction) {
     if (prop.documentView) return;
 
     let objectProp = _.cloneDeep(prop) as Property;
     objectProp.properties = objectProp.properties || [];
+    const access = getPropertyPermissions(cn, prop, parentPermission);
     if (partial) {
         let propObjectDec = {
             title: prop.title,
             properties: objectProp.properties,
             ref: prop._.ref,
-            access: parentAccess,
+            access,
             reorderable: objectProp.reorderable
         } as ObjectDec;
         if (objectProp.listsViewType) propObjectDec.listsViewType = objectProp.listsViewType;
@@ -2832,7 +2854,7 @@ async function prepareObjectPropertyDeclare(cn: Context, ref: string, prop: Prop
 
     for (const subProp of objectProp.properties) {
         subProp._.ref = null;
-        await preparePropertyDeclare(cn, prop._.ref, subProp, instance, partial, parentAccess);
+        await preparePropertyDeclare(cn, prop._.ref, subProp, instance, partial, access);
     }
 
     Object.keys(prop).forEach(k => delete prop[k]);

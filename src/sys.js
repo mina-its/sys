@@ -2216,6 +2216,28 @@ exports.filterAndSortProperties = filterAndSortProperties;
 function checkPropertyPermission(property, user) {
     return types_1.AccessAction.Full;
 }
+function getPortionPermissions(cn, portion) {
+    switch (portion.type) {
+        case types_1.RefPortionType.entity:
+            return checkAccess(cn, portion.entity.guestAccess, portion.entity._.permissions);
+        case types_1.RefPortionType.property:
+            if (portion.property._.permissions && portion.property._.permissions.length)
+                return checkAccess(cn, null, portion.property._.permissions);
+            let parentPermission = getPortionPermissions(cn, portion.pre);
+            if (parentPermission & types_1.AccessAction.Edit)
+                parentPermission = types_1.AccessAction.Full;
+            return parentPermission;
+        case types_1.RefPortionType.item:
+            return getPortionPermissions(cn, portion.pre);
+    }
+}
+function getPropertyPermissions(cn, prop, parentPermission) {
+    if (prop._.permissions && prop._.permissions.length)
+        return checkAccess(cn, null, prop._.permissions);
+    if (parentPermission & types_1.AccessAction.Edit)
+        parentPermission = types_1.AccessAction.Full;
+    return parentPermission;
+}
 async function createDeclare(cn, ref, properties, data, partial, obj, links) {
     let dec = {
         ref,
@@ -2224,11 +2246,14 @@ async function createDeclare(cn, ref, properties, data, partial, obj, links) {
         count: cn.count,
         page: cn.page,
         comment: $t(cn, obj.comment),
-        access: cn["access"],
         links,
         rowHeaderStyle: obj.rowHeaderStyle,
         reorderable: obj.reorderable,
     };
+    dec.access = getPortionPermissions(cn, cn.portions[cn.portions.length - 1]);
+    if (dec.access != cn["access"]) {
+        warn(`Portion access '${types_1.AccessAction[dec.access] || dec.access}' is different rather than its parent '${types_1.AccessAction[cn["access"]] || cn["access"]}'`);
+    }
     let portion = cn.portions[cn.portions.length - 1];
     if (portion.type == types_1.RefPortionType.entity && obj.newItemMode)
         dec.newItemMode = obj.newItemMode;
@@ -2412,36 +2437,28 @@ exports.preparePropertyDeclare = preparePropertyDeclare;
 function getPropertyEditMode(cn, prop) {
     return prop.editMode;
 }
-function checkAccess(cn, entity) {
-    let permissions = entity._.permissions;
-    let permission = entity.guestAccess || types_1.AccessAction.None;
-    if (!permissions || !permissions.length)
-        return permission;
-    if (!cn.user)
-        return permission;
+function checkAccess(cn, guestAccess, permissions) {
+    guestAccess = guestAccess || types_1.AccessAction.None;
+    if (!permissions || !permissions.length || !cn.user)
+        return guestAccess;
     for (let access of permissions) {
         if ((access.user && cn.user._id.equals(access.user)) ||
             (access.role && cn.user.roles && cn.user.roles.some(r => r.equals(access.role)))) {
             switch (access.permission) {
                 case types_1.AccessAction.Full:
-                    permission = types_1.AccessAction.Full;
-                    break;
+                    return types_1.AccessAction.Full;
                 case types_1.AccessAction.View:
-                    permission = permission | types_1.AccessAction.View;
-                    break;
+                    return guestAccess | types_1.AccessAction.View;
                 case types_1.AccessAction.Edit:
-                    permission = permission | types_1.AccessAction.View | types_1.AccessAction.Edit;
-                    break;
+                    return guestAccess | types_1.AccessAction.View | types_1.AccessAction.Edit;
                 case types_1.AccessAction.NewItem:
-                    permission = permission | types_1.AccessAction.View | types_1.AccessAction.NewItem;
-                    break;
+                    return guestAccess | types_1.AccessAction.View | types_1.AccessAction.NewItem;
                 case types_1.AccessAction.DeleteItem:
-                    permission = permission | types_1.AccessAction.View | types_1.AccessAction.DeleteItem;
-                    break;
+                    return guestAccess | types_1.AccessAction.View | types_1.AccessAction.DeleteItem;
             }
         }
     }
-    return permission;
+    return guestAccess;
 }
 exports.checkAccess = checkAccess;
 function makeLinksReady(cn, ref, data, links) {
@@ -2484,17 +2501,18 @@ function makeLinksReady(cn, ref, data, links) {
     return links;
 }
 exports.makeLinksReady = makeLinksReady;
-async function prepareObjectPropertyDeclare(cn, ref, prop, instance, partial, parentAccess) {
+async function prepareObjectPropertyDeclare(cn, ref, prop, instance, partial, parentPermission) {
     if (prop.documentView)
         return;
     let objectProp = _.cloneDeep(prop);
     objectProp.properties = objectProp.properties || [];
+    const access = getPropertyPermissions(cn, prop, parentPermission);
     if (partial) {
         let propObjectDec = {
             title: prop.title,
             properties: objectProp.properties,
             ref: prop._.ref,
-            access: parentAccess,
+            access,
             reorderable: objectProp.reorderable
         };
         if (objectProp.listsViewType)
@@ -2506,7 +2524,7 @@ async function prepareObjectPropertyDeclare(cn, ref, prop, instance, partial, pa
     }
     for (const subProp of objectProp.properties) {
         subProp._.ref = null;
-        await preparePropertyDeclare(cn, prop._.ref, subProp, instance, partial, parentAccess);
+        await preparePropertyDeclare(cn, prop._.ref, subProp, instance, partial, access);
     }
     Object.keys(prop).forEach(k => delete prop[k]);
     prop.name = objectProp.name;
