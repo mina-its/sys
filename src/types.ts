@@ -14,6 +14,7 @@ export class Context {
     user: User;
     sessionID: string;
     host: Host;
+    origin: Url.URL; // location.href while requesting
     prefix: string;
     locale: Locale;
     // context db which is context host db, but if entity is 'service data' object, db would be the entity db!

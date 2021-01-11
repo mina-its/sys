@@ -490,6 +490,26 @@ export async function count(cn: Context | string, objectName: string, options: G
     return await collection.countDocuments(query, null as MongoCountPreferences);
 }
 
+export async function patchById(cn: Context | string, objectName: string, id: ObjectId, patchData: any) {
+    let collection = await getCollection(cn, objectName);
+    if (!collection) throw StatusCode.BadRequest;
+
+    let command = {} as any;
+    for (let key in patchData) {
+        if (patchData[key] == null) {
+            command.$unset = command.$unset || {};
+            command.$unset[key] = "";
+        } else {
+            command.$set = command.$set || {};
+            command.$set[key] = patchData[key];
+        }
+    }
+    let result = await collection.updateOne({_id: id}, command);
+    return {
+        type: ObjectModifyType.Patch,
+    } as ObjectModifyState;
+}
+
 export async function patch(cn: Context | string, objectName: string, patchData: any, options?: PutOptions) {
     let collection = await getCollection(cn, objectName);
     if (!collection) throw StatusCode.BadRequest;
@@ -2626,6 +2646,10 @@ function getPropertySpecialValue(cn: Context, property: Property, value: string)
             return new ObjectId();
         else if (value == "_user_")
             return cn.user ? cn.user._id : null;
+        else if (value.startsWith("user.")) {
+            const userProperty = value.replace(/user\./, "");
+            return cn.user ? cn.user[userProperty] : null;
+        }
     } else if (property.type.toString() === PType.time) {
         switch (value.toLowerCase()) {
             case "_now_": {
