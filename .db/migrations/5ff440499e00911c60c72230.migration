@@ -1,1 +1,0 @@
-{"_id":{"$oid":"5ff440499e00911c60c72230"},"changes":[{"op":1,"data":"[{\"query\":{\"_id\":{\"$oid\":\"5f40293daaf7f736aa3041b8\"}},\"update\":{\"$set\":{\"sourceClass\":3}}}]","ns":"objects","_id":{"$oid":"5ff440499e00911c60c72231"}}],"filename":"5ff440499e00911c60c72230.migration","service":"sys","node":"shila","commitDate":{"$date":"2021-01-05T10:32:41.745Z"},"state":0}
